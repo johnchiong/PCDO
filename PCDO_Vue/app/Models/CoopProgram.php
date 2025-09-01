@@ -5,20 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Cooperative extends Model
+class CoopProgram extends Model
 {
     use HasFactory;
-
-    // Add fields you want to be mass assignable
     protected $fillable = [
-        'name', 
+        'name',
+        'program_id',
     ];
 
-    public function programs()
+     public function program()
     {
-        return $this->belongsToMany(Program::class, 'cooperative_programs')
-                    ->withTimestamps();
+        return $this->belongsTo(Program::class);
     }
+
     public function uploads()
     {
         return $this->hasMany(CoopUploads::class);

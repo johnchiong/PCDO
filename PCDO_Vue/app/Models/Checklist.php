@@ -15,6 +15,6 @@ class Checklist extends Model
     // A checklist item can have many uploads (one per cooperative ideally)
     public function uploads()
     {
-        return $this->hasMany(CoopUpload::class, 'checklist_item_id');
+        return $this->hasMany(CoopUploads::class, 'checklist_item_id');
     }
 }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CoopProgramController;
 use App\Http\Controllers\CooperativeController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -17,8 +18,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cooperative/create', [CooperativeController::class, 'create'])->name('cooperative.create');
     Route::post('cooperative', [CooperativeController::class, 'store'])->name('cooperative.store');
 
-    Route::get('cooperative/{cooperative}/document', [CooperativeController::class, 'document'])->name('cooperative.document');
-    Route::post('cooperative/{cooperative}/upload', [CooperativeController::class, 'storeUpload'])->name('checklist.upload');
+    Route::get('coop_program', [CoopProgramController::class, 'index'])->name('coop_program.index');
+    Route::get('coop_program/create', [CoopProgramController::class, 'create'])->name('coop_program.create');
+    Route::post('coop_program', [CoopProgramController::class, 'store'])->name('coop_program.store');
+
+    Route::get('coop_program/{coop_program}/document', [CoopProgramController::class, 'document'])->name('coop_program.document');
+    Route::post('coop_program/{coop_program}/upload', [CoopProgramController::class, 'storeUpload'])->name('checklist.upload');
 });
 
 require __DIR__.'/settings.php';

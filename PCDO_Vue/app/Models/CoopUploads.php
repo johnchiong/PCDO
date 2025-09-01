@@ -23,6 +23,6 @@ class CoopUploads extends Model
     // Relationship to cooperative
     public function cooperative()
     {
-        return $this->belongsTo(Cooperative::class, 'cooperative_id');
+        return $this->belongsTo(CoopProgram::class, 'cooperative_id');
     }
 }
