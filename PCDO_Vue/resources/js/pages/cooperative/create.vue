@@ -57,7 +57,8 @@ const handleSubmit = () => {
                         <div class="relative w-full">
                             <DropdownMenuRoot>
                                 <DropdownMenuTrigger as="button"
-                                    class="form-control w-full text-left py-2 px-3 border rounded bg-white flex items-center justify-between">
+                                    class="form-control w-full text-left py-2 px-3 border rounded 
+                                bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 flex items-center justify-between focus:outline-none">
                                     <span class="text-gray-500" v-if="!selectedProgram">
                                         -- Select Program --
                                     </span>
@@ -71,8 +72,7 @@ const handleSubmit = () => {
                                     class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow mt-1 w-190"
                                     :style="{ minWidth: '100%' }">
                                     <DropdownMenuItem v-for="option in programOptions" :key="option.value"
-                                        @click="selectProgram(option.value)"
-                                        class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-gray-100">
+                                        @click="selectProgram(option.value)" class="px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer text-gray-900 dark:text-gray-100">
                                         {{ option.label }}
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>

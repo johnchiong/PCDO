@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CoopUploads extends Model
 {
+    use HasFactory;
+    protected $table = 'cooperative_uploads';
     protected $fillable = [
         'cooperative_id',
         'checklist_item_id',
