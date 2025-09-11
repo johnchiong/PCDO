@@ -6,6 +6,7 @@ use App\Models\CoopUploads;
 use Illuminate\Http\Request;
 use App\Models\Cooperative;
 use App\Models\Checklist;
+use App\Models\Loan;
 use Inertia\Inertia;
 
 class CooperativeController extends Controller
@@ -68,7 +69,7 @@ class CooperativeController extends Controller
         });
 
         return Inertia::render('cooperative/document', [
-            'cooperative' => $cooperative->load('program'),
+            'cooperative' => $cooperative->load('program', 'loan'),
             'checklistItems' => $checklistItems,
         ]);
     }
@@ -109,4 +110,42 @@ class CooperativeController extends Controller
         $upload->delete();
         return back()->with('success', 'File deleted successfully!');
     }
+
+    public function storeLoan(Request $request, Cooperative $cooperative)
+    {
+        $program = $cooperative->program;
+
+        // Validate loan amount
+        $data = $request->validate([
+            'amount' => [
+                'required',
+                'numeric',
+                'min:' . $program->min_amount,
+                'max:' . $program->max_amount,
+            ],
+        ]);
+
+        // Prevent duplicate loan
+        if ($cooperative->loan()->exists()) {
+            return back()->withErrors(['amount' => 'Loan already exists for this cooperative.']);
+        }
+
+        // Create loan
+        $loan = Loan::create([
+            'cooperative_id' => $cooperative->id,
+            'program_id' => $program->id,
+            'amount' => $data['amount'],
+            'start_date' => now(),
+            'grace_period' => $program->grace_period,
+            'term_months' => $program->term_months,
+        ]);
+
+        // Generate amortization schedules
+        $loan->generateSchedule();
+
+        return back()->with('success', 'Loan amount saved successfully!');
+    }
+
+
 }
+

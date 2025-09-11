@@ -24,4 +24,9 @@ class Cooperative extends Model
     {
         return $this->hasMany(CoopUploads::class);
     }
+
+    public function loan()
+    {
+        return $this->hasOne(Loan::class);
+    }
 }

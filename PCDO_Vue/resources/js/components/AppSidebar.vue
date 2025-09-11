@@ -5,9 +5,10 @@ import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader, SidebarMenu, Sid
 import { dashboard } from '@/routes';
 import cooperative from '@/routes/cooperative';
 import payments from '@/routes/payments';
+import notifications from '@/routes/notifications';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Handshake, HandCoins } from 'lucide-vue-next';
+import { LayoutGrid, Handshake, HandCoins, Bell, FolderKanban } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -18,9 +19,15 @@ const mainNavItems: NavItem[] = [
     },
 
     {
-        title: 'Cooperative',
+        title: 'Cooperatives',
         href: cooperative.index(),
         icon: Handshake,
+    },
+
+    {
+        title: 'Programs',
+        href: cooperative.index(),
+        icon: FolderKanban,
     },
 
     {
@@ -28,6 +35,13 @@ const mainNavItems: NavItem[] = [
         href: payments.index(),
         icon: HandCoins,
     },
+
+    {
+        title: 'Notifications',
+        href: notifications.index(),
+        icon: Bell,
+    },
+
 ];
 </script>
 

@@ -13,7 +13,7 @@ defineProps<Props>();
 </script>
 
 <template>
-    <div class="w-12 h-12 flex items-center justify-center rounded-full bg-white overflow-hidden">
+    <div class="w-25 h-25 flex items-center justify-center rounded-full bg-white overflow-hidden">
     <img 
       src="/img/pcdo_logo.png" 
       alt="App Logo" 
