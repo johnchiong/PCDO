@@ -33,6 +33,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/payments/{loanId}/amortization', [PaymentsController::class, 'amortization'])->name('payments.amortization');
     Route::post('/schedules/{scheduleId}/penalty', [PaymentsController::class, 'penalty'])->name('schedules.penalty');
     Route::post('/schedules/{scheduleId}/mark-paid', [PaymentsController::class, 'markPaid'])->name('schedules.markPaid');
+    Route::post('/schedules/{schedule}/note-payment', [PaymentsController::class, 'notePayment'])->name('schedules.notePayment');
     Route::post('/loans/{loanId}/send-notif', [PaymentsController::class, 'sendNotification'])->name('loans.sendNotification');
 
     //Notification Routes

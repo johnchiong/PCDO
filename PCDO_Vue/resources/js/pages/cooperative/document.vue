@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
 import Button from '@/components/ui/button/Button.vue'
-import { Head, useForm, router, Link } from '@inertiajs/vue3'
+import { Head, useForm, router } from '@inertiajs/vue3'
 import cooperative from '@/routes/cooperative'
 import { type BreadcrumbItem } from '@/types'
 import { ref, computed } from 'vue'
@@ -46,16 +46,17 @@ const props = defineProps<{
   checklistItems: ChecklistItem[]
 }>()
 
-// Loan form (only if no loan exists yet)
+// Loan form
 const loanForm = useForm({
-  amount: null as number | null
+  amount: props.cooperative?.loan?.amount || null,
+  grace_period: 0 as number, // default: no grace
 })
 
 const setLoanMin = () => {
-  loanForm.amount = props.cooperative.program.min_amount
+  loanForm.amount = props.cooperative?.program?.min_amount
 }
 const setLoanMax = () => {
-  loanForm.amount = props.cooperative.program.max_amount
+  loanForm.amount = props.cooperative?.program?.max_amount
 }
 
 function submitLoan() {
@@ -101,7 +102,7 @@ function finishUploads() {
   router.visit('/cooperative')
 }
 
-// Check if all uploads are done
+// some for one required doc, every for all docs
 const allUploadsDone = computed(() =>
   props.checklistItems.some(item => item.upload)
 )
@@ -144,7 +145,7 @@ const allUploadsDone = computed(() =>
         <!-- If No Loan Exists -->
         <div v-else>
           <template v-if="allUploadsDone">
-            <form @submit.prevent="loanForm.post(`/cooperative/${props.cooperative.id}/loan`)" class="space-y-4">
+            <form @submit.prevent="submitLoan" class="space-y-6">
               <div>
                 <label for="loanAmount" class="block text-sm font-medium mb-1 text-gray-900 dark:text-gray-100">
                   Enter Loan Amount
@@ -158,15 +159,47 @@ const allUploadsDone = computed(() =>
                          focus:ring-2 focus:ring-blue-500 focus:outline-none" placeholder="Enter loan amount" />
               </div>
 
+              <!-- Grace Period Radio Group -->
+              <div>
+                <span class="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
+                  Grace Period
+                </span>
+                <div class="flex gap-4">
+                  <label class="flex-1 cursor-pointer">
+                    <div :class="[
+                        'p-3 rounded-lg border transition',
+                        loanForm.grace_period === 0
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
+                      ]">
+                      <input type="radio" v-model="loanForm.grace_period" :value="0" class="hidden" />
+                      <p class="text-sm font-medium text-gray-900 dark:text-gray-100">No Grace Period</p>
+                    </div>
+                  </label>
+
+                  <label class="flex-1 cursor-pointer">
+                    <div :class="[
+                        'p-3 rounded-lg border transition',
+                        loanForm.grace_period === 4
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                          : 'border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800'
+                      ]">
+                      <input type="radio" v-model="loanForm.grace_period" :value="4" class="hidden" />
+                      <p class="text-sm font-medium text-gray-900 dark:text-gray-100">4-Month Grace Period</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <!-- Buttons -->
               <div class="flex justify-between items-center gap-2">
                 <div class="flex gap-2">
                   <Button type="button" @click="setLoanMin" class="bg-gray-200 dark:bg-[#334155] border border-gray-300 dark:border-[#475569]
-                                 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#3b445c]">
+                     text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#3b445c]">
                     Min: ₱{{ props.cooperative.program.min_amount }}
                   </Button>
                   <Button type="button" @click="setLoanMax" class="bg-gray-200 dark:bg-[#334155] border border-gray-300 dark:border-[#475569]
-                                 text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#3b445c]">
+                     text-gray-800 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-[#3b445c]">
                     Max: ₱{{ props.cooperative.program.max_amount }}
                   </Button>
                 </div>
@@ -178,8 +211,7 @@ const allUploadsDone = computed(() =>
               <p v-if="loanForm.amount &&
                 (loanForm.amount < props.cooperative.program.min_amount ||
                   loanForm.amount > props.cooperative.program.max_amount)" class="text-red-600 text-sm mt-2">
-                Loan must be between ₱{{ props.cooperative.program.min_amount }} and ₱{{
-                  props.cooperative.program.max_amount }}.
+                Loan must be between ₱{{ props.cooperative.program.min_amount }} and ₱{{ props.cooperative.program.max_amount }}.
               </p>
             </form>
           </template>
@@ -209,7 +241,7 @@ const allUploadsDone = computed(() =>
             Uploaded File: <strong>{{ item.upload.file_name }}</strong>
           </p>
           <div class="flex gap-4">
-            <a :href="`/cooperative/uploads/${item.upload.id}/download`" class="text-blue-600 dark:text-blue-400 hover:underline">
+            <a :href="`/cooperative/uploads/{{ item.upload.id }}/download`" class="text-blue-600 dark:text-blue-400 hover:underline">
               Download
             </a>
             <button type="button" @click="deleteFile(item.upload.id)" class="text-red-600 hover:underline">

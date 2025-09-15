@@ -115,7 +115,6 @@ class CooperativeController extends Controller
     {
         $program = $cooperative->program;
 
-        // Validate loan amount
         $data = $request->validate([
             'amount' => [
                 'required',
@@ -123,20 +122,23 @@ class CooperativeController extends Controller
                 'min:' . $program->min_amount,
                 'max:' . $program->max_amount,
             ],
+            'grace_period' => [
+                'nullable',
+                'integer',
+                'min:0',
+                'max:' . $program->term_months,
+            ],
         ]);
 
-        // Prevent duplicate loan
-        if ($cooperative->loan()->exists()) {
-            return back()->withErrors(['amount' => 'Loan already exists for this cooperative.']);
-        }
+        // Use the submitted grace_period, default to 0 if not set
+        $gracePeriod = $data['grace_period'] ?? 0;
 
-        // Create loan
         $loan = Loan::create([
             'cooperative_id' => $cooperative->id,
             'program_id' => $program->id,
             'amount' => $data['amount'],
             'start_date' => now(),
-            'grace_period' => $program->grace_period,
+            'grace_period' => $gracePeriod,
             'term_months' => $program->term_months,
         ]);
 
