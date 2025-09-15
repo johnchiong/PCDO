@@ -3,6 +3,7 @@
 use App\Http\Controllers\CooperativeController;
 use App\Http\Controllers\PaymentsController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProgramController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -27,6 +28,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/cooperative/uploads/{upload}/download', [CooperativeController::class, 'download'])->name('cooperative.uploads.download');
     Route::delete('/cooperative/uploads/{upload}', [CooperativeController::class, 'destroyUpload'])->name('cooperative.uploads.destroy');
     Route::post('/cooperative/{cooperative}/loan', [CooperativeController::class, 'storeLoan'])->name('cooperative.loan.store');
+
+    //Program Routes
+    Route::get('programs', [ProgramController::class, 'index'])->name('programs.index');
 
     //Payment Routes
     Route::get('payments', [PaymentsController::class, 'index'])->name('payments.index');

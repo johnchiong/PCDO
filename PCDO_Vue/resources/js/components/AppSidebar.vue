@@ -6,6 +6,7 @@ import { dashboard } from '@/routes';
 import cooperative from '@/routes/cooperative';
 import payments from '@/routes/payments';
 import notifications from '@/routes/notifications';
+import programs from '@/routes/programs';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { LayoutGrid, Handshake, HandCoins, Bell, FolderKanban } from 'lucide-vue-next';
@@ -26,7 +27,7 @@ const mainNavItems: NavItem[] = [
 
     {
         title: 'Programs',
-        href: cooperative.index(),
+        href: programs.index(),
         icon: FolderKanban,
     },
 
