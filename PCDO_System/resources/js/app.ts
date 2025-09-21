@@ -16,6 +16,8 @@ import InputField from './components/ui/input/Input.vue';
 import { Table, TableCaption, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { CheckCircle, XCircle, CircleDashed, Search } from 'lucide-vue-next';
 import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from 'reka-ui';
+// Directives
+import ClickOutside from './directives/ClickOutside';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Unknown ENV';
 
@@ -25,6 +27,7 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
+            .directive('click-outside', ClickOutside)
             .component('Head', Head)
             .component('Link', Link)
             .component('Button', Button)

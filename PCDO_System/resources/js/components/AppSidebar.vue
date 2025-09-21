@@ -16,7 +16,7 @@ import cooperatives  from '@/routes/cooperatives';
 import coopPrograms from '@/routes/coopPrograms';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid } from 'lucide-vue-next';
+import { LayoutGrid, Handshake, HandCoins, Bell, FolderKanban } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
 const mainNavItems: NavItem[] = [
@@ -28,12 +28,17 @@ const mainNavItems: NavItem[] = [
     {
         title: 'Cooperative',
         href: cooperatives.index(),
-        icon: LayoutGrid,
-    },    
+        icon: Handshake,
+    },
+    {
+        title: 'Payments',
+        href: coopPrograms.index(),
+        icon: HandCoins,
+    },
     {
         title: 'Programs',
         href: coopPrograms.index(),
-        icon: LayoutGrid,
+        icon: FolderKanban,
     },
 ];
 
