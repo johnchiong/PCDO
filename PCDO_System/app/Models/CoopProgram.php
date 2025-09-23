@@ -17,7 +17,10 @@ class CoopProgram extends Model
         'description',
         'start_date',
         'end_date',
-        'status',
+        'program_status',
+        'email',
+        'loan_ammount',
+        'with_grace'
     ];
 
     protected $casts = [
@@ -27,7 +30,7 @@ class CoopProgram extends Model
     ];
     public function cooperative()
     {
-        return $this->belongsTo(Cooperative::class);
+        return $this->belongsTo(Cooperative::class, 'coop_id', 'id');
     }
 
     public function program()
@@ -40,7 +43,12 @@ class CoopProgram extends Model
         return $this->hasMany(CoopProgramChecklist::class);
     }
 
-    function generateChecklists()
+    public function amortizationSchedules()
+    {
+        return $this->hasMany(AmortizationSchedules::class, 'coop_program_id');
+    }
+
+    public function generateChecklists()
     {
         $items = $this->program->checklists;
         foreach ($items as $item) {

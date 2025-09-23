@@ -14,6 +14,7 @@ import {
 import { dashboard } from '@/routes';
 import cooperatives  from '@/routes/cooperatives';
 import coopPrograms from '@/routes/coopPrograms';
+import amortizations from '@/routes/amortizations';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
 import { LayoutGrid, Handshake, HandCoins, Bell, FolderKanban } from 'lucide-vue-next';
@@ -32,7 +33,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Payments',
-        href: coopPrograms.index(),
+        href: amortizations.index(),
         icon: HandCoins,
     },
     {

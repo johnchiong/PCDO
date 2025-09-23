@@ -8,6 +8,7 @@ use App\Http\Controllers\CoopMemberController;
 use App\Http\Controllers\CoopProgramController;
 use App\Http\Controllers\CoopDetailsController;
 use App\Http\Controllers\CoopProgramChecklistController;
+use App\Http\Controllers\AmortizationScheduleController;
 use App\Http\Controllers\SyncController;
 
 Route::get('/', function () {
@@ -36,6 +37,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('coopPrograms/search', [CoopProgramController::class, 'search'])->name('coopPrograms.search');
     Route::get('coopPrograms/export', [CoopProgramController::class, 'export'])->name('coopPrograms.export');
     Route::post('coopPrograms/import', [CoopProgramController::class, 'import'])->name('cooprograms.import');
+
+    // Payments Routes
+    Route::get('amortizations', [AmortizationScheduleController::class, 'index'])->name('amortizations.index');
+    Route::post('/amortizations/{id}/generate', [AmortizationScheduleController::class, 'generateSchedule'])->name('amortizations.generate');
+    Route::get('/amortizations/{coopProgram}', [AmortizationScheduleController::class, 'show'])->name('amortizations.show');
+    Route::post('/schedules/{schedule}/mark-paid', [AmortizationScheduleController::class, 'markPaid'])->name('schedules.markPaid');
+    Route::post('/schedules/{schedule}/note-payment', [AmortizationScheduleController::class, 'notePayment'])->name('schedules.notePayment');
+    Route::post('/schedules/{schedule}/penalty', [AmortizationScheduleController::class, 'penalty'])->name('schedules.penalty');
+    Route::post('/schedules/{schedule}/send-overdue-email', [AmortizationScheduleController::class, 'sendOverdueEmail'])->name('schedules.sendOverdueEmail');
 
     // Cooperatives Program Nested Routes
     Route::resource('coopPrograms/{cooperative}/checklists', CoopProgramChecklistController::class);

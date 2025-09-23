@@ -31,6 +31,7 @@ class CooperativesController extends Controller
                     'holder' => $coop->holder,
                     'member_count' => $coop->details->members_count ?? 0,
                     'has_ongoing_program' => $coop->ongoing_program_count > 0,
+                    'coop_program_id' => $coop->programs->first()?->id, //add just for generate amortization
                 ];
             });
 

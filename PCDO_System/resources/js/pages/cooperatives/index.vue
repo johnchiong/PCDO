@@ -5,7 +5,7 @@ import { BreadcrumbItem } from '@/types'
 import { router } from '@inertiajs/vue3';
 
 const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Cooperatives', href: '' },
+    { title: 'Cooperatives', href: '' },
 ]
 
 interface Cooperative {
@@ -15,6 +15,7 @@ interface Cooperative {
     holder: string;
     member_count: number;
     has_ongoing_program: boolean;
+    coop_program_id: number; //add just for generate amortization
 }
 
 const props = defineProps<{
@@ -114,16 +115,12 @@ function goToCreatePage() {
                             <TableCell class="pl-20">{{ coop.type }}</TableCell>
                             <TableCell class="pl-20">{{ coop.holder }}</TableCell>
                             <TableCell class="pl-20">{{ coop.member_count }}</TableCell>
-                            <TableCell class="pl-20">
-                                <span v-if="coop.has_ongoing_program" class="px-3 py-1 text-xs font-medium rounded-full
-                                bg-green-100 text-green-700 
-                                dark:bg-green-700 dark:text-green-100">
-                                    Ongoing
-                                </span>
-                                <span v-else class="px-3 py-1 text-xs font-medium rounded-full
-                                bg-red-100 text-red-700 
-                                dark:bg-red-700 dark:text-red-100">
-                                    Inactive
+                            <TableCell class="pl-20 flex items-center gap-2">
+                                <CircleDashed v-if="coop.has_ongoing_program"
+                                    class="text-yellow-500 w-4 h-4 animate-spin" />
+                                <XCircle v-else class="text-red-500 w-4 h-4" />
+                                <span :class="coop.has_ongoing_program ? 'text-yellow-500' : 'text-red-500'">
+                                    {{ coop.has_ongoing_program ? 'Ongoing' : 'Inactive' }}
                                 </span>
                             </TableCell>
 
@@ -143,14 +140,19 @@ function goToCreatePage() {
                                 dark:bg-red-600 dark:hover:bg-red-500">
                                 Delete
                                 </Link>
+                                <Link v-if="coop.coop_program_id"
+                                    :href="`/amortizations/${coop.coop_program_id}/generate`" method="post" as="button"
+                                    class="px-3 py-1 rounded-lg bg-purple-500 text-white hover:bg-purple-600">
+                                Generate Amortization
+                                </Link>
                             </TableCell>
                         </TableRow>
 
-                            <TableRow v-if="paginatedCooperatives.length === 0">
-                                <TableCell colspan="7" class="text-center text-gray-500 py-6">
-                                    No Cooperatives found.
-                                </TableCell>
-                            </TableRow>
+                        <TableRow v-if="paginatedCooperatives.length === 0">
+                            <TableCell colspan="7" class="text-center text-gray-500 py-6">
+                                No Cooperatives found.
+                            </TableCell>
+                        </TableRow>
                     </TableBody>
                 </Table>
             </div>

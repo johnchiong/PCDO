@@ -22,6 +22,7 @@ return new class extends Migration
             $table->string('number')->nullable();
             $table->string('email');
             $table->integer('loan_ammount');
+            $table->integer('with_grace')->default(4);
             $table->timestamps();
         });
     }
