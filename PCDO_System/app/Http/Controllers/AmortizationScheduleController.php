@@ -5,17 +5,18 @@ namespace App\Http\Controllers;
 use App\Models\AmortizationSchedules;
 use App\Models\CoopProgram;
 use App\Notifications\LoanOverdueNotification;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class AmortizationScheduleController extends Controller
 {
-    public function generateSchedule($id)
+    public function generateSchedule($coopProgramId)
     {
-        $coopProgram = CoopProgram::with('program')->findOrFail($id);
+        $coopProgram = CoopProgram::with('program')->findOrFail($coopProgramId);
 
-        // Prevent duplicate schedule generation
+        // Prevent duplicate generation
         if ($coopProgram->amortizationSchedules()->exists()) {
             return back()->with('error', 'Amortization schedule already exists.');
         }
@@ -23,17 +24,17 @@ class AmortizationScheduleController extends Controller
         // Calculate months to pay
         $monthsToPay = $coopProgram->program->term_months - $coopProgram->with_grace;
         if ($monthsToPay <= 0) {
-            throw new \Exception('Invalid term and grace period.');
+            return back()->with('error', 'Invalid term or grace period.');
         }
 
         // Compute monthly installment
-        $amountPerMonth = round($coopProgram->loan_ammount / $monthsToPay, 2);
-        $startDate = \Carbon\Carbon::parse($coopProgram->start_date)->addMonths($coopProgram->with_grace);
+        $amountPerMonth = round($coopProgram->loan_amount / $monthsToPay, 2);
+        $startDate = Carbon::parse($coopProgram->start_date)->addMonths($coopProgram->with_grace);
 
         // Generate amortization schedule
         for ($i = 1; $i <= $monthsToPay; $i++) {
             $amountDue = ($i === $monthsToPay)
-                ? $coopProgram->loan_ammount - ($amountPerMonth * ($monthsToPay - 1))
+                ? $coopProgram->loan_amount - ($amountPerMonth * ($monthsToPay - 1))
                 : $amountPerMonth;
 
             AmortizationSchedules::create([
@@ -44,7 +45,9 @@ class AmortizationScheduleController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Amortization schedule generated successfully!');
+        return redirect()
+            ->route('programs.show', $coopProgram->program_id)
+            ->with('success', 'Amortization schedule generated successfully!');
     }
 
     public function index()
@@ -53,13 +56,17 @@ class AmortizationScheduleController extends Controller
             ->withCount('amortizationSchedules')
             ->get()
             ->map(fn ($p) => [
-                'id' => $p->cooperative?->id ?? 'N/A',      // cooperative ID
+                'id' => $p->cooperative?->id ?? 'N/A',
                 'cooperative_name' => $p->cooperative?->name ?? 'N/A',
                 'program_name' => $p->program?->name ?? 'N/A',
-                'loan_amount' => $p->loan_ammount ?? 0,
+                'loan_amount' => $p->loan_amount ?? 0,
                 'status' => $p->program_status,
                 'has_schedule' => $p->amortizationSchedules_count > 0,
-                'coop_program_id' => $p->id,               // for action links
+                'coop_program_id' => $p->id,
+                // ✅ Get the next due date (earliest unpaid schedule)
+                'next_due_date' => optional(
+                    $p->amortizationSchedules->where('status', '!=', 'Paid')->sortBy('due_date')->first()
+                )->due_date?->format('Y-m-d') ?? 'N/A',
             ]);
 
         return Inertia::render('payments/index', [
@@ -73,8 +80,10 @@ class AmortizationScheduleController extends Controller
             ->findOrFail($coopProgramId);
 
         $firstSchedule = $coopProgram->amortizationSchedules()->orderBy('due_date')->first();
-        $startDate = $firstSchedule?->due_date?->format('Y-m-d')
-            ?? $coopProgram->start_date?->format('Y-m-d')
+        $lastSchedule = $coopProgram->amortizationSchedules()->orderByDesc('due_date')->first();
+
+        $startDate = optional($firstSchedule?->due_date)->format('Y-m-d')
+            ?? optional($coopProgram->start_date)->format('Y-m-d')
             ?? now()->format('Y-m-d');
 
         $gracePeriod = $coopProgram->with_grace ?? 0;
@@ -85,11 +94,11 @@ class AmortizationScheduleController extends Controller
                 'id' => $coopProgram->id,
                 'cooperative_name' => $coopProgram->cooperative?->name ?? 'N/A',
                 'program_name' => $coopProgram->program?->name ?? 'N/A',
-                'loan_amount' => $coopProgram->loan_ammount ?? 0,
+                'loan_amount' => $coopProgram->loan_amount ?? 0,
                 'status' => $coopProgram->program_status ?? 'N/A',
                 'schedules' => $coopProgram->amortizationSchedules->map(fn ($s) => [
                     'id' => $s->id,
-                    'due_date' => $s->due_date instanceof \Carbon\Carbon ? $s->due_date->format('Y-m-d') : null,
+                    'due_date' => optional($s->due_date)->format('Y-m-d'),
                     'installment' => $s->installment ?? 0,
                     'penalty_amount' => $s->penalty_amount ?? 0,
                     'amount_paid' => $s->amount_paid ?? 0,
@@ -100,6 +109,7 @@ class AmortizationScheduleController extends Controller
                 'start_date' => $startDate,
                 'grace_period' => $gracePeriod,
                 'term_months' => $termMonths,
+                'expected_end_date' => optional($lastSchedule?->due_date)->format('Y-m-d'),
             ],
         ]);
     }
@@ -121,18 +131,23 @@ class AmortizationScheduleController extends Controller
      */
     public function sendOverdueEmail($scheduleId)
     {
-        $schedule = AmortizationSchedules::with('coopProgram')->findOrFail($scheduleId);
-        $coopProgram = $schedule->coopProgram;
-        $programEmail = $coopProgram->email ?? null;
+        $schedule = AmortizationSchedules::with('coopProgram.cooperative', 'pendingnotifications')->findOrFail($scheduleId);
+        $programEmail = $schedule->coopProgram->email ?? null;
 
-        if ($programEmail) {
-            Notification::route('mail', $programEmail)
-                ->notify(new LoanOverdueNotification($coopProgram));
 
-            return back()->with('success', 'Overdue email sent to '.$programEmail);
+        if (! $programEmail) {
+            return back()->with('error', 'No email found for this cooperative program.');
         }
 
-        return back()->with('error', 'No email found for this cooperative program.');
+        Notification::route('mail', $programEmail)
+            ->notify(new LoanOverdueNotification($schedule));
+
+        // ✅ Mark related pending notifications as processed
+        $schedule->pendingnotifications()
+            ->where('type', 'overdue')
+            ->update(['processed' => 1]);
+
+        return back()->with('success', 'Overdue email sent to '.$programEmail);
     }
 
     /**

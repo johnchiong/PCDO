@@ -20,7 +20,11 @@ return new class extends Migration
             $table->binary('file_content')->nullable(); // use longBlob to avoid encoding errors this is the code "ALTER TABLE cooperative_uploads MODIFY file_content LONGBLOB;"
             $table->timestamps();
         });
+
+        // Convert to LONGBLOB
+        DB::statement('ALTER TABLE coop_program_checklists MODIFY file_content LONGBLOB NULL');
     }
+    
 
     /**
      * Reverse the migrations.

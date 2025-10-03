@@ -14,12 +14,14 @@ return new class extends Migration
         Schema::create('coop_members', function (Blueprint $table) {
             $table->id();
             $table->string('coop_id');
-            $table->foreign('coop_id')->references('id')->on('cooperatives')->onDelete('cascade');
-            $table->string('position');
-            $table->string('first_name');
-            $table->string('middle_name');
-            $table->string('last_name');
-            $table->boolean('is_representative');
+            $table->foreign('coop_id')->references('id')->on('cooperatives')->onDelete('cascade')->onUpdate('cascade');
+            $table->enum('position', ['Chairman', 'Treasurer', 'Manager', 'Member']);
+            $table->string('first_name')->nullable();
+            $table->char('middle_initial')->nullable();
+            $table->string('last_name')->nullable();
+            $table->string('suffix')->nullable();
+            $table->boolean('is_representative')->default(false);
+            $table->year('active_year');
             $table->timestamps();
         });
     }

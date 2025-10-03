@@ -45,6 +45,22 @@ class Cooperative extends Model
     {
         return $this->hasMany(CoopProgram::class, 'coop_id', 'id');
     }
+    public function oldPrograms()
+    {
+        return $this->hasMany(AmortizationOld::class, 'coop_program_id'); // if your table is literally named "old"
+    }
+
+    public function progressReports()
+    {
+        return $this->hasManyThrough(
+            CoopProgramProgress::class,
+            CoopProgram::class,
+            'coop_id',        // Foreign key on coop_programs
+            'coop_program_id', // Foreign key on coop_program_progress
+            'id',             // Local key on cooperatives
+            'id'              // Local key on coop_programs
+        );
+    }
 
     public function isValidHierarchy()
     {

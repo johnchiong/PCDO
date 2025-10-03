@@ -18,9 +18,11 @@ class CoopProgram extends Model
         'start_date',
         'end_date',
         'program_status',
+        'number',
         'email',
-        'loan_ammount',
-        'with_grace'
+        'loan_amount',
+        'with_grace',
+        'exported',
     ];
 
     protected $casts = [
@@ -35,7 +37,7 @@ class CoopProgram extends Model
 
     public function program()
     {
-        return $this->belongsTo(Programs::class);
+        return $this->belongsTo(Programs::class, 'program_id');
     }
 
     public function checklist()
@@ -46,6 +48,16 @@ class CoopProgram extends Model
     public function amortizationSchedules()
     {
         return $this->hasMany(AmortizationSchedules::class, 'coop_program_id');
+    }
+    
+    public function olds()
+    {
+        return $this->hasMany(AmortizationOld::class, 'coop_program_id');
+    }
+
+       public function progressReports()
+    {
+        return $this->hasMany(CoopProgramProgress::class);
     }
 
     public function generateChecklists()

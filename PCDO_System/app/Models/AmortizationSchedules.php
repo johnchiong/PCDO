@@ -25,7 +25,7 @@ class AmortizationSchedules extends Model
 
     public function markPaid()
     {
-        $this->status = true;
+        $this->status = 'Paid'; // ✅ make it consistent
         $this->save();
     }
 
@@ -46,27 +46,25 @@ class AmortizationSchedules extends Model
     {
         return $this->belongsTo(\App\Models\CoopProgram::class, 'coop_program_id');
     }
-    /**
-     * Automatically check if the program is finished when a schedule is updated
-     */
+
+    public function pendingnotifications()
+    {
+        return $this->hasOne(PendingNotification::class, 'schedule_id', 'id');
+    }
+
     protected static function booted()
     {
         static::updated(function ($schedule) {
-            // Only trigger if the status changed to 'Paid'
             if ($schedule->wasChanged('status') && $schedule->status === 'Paid') {
                 $schedule->checkIfLastSchedulePaid();
             }
         });
     }
 
-    /**
-     * Check if this is the last schedule and update program status
-     */
     public function checkIfLastSchedulePaid()
     {
         $coopProgram = $this->coopProgram;
-        if (!$coopProgram)
-            return;
+        if (!$coopProgram) return;
 
         $lastSchedule = $coopProgram->amortizationSchedules()
             ->orderByDesc('due_date')

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -13,12 +12,14 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import cooperatives  from '@/routes/cooperatives';
-import coopPrograms from '@/routes/coopPrograms';
 import amortizations from '@/routes/amortizations';
 import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Handshake, HandCoins, Bell, FolderKanban } from 'lucide-vue-next';
+import { LayoutGrid, Handshake, HandCoins, Bell, FolderKanban, BookMarked } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
+import programs from '@/routes/programs';
+import notification from '@/routes/notifications';
+import documentation from '@/routes/documentation';
 
 const mainNavItems: NavItem[] = [
     {
@@ -32,14 +33,24 @@ const mainNavItems: NavItem[] = [
         icon: Handshake,
     },
     {
+        title: 'Programs',
+        href: programs.index(),
+        icon: FolderKanban,
+    },
+    {
         title: 'Payments',
         href: amortizations.index(),
         icon: HandCoins,
     },
     {
-        title: 'Programs',
-        href: coopPrograms.index(),
-        icon: FolderKanban,
+        title: 'Documentation',
+        href: documentation.index(),
+        icon: BookMarked,
+    },
+    {
+        title: 'Notification',
+        href: notification.index(),
+        icon: Bell,
     },
 ];
 

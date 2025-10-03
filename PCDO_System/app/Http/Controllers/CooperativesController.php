@@ -1,13 +1,22 @@
 <?php
 
 namespace App\Http\Controllers;
-use App\Models\Cooperative;
-use App\Models\Municipality;
+
+use App\Models\Barangay;
+use App\Models\City;
 use App\Models\CoopDetail;
+use App\Models\Cooperative;
 use App\Models\Province;
 use App\Models\Region;
-use App\Models\Barangay;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Reader\CSV\Options as CsvReaderOptions;
+use OpenSpout\Reader\CSV\Reader as CsvReader;
+use OpenSpout\Reader\XLSX\Reader as XlsxReader;
+use OpenSpout\Writer\CSV\Options as CsvWriterOptions;
+use OpenSpout\Writer\CSV\Writer as CsvWriter;
+use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
 
 class CooperativesController extends Controller
 {
@@ -31,7 +40,6 @@ class CooperativesController extends Controller
                     'holder' => $coop->holder,
                     'member_count' => $coop->details->members_count ?? 0,
                     'has_ongoing_program' => $coop->ongoing_program_count > 0,
-                    'coop_program_id' => $coop->programs->first()?->id, //add just for generate amortization
                 ];
             });
 
@@ -48,16 +56,17 @@ class CooperativesController extends Controller
      */
     public function create()
     {
-        $cooperatives = Cooperative::orderBy('name')->get(['id', 'name',]);
-        $regions = Region::orderBy('name')->get(['id', 'name']);
-        $provinces = Province::orderBy('name')->get(['id', 'name','region_id']);
-        $municipalities = Municipality::orderBy('name')->get(['id', 'name', 'province_id']);
-        $barangays = Barangay::orderBy('name')->get(['id', 'name', 'municipality_id']);
+        $cooperatives = Cooperative::orderBy('name')->get(['id', 'name']);
+        $regions = Region::orderBy('name')->get(['code', 'name']);
+        $provinces = Province::orderBy('name')->get(['code', 'name', 'region_code']);
+        $cities = City::orderBy('name')->get(['code', 'name', 'province_code', 'region_code']);
+        $barangays = Barangay::orderBy('name')->get(['code', 'name', 'city_code']);
+
         return inertia('cooperatives/create', [
             'cooperatives' => $cooperatives,
             'regions' => $regions,
             'provinces' => $provinces,
-            'municipalities' => $municipalities,
+            'cities' => $cities,
             'barangays' => $barangays,
             'breadcrumbs' => [
                 ['title' => 'Cooperatives', 'href' => route('cooperatives.index')],
@@ -74,39 +83,64 @@ class CooperativesController extends Controller
         $data = $request->validate([
             'id' => 'required|string|max:255|unique:cooperatives,id',
             'name' => 'required|string|max:255|unique:cooperatives,name',
+
+            'region_code' => 'required|string',
+            'province_code' => 'nullable|string',
+            'city_code' => 'required|string',
+            'barangay_code' => 'required|string',
+
+            'asset_size' => ['required', Rule::in(['Micro', 'Small', 'Medium', 'Large'])],
+            'coop_type' => ['required', Rule::in([
+                'Credit', 'Consumers', 'Producers', 'Marketing', 'Service', 'Multipurpose',
+                'Advocacy', 'Agrarian Reform', 'Bank', 'Diary', 'Education', 'Electric',
+                'Financial', 'Fishermen', 'Health Services', 'Housing', 'Insurance',
+                'Water Service', 'Workers', 'Others',
+            ])],
+            'status_category' => ['required', Rule::in(['Reporting', 'Non-Reporting', 'New'])],
+            'bond_of_membership' => ['required', Rule::in([
+                'Residential', 'Insitutional', 'Associational', 'Occupational', 'Unspecified',
+            ])],
+            'area_of_operation' => ['required', Rule::in(['Municipal', 'Provincial'])],
+            'citizenship' => ['required', Rule::in(['Filipino', 'Foreign', 'Others'])],
+
+            'members_count' => 'required|integer|min:1',
+            'total_asset' => 'required|numeric|min:0',
+            'net_surplus' => 'required|numeric',
         ]);
 
         $cooperative = Cooperative::where('name', $data['name'])->first();
         if ($cooperative) {
             return redirect()
-                ->route('cooperatives.details', $cooperative)
+                ->route('cooperatives.show', $cooperative)
                 ->with('info', 'Cooperative already exists. Redirected to its details page.');
-        } 
-        $cooperative = Cooperative::create($data);
+        }
 
-        $detailsData = $request->validate([
-            'region_id' => 'nullable|integer',
-            'province_id' => 'nullable|integer',
-            'municipality_id' => 'nullable|integer',
-            'barangay_id' => 'nullable|integer',
-            'asset_size' => 'nullable|string',
-            'coop_type' => 'nullable|string',
-            'status_category' => 'nullable|string',
-            'bond_of_membership' => 'nullable|string',
-            'area_of_operation' => 'nullable|string',
-            'citizenship' => 'nullable|string',
-            'members_count' => 'nullable|integer',
-            'total_asset' => 'nullable|numeric',
-            'net_surplus' => 'nullable|numeric',
+        $cooperative = Cooperative::create([
+            'id' => $data['id'],
+            'name' => $data['name'],
         ]);
 
-        $detailsData['coop_id'] = $cooperative->id;
-
+        $detailsData = [
+            'coop_id' => $cooperative->id,
+            'region_code' => $data['region_code'],
+            'province_code' => $data['province_code'],
+            'city_code' => $data['city_code'],
+            'barangay_code' => $data['barangay_code'],
+            'asset_size' => $data['asset_size'],
+            'coop_type' => $data['coop_type'],
+            'status_category' => $data['status_category'],
+            'bond_of_membership' => $data['bond_of_membership'],
+            'area_of_operation' => $data['area_of_operation'],
+            'citizenship' => $data['citizenship'],
+            'members_count' => $data['members_count'],
+            'total_asset' => $data['total_asset'],
+            'net_surplus' => $data['net_surplus'],
+        ];
         CoopDetail::create($detailsData);
 
         return redirect()
-            ->route('cooperatives.details', $cooperative)
-            ->with('success', 'Cooperative created successfully!'); 
+            ->route('cooperatives.show', $cooperative)
+            ->with('success', 'Cooperative created successfully!');
     }
 
     /**
@@ -115,7 +149,8 @@ class CooperativesController extends Controller
     public function show(Cooperative $cooperative)
     {
         $cooperative->load('details');
-        return inertia('cooperatives.show', [
+
+        return inertia('cooperatives/show', [
             'cooperative' => $cooperative,
             'details' => $cooperative->details,
             'breadcrumbs' => [
@@ -130,9 +165,14 @@ class CooperativesController extends Controller
      */
     public function edit(Cooperative $cooperative)
     {
-        return inertia('cooperatives.edit', [
+        return inertia('cooperatives/edit', [
+            'cooperatives' => Cooperative::orderBy('name')->get(['id', 'name']),
             'cooperative' => $cooperative,
             'details' => $cooperative->details,
+            'regions' => Region::orderBy('name')->get(['code', 'name']),
+            'provinces' => Province::orderBy('name')->get(['code', 'name', 'region_code']),
+            'cities' => City::orderBy('name')->get(['code', 'name', 'province_code', 'region_code']),
+            'barangays' => Barangay::orderBy('name')->get(['code', 'name', 'city_code']),
             'breadcrumbs' => [
                 ['title' => 'Cooperatives', 'href' => route('cooperatives.index')],
                 ['title' => $cooperative->name, 'href' => route('cooperatives.show', $cooperative)],
@@ -147,15 +187,65 @@ class CooperativesController extends Controller
     public function update(Request $request, Cooperative $cooperative)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255|unique:cooperatives,name,' . $cooperative->id,
-            'holder' => 'nullable|string|max:255',
-            'type' => 'required|in:primary,secondary,tertiary',
+            'id' => [
+                'required', 'string', 'max:255',
+                Rule::unique('cooperatives', 'id')->ignore($cooperative->id, 'id'),
+            ],
+            'name' => [
+                'required', 'string', 'max:255',
+                Rule::unique('cooperatives', 'name')->ignore($cooperative->id, 'id'),
+            ],
+
+            'region_code' => 'required|string',
+            'province_code' => 'nullable|string',
+            'city_code' => 'required|string',
+            'barangay_code' => 'required|string',
+
+            'asset_size' => ['required', Rule::in(['Micro', 'Small', 'Medium', 'Large'])],
+            'coop_type' => ['required', Rule::in([
+                'Credit', 'Consumers', 'Producers', 'Marketing', 'Service', 'Multipurpose',
+                'Advocacy', 'Agrarian Reform', 'Bank', 'Diary', 'Education', 'Electric',
+                'Financial', 'Fishermen', 'Health Services', 'Housing', 'Insurance',
+                'Water Service', 'Workers', 'Others',
+            ])],
+            'status_category' => ['required', Rule::in(['Reporting', 'Non-Reporting', 'New'])],
+            'bond_of_membership' => ['required', Rule::in([
+                'Residential', 'Insitutional', 'Associational', 'Occupational', 'Unspecified',
+            ])],
+            'area_of_operation' => ['required', Rule::in(['Municipal', 'Provincial'])],
+            'citizenship' => ['required', Rule::in(['Filipino', 'Foreign', 'Others'])],
+
+            'members_count' => 'required|integer|min:1',
+            'total_asset' => 'required|numeric|min:0',
+            'net_surplus' => 'required|numeric',
         ]);
 
-        $cooperative->update($data);
+        $cooperative->update([
+            'id' => $data['id'],
+            'name' => $data['name'],
+        ]);
+
+        $cooperative->details()->updateOrCreate(
+            ['coop_id' => $cooperative->id],
+            [
+                'region_code' => $data['region_code'],
+                'province_code' => $data['province_code'],
+                'city_code' => $data['city_code'],
+                'barangay_code' => $data['barangay_code'],
+                'asset_size' => $data['asset_size'],
+                'coop_type' => $data['coop_type'],
+                'status_category' => $data['status_category'],
+                'bond_of_membership' => $data['bond_of_membership'],
+                'area_of_operation' => $data['area_of_operation'],
+                'citizenship' => $data['citizenship'],
+                'members_count' => $data['members_count'],
+                'total_asset' => $data['total_asset'],
+                'net_surplus' => $data['net_surplus'],
+            ]
+        );
 
         return redirect()
-            ->route('cooperatives.index')
+            ->route('cooperatives.show', $cooperative->id)
             ->with('success', 'Cooperative updated successfully!');
     }
 
@@ -164,49 +254,151 @@ class CooperativesController extends Controller
      */
     public function destroy(Cooperative $cooperative)
     {
-        $cooperative->delete();
+        try {
+            $cooperative->delete();
 
-        return redirect()
-            ->route('cooperatives.index')
-            ->with('success', 'Cooperative deleted successfully!');
+            return redirect()
+                ->route('cooperatives.index')
+                ->with('success', 'Cooperative deleted successfully!');
+
+        } catch (\Exception $e) {
+            return redirect()
+                ->route('cooperatives.index')
+                ->with('error', "Something went wrong while deleting.\nError: {$e->getMessage()}");
+        }
     }
 
-    public function import($cooperatives)
+    public function import(Request $request)
     {
-        $csvData = [];
-        $csvData[] = ['field' => 'Registration Number', 'value' => $coop->id ?? 'Unregistered'];
-        $csvData[] = ['field' => 'Cooperative Name', 'value' => $coop->name ?? 'Unknown Cooperative'];
-        $csvData[] = ['field' => 'Region', 'value' => $coop->region ?? 'Unknown Region'];
-        $csvData[] = ['field' => 'Province', 'value' => $coop->province ?? 'Unknown Province'];
-        $csvData[] = ['field' => 'Municipality', 'value' => $coop->municipality ?? 'Unregistered Municipality'];
-        $csvData[] = ['field' => 'Barangay', 'value' => $coop->barangay ?? 'Unregistered Barangay'];
-        $csvData[] = ['field' => 'Asset Size', 'value' => $coop->asset_size ?? 'Unknown Asset Size'];
-        $csvData[] = ['field' => 'Coop Type', 'value' => $coop->coop_type ?? 'Unknown Cooperative Type'];
-        $csvData[] = ['field' => 'Status Category', 'value' => $coop->status_category ?? 'Unknown Status / Category'];
-        $csvData[] = ['field' => 'Bond of Membership', 'value' => $coop->bond_of_membership ?? 'Unknown Bond of Membership'];
-        $csvData[] = ['field' => 'Area of Operation', 'value' => $coop->area_of_operation ?? 'Unknown Area of Operation'];
-        $csvData[] = ['field' => 'Citizenship', 'value' => $coop->citizenship ?? 'Unregistered Citizenship'];
-        $csvData[] = ['field' => 'Members Count', 'value' => $coop->members_count ?? 'Unregistered Members Count'];
-        $csvData[] = ['field' => 'Total Asset', 'value' => $coop->total_asset ?? 'Unknown Total Asset'];
-        $csvData[] = ['field' => 'Net_Surplus', 'value' => $coop->net_surplus ?? 'Unknown Net Surplus'];
-    }
-    public function export()
-    {
-        return inertia('cooperatives.export');
-    }
-
-    public function search(Request $request)
-    {
-        $searchTerm = $request->input('query');
-
-        $cooperatives = Cooperative::where('name', 'LIKE', '%' . $searchTerm . '%')
-            ->orWhere('id', 'LIKE', '%' . $searchTerm . '%')
-            ->orWhere('holder' , 'LIKE', '%' . $searchTerm . '%')
-            ->get();
-
-        return inertia('cooperatives.index', [
-            'cooperatives' => $cooperatives,
-            'searchTerm' => $searchTerm,
+        $request->validate([
+            'file' => 'required|file',
         ]);
+
+        $type = strtolower($request->file('file')->getClientOriginalExtension());
+        if (! in_array($type, ['csv', 'xlsx'])) {
+            return redirect()
+                ->route('cooperatives.index')
+                ->with('error', 'The file type is not supported.');
+        }
+
+        if ($type === 'csv') {
+            $options = new CsvReaderOptions;
+            $options->FIELD_DELIMITER = '|';
+            $reader = new CsvReader($options);
+        } else {
+            $reader = new XlsxReader;
+        }
+        $reader->open($request->file('file')->getPathname());
+
+        foreach ($reader->getSheetIterator() as $sheet) {
+            foreach ($sheet->getRowIterator() as $i => $row) {
+                if ($i === 1) {
+                    continue;
+                }
+                $values = $row->toArray();
+                if (count($values) < 2 || empty($values[0]) || empty($values[1])) {
+                    continue;
+                }
+
+                $coop = Cooperative::updateOrCreate(
+                    ['id' => $values[0]],
+                    ['name' => $values[1]]
+                );
+                $regionCode = isset($values[2]) ? Region::where(['name' => $values[2]])->value('code') : null;
+                $provinceCode = isset($values[3]) ? Province::where(['name' => $values[3]])->value('code') : null;
+                $cityCode = isset($values[4]) ? City::where(['name' => $values[4]])->value('code') : null;
+                $barangayCode = isset($values[5]) ? Barangay::where(['name' => $values[5]])->value('code') : null;
+
+                CoopDetail::updateOrCreate(
+                    ['coop_id' => $coop->id],
+                    [
+                        'region_code' => $regionCode ?? null,
+                        'province_code' => $provinceCode ?? null,
+                        'city_code' => $cityCode ?? null,
+                        'barangay_code' => $barangayCode ?? null,
+                        'asset_size' => $values[6] ?? null,
+                        'coop_type' => $values[7] ?? null,
+                        'status_category' => $values[8] ?? null,
+                        'bond_of_membership' => $values[9] ?? null,
+                        'area_of_operation' => $values[10] ?? null,
+                        'citizenship' => $values[11] ?? null,
+                        'members_count' => $values[12] ?? null,
+                        'total_asset' => $values[13] ?? null,
+                        'net_surplus' => $values[14] ?? null,
+                    ]
+                );
+            }
+        }
+
+        $reader->close();
+
+        return redirect()->route('cooperatives.index')->with('success', 'File has been imported successfully.');
+    }
+
+    public function export(Request $request, string $type)
+    {
+        $type = strtolower($type);
+        if (! in_array($type, ['csv', 'xlsx'])) {
+            return redirect()
+                ->route('cooperatives.index')
+                ->with('error', 'The export file type is not supported.');
+        }
+
+        $fileName = 'cooperatives_'.now()->format('Ymd_His').'.'.$type;
+        $filePath = storage_path("app/$fileName");
+
+        if ($type === 'csv') {
+            $options = new CsvWriterOptions;
+            $options->FIELD_DELIMITER = '|';
+            $writer = new CsvWriter($options);
+        } else {
+            $writer = new XlsxWriter;
+        }
+        $writer->openToFile($filePath);
+
+        $writer->addRow(Row::fromValues([
+            'Registration Number',
+            'Cooperative Name',
+            'Region',
+            'Province',
+            'City',
+            'Barangay',
+            'Asset Size',
+            'Coop Type',
+            'Status Category',
+            'Bond of Membership',
+            'Area of Operation',
+            'Citizenship',
+            'Members Count',
+            'Total Asset',
+            'Net Surplus',
+        ]));
+
+        $coops = Cooperative::with('details.region', 'details.province', 'details.city', 'details.barangay')->get();
+
+        foreach ($coops as $coop) {
+            $d = $coop->details;
+            $writer->addRow(Row::fromValues([
+                $coop->id,
+                $coop->name,
+                $d->region->name ?? '',
+                $d->province->name ?? '',
+                $d->city->name ?? '',
+                $d->barangay->name ?? '',
+                $d->asset_size ?? '',
+                $d->coop_type ?? '',
+                $d->status_category ?? '',
+                $d->bond_of_membership ?? '',
+                $d->area_of_operation ?? '',
+                $d->citizenship ?? '',
+                $d->members_count ?? '',
+                $d->total_asset ?? '',
+                $d->net_surplus ?? '',
+            ]));
+        }
+
+        $writer->close();
+
+        return response()->download($filePath)->deleteFileAfterSend(true);
     }
 }

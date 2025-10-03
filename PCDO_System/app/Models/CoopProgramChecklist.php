@@ -11,24 +11,34 @@ class CoopProgramChecklist extends Model
 
     protected $fillable = [
         'coop_program_id',
+        'program_checklist_id',
         'checklist_id',
         'file_name',
         'mime_type',
         'file_content',
     ];
 
-    function coopProgram()
+    // hide binary data from arrays / JSON
+    protected $hidden = ['file_content'];
+
+    public function coopProgram()
     {
         return $this->belongsTo(CoopProgram::class);
     }
 
-    function checklist()
+    public function checklist()
     {
         return $this->belongsTo(Checklists::class);
     }
 
-    public function getFileContentAttribute($value)
+    /**
+     * Safe accessor: only base64-encode when value exists.
+     * Does NOT break when file_content is null.
+     */
+    public function getFileContentBase64Attribute()
     {
-        return base64_encode($value);
+        return $this->attributes['file_content'] !== null
+            ? base64_encode($this->attributes['file_content'])
+            : null;
     }
 }

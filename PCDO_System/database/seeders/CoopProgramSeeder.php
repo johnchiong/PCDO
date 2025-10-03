@@ -27,7 +27,7 @@ class CoopProgramSeeder extends Seeder
                 'program_status' => 'Ongoing',
                 'number' => null,
                 'email' => $coop->name . '@example.com',
-                'loan_ammount' => rand($program->min_amount, $program->max_amount),
+                'loan_amount' => rand($program->min_amount, $program->max_amount),
             ]);
             
             foreach ($program->checklists as $checklist) {

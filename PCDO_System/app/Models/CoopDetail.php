@@ -2,17 +2,16 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CoopDetail extends Model
 {
     protected $fillable = [
         'coop_id',
-        'region_id',
-        'province_id',
-        'municipality_id',
-        'barangay_id',
+        'region_code',
+        'province_code',
+        'city_code',
+        'barangay_code',
         'asset_size',
         'coop_type',
         'status/category',
@@ -24,22 +23,34 @@ class CoopDetail extends Model
         'net_surplus',
     ];
 
+    protected $table = 'coop_details';
+
+    protected $primaryKey = 'coop_id';
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     public function cooperative()
     {
         return $this->belongsTo(Cooperative::class, 'coop_id');
     }
+
     public function region()
     {
         return $this->belongsTo(Region::class);
     }
+
     public function province()
     {
         return $this->belongsTo(Province::class);
     }
-    public function municipality()
+
+    public function city()
     {
-        return $this->belongsTo(Municipality::class);
+        return $this->belongsTo(City::class);
     }
+
     public function barangay()
     {
         return $this->belongsTo(Barangay::class);
