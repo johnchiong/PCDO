@@ -70,6 +70,7 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+
     *,
     ::after,
     ::before,
@@ -80,6 +81,7 @@
 }
 
 @layer utilities {
+
     body,
     html {
         --font-sans:
@@ -124,6 +126,7 @@
     --sidebar-border: hsl(0 0% 91%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
     --sidebar: hsl(0 0% 98%);
+
 }
 
 .dark {
@@ -166,7 +169,146 @@
     * {
         @apply border-border outline-ring/50;
     }
+
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+/* Toast (vue-sonner) - Card Style */
+[data-sonner-toaster] {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+
+    pointer-events: none;
+}
+
+[data-sonner-toast] {
+    pointer-events: auto;
+
+    background: var(--card);
+    color: var(--card-foreground);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.08);
+
+    min-width: 280px;
+    max-width: 360px;
+
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    animation: slideDown 0.35s ease-out;
+    text-align: left;
+    transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+/* Icon */
+[data-sonner-toast] [data-icon] {
+    order: 0;
+    flex-shrink: 0;
+    font-size: 1.4rem;
+}
+
+/* Messsage */
+[data-sonner-toast] .sonner-description {
+    order: 1;
+    font-size: 0.95rem;
+    color: var(--muted-foreground);
+    margin: 0;
+}
+
+/* Close button styling */
+[data-sonner-toast] [data-close-button] {
+    order: 2;
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--muted-foreground);
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+
+[data-sonner-toast] [data-close-button]:hover {
+    opacity: 1;
+    color: var(--foreground);
+}
+
+/* Light Mode (subtle pop) */
+:root [data-sonner-toast] {
+    background: hsl(0, 0%, 100%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.12),
+        0 0 0 2px rgba(255, 255, 255, 0.8);
+    /* subtle highlight */
+}
+
+:root [data-sonner-toast] [data-icon] {
+    color: #22ff00;
+}
+
+/* Dark Mode (subtle highlight) */
+.dark [data-sonner-toast] {
+    background: hsl(0 0% 12%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.5),
+        0 0 0 2px rgba(255, 255, 255, 0.1);
+    /* faint glow */
+}
+
+.dark [data-sonner-toast] [data-icon] {
+    color: #facc15;
+}
+
+/* Success Toast accent (slightly brighter border) */
+[data-sonner-toast][data-type="success"] {
+    border: 4px solid hsl(142, 76%, 40%);
+
+}
+
+/* Error Toast accent (slightly brighter border) */
+[data-sonner-toast][data-type="error"] {
+    border: 4px solid hsl(0, 75%, 55%);
+}
+
+/* Entrance animation */
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-15px) scale(0.97);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Exit animation */
+@keyframes slideUp {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-15px) scale(0.97);
     }
 }

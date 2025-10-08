@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { ref, computed } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { BreadcrumbItem } from '@/types'
 import { router, usePage } from '@inertiajs/vue3';
 import type { Cooperative } from '@/types/cooperatives';
-// import FlashToast from '@/components/FlashToast.vue';
 import { usePolling } from '@/composables/usePolling';
+import { toast } from "vue-sonner"
 
 const props = defineProps<{
     cooperatives: Cooperative[];
@@ -18,7 +18,6 @@ const itemsPerPage = ref(10)
 const deletingId = ref<string | null>(null)
 
 const page = usePage();
-const flash = computed(() => page.props.flash as { success?: string; error?: string; info?: string });
 
 const filteredCooperatives = computed(() => {
     if (!searchQuery.value) {
@@ -42,6 +41,8 @@ const totalPages = computed(() => {
 
 const showExportModal = ref(false);
 const showImportModal = ref(false);
+const openDropdown = ref(false)
+const dropdownRef = ref<HTMLElement | null>(null)
 
 const exportType = ref<'csv' | 'xlsx' | null>(null);
 const file = ref<File | null>(null);
@@ -72,8 +73,8 @@ function closeImportModal() {
 
 function confirmExport() {
     if (!exportType.value) return
-        window.location.href = `/cooperatives/export/${exportType.value}`
-        showExportModal.value = false
+    window.location.href = `/cooperatives/export/${exportType.value}`
+    showExportModal.value = false
 }
 
 function onDrop(e: DragEvent) {
@@ -111,6 +112,10 @@ function confirmImport() {
         onSuccess: () => {
             file.value = null;
             showImportModal.value = false;
+            toast.success("Data imported successfully!")
+        },
+        onError: () => {
+            toast.error("Failed to import data. Please check the file format and try again.")
         }
     })
 }
@@ -132,298 +137,394 @@ function goToDeletePage(id: string) {
     };
 }
 
+function confirmDelete(id: string, name: string) {
+    deletingId.value = id
+    router.delete(`/cooperatives/${id}`, {
+        onFinish: () => {
+            deletingId.value = id
+            toast.success(`${name} has been deleted successfully!`)
+        },
+        onError: () => {
+            toast.error(`Failed to delete ${name}.`)
+        }
+    })
+}
+
+function closeDropdown() {
+    openDropdown.value = false
+}
+
+function onDocumentClick(e: MouseEvent) {
+    if (!dropdownRef.value) return
+    if (dropdownRef.value.contains(e.target as Node)) return
+    closeDropdown()
+}
+
+function onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') closeDropdown()
+}
+
+onMounted(() => {
+    document.addEventListener('click', onDocumentClick)
+    document.addEventListener('keydown', onKeyDown)
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', onDocumentClick)
+    document.removeEventListener('keydown', onKeyDown)
+})
+
 usePolling(["cooperatives"], 15000);
 
 </script>
 
 <template>
-    <Head :title="`| ${$page.component}`" />
+
+    <Head title="Cooperatives" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <!-- Top Actions -->
-        <div class="flex flex-col md:flex-row md:items-center md:item-stretch md:justify-between gap-4 p-4">
-            <!-- Search -->
-            <div class="relative w-full md:min-w-[200px] md:max-w-md">
-                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <InputField
-                v-model="searchQuery"
-                placeholder="Search cooperatives..."
-                class="pl-9 pr-3 w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500"
-                />
+        <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
+            <div class="px-5 md:px-5 pt-5">
+                <!-- Top Actions Card -->
+                <div
+                    class="bg-gray-200 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                        <!-- Search Bar -->
+                        <div class="relative flex-1 md:w-96">
+                            <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                            <InputField v-model="searchQuery" placeholder="Search cooperatives..."
+                                class="pl-9 pr-3 w-full rounded-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200" />
+                        </div>
+
+                        <!-- Placeholder for Future Filter -->
+                        <div>
+                            <select
+                                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-indigo-500">
+                                <option value="">Filter by...</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </select>
+                        </div>
+
+                        <DropdownMenu>
+                            <!-- Trigger Button -->
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
+                                    <span class="flex items-center gap-2">
+                                        <Plus class="w-4 h-4" /> Actions
+                                    </span>
+                                    <ChevronDown class="w-4 h-4" />
+                                </button>
+                            </DropdownMenuTrigger>
+
+                            <!-- Dropdown Content aligned to right -->
+                            <DropdownMenuContent side="bottom" align="end"
+                                class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                <DropdownMenuItem asChild>
+                                    <button @click="goToCreatePage()"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                        Create
+                                    </button>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem asChild>
+                                    <button @click="openImportModal()"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <FileUp class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                        Import Data
+                                    </button>
+                                </DropdownMenuItem>
+
+                                <DropdownMenuItem asChild>
+                                    <button @click="openExportModal()"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <FileDown class="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                                        Export Data
+                                    </button>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                </div>
             </div>
 
-            <!-- Buttons -->
-            <div class="flex items-center justify-center gap-3">
-                <Button
-                    @click="goToCreatePage"
-                    class="min-w-[120px] bg-indigo-600 text-white hover:bg-indigo-700 px-5 py-2 rounded-lg shadow text-center"
-                >
-                    Create
-                </Button>
+            <!-- Table / Mobile Cards -->
+            <div class="px-5 pb-2">
+                <div
+                    class="bg-white/90 dark:bg-gray-800/80 shadow-xl ring-1 ring-gray-200 dark:ring-gray-700 rounded-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700">
+                    <!-- Desktop Table -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <Table class="min-w-full border-separate border-spacing-0 text-sm">
+                            <TableCaption class="text-lg font-semibold p-4 text-gray-800 dark:text-gray-200">
+                                List of Cooperatives
+                            </TableCaption>
 
-                <Button
-                    @click="openImportModal"
-                    class="min-w-[120px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg shadow text-center"
-                    >
-                    Import Data
-                </Button>
+                            <!-- Table Header -->
+                            <TableHeader
+                                class="bg-gray-200/90 dark:bg-gray-700/50 border-b border-gray-500 dark:border-gray-500">
+                                <TableRow
+                                    class="text-left text-gray-800 dark:text-gray-200 uppercase tracking-wide text-xs font-semibold">
+                                    <TableHead class="py-3 pl-6">ID</TableHead>
+                                    <TableHead class="pl-16 py-3">Name</TableHead>
+                                    <TableHead class="pl-16 py-3">Type</TableHead>
+                                    <TableHead class="pl-16 py-3">Holder</TableHead>
+                                    <TableHead class="pl-16 py-3">Members</TableHead>
+                                    <TableHead class="pl-16 py-3">Status</TableHead>
+                                    <TableHead class="pl-16 py-3">Actions</TableHead>
+                                </TableRow>
+                            </TableHeader>
 
-                <Button
-                    @click="openExportModal"
-                    class="min-w-[120px] bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2 rounded-lg shadow text-center"
-                    >
-                    Export Data
-                </Button>
-            </div>
-        </div>
+                            <!-- Table Body -->
+                            <TableBody
+                                class="divide-y divide-gray-100 dark:divide-gray-700 bg-gray-100/70 dark:bg-gray-900">
+                                <TableRow v-for="coop in paginatedCooperatives" :key="coop.id"
+                                    class="transition-colors duration-150 hover:bg-gray-200/80 dark:hover:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                                    <TableCell class="py-4 pl-6 font-medium text-gray-700 dark:text-gray-400">
+                                        {{ coop.id }}
+                                    </TableCell>
 
-        <!-- Table / Mobile Cards -->
-        <div class="px-6 pb-6">
-            <div class="bg-white dark:bg-gray-800 shadow rounded-2xl overflow-hidden">
-                <!-- Desktop Table -->
-                <div class="hidden md:block overflow-x-auto">
-                    <Table class="min-w-full">
-                        <TableCaption class="text-lg font-semibold p-4">List of Cooperatives</TableCaption>
-                        <TableHeader class="bg-gray-100 dark:bg-gray-700">
-                            <TableRow>
-                                <TableHead>ID</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Holder</TableHead>
-                                <TableHead>Member Count</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            <TableRow
-                                v-for="coop in paginatedCooperatives"
-                                :key="coop.id"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                                <TableCell class="font-medium text-gray-600">{{ coop.id }}</TableCell>
-                                <TableCell class="font-semibold text-gray-900 dark:text-gray-100">
-                                {{ coop.name }}
-                                </TableCell>
-                                <TableCell>{{ coop.type }}</TableCell>
-                                <TableCell>{{ coop.holder }}</TableCell>
-                                <TableCell>{{ coop.member_count }}</TableCell>
-                                <TableCell>
-                                <span
-                                    v-if="coop.has_ongoing_program"
-                                    class="px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                                >
+                                    <TableCell class="pl-16 font-semibold text-gray-900 dark:text-gray-100">
+                                        {{ coop.name }}
+                                    </TableCell>
+
+                                    <TableCell class="pl-16 text-gray-600 dark:text-gray-300">
+                                        {{ coop.type }}
+                                    </TableCell>
+
+                                    <TableCell class="pl-16 text-gray-600 dark:text-gray-300">
+                                        {{ coop.holder }}
+                                    </TableCell>
+
+                                    <TableCell class="pl-16 text-gray-600 dark:text-gray-300">
+                                        {{ coop.member_count }}
+                                    </TableCell>
+
+                                    <TableCell class="pl-16">
+                                        <span v-if="coop.has_ongoing_program"
+                                            class="inline-flex items-center gap-1 px-3 py-1 text-m font-semibold rounded-xl bg-green-100 text-green-700 dark:bg-green-700/40 dark:text-green-300">
+                                            <CircleDashed
+                                                class="w-3 h-3 text-green-600 dark:text-green-300 animate-spin inline-block mr-1" />
+                                            Ongoing
+                                        </span>
+                                        <span v-else
+                                            class="inline-flex items-center gap-1 px-3 py-1 text-m font-semibold rounded-xl bg-red-100 text-red-700 dark:bg-red-700/40 dark:text-red-300">
+                                            <XCircle class="w-3 h-3 text-red-600 dark:text-red-300 inline-block mr-1" />
+                                            Inactive
+                                        </span>
+                                    </TableCell>
+
+                                    <TableCell class="pl-16 space-x-2">
+                                        <Button @click="goToViewPage(coop.id)"
+                                            class="px-3 py-2 rounded-lg text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-500 transition">
+                                            View
+                                        </Button>
+                                        <AlertDialog>
+                                            <AlertDialogTrigger as-child>
+                                                <Button :disabled="deletingId === coop.id"
+                                                    class="px-3 py-2 rounded-lg text-xs font-medium bg-red-500 text-white hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-500 transition">
+                                                    <span v-if="deletingId === coop.id">Deleting...</span>
+                                                    <span v-else>Delete</span>
+                                                </Button>
+                                            </AlertDialogTrigger>
+
+                                            <AlertDialogContent @interact-outside="(event: Event) => {
+                                                const target = event.target as HTMLElement
+                                                if (target?.closest('[data-sonner-toaster]')) {
+                                                    event.preventDefault()
+                                                }
+                                            }">
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        Are you sure you want to delete <strong>{{ coop.name
+                                                        }}</strong>?
+                                                        This action cannot be undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction @click="confirmDelete(coop.id, coop.name)">
+                                                        Yes, Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </TableCell>
+                                </TableRow>
+
+                                <!-- Empty State -->
+                                <TableRow v-if="paginatedCooperatives.length === 0">
+                                    <TableCell colspan="7" class="text-center text-gray-500 dark:text-gray-400 py-6">
+                                        No Cooperatives found.
+                                    </TableCell>
+                                </TableRow>
+                            </TableBody>
+                        </Table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                        <div v-for="coop in paginatedCooperatives" :key="coop.id" class="p-4 flex flex-col gap-2">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100">
+                                    {{ coop.name }}
+                                </h3>
+                                <span v-if="coop.has_ongoing_program"
+                                    class="flex items-center gap-1 px-2 py-1 text-xs rounded bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100">
+                                    <CircleDashed class="w-3 h-3 animate-spin" />
                                     Ongoing
                                 </span>
-                                <span
-                                    v-else
-                                    class="px-3 py-1 text-xs font-medium rounded-full bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
-                                >
+                                <span v-else
+                                    class="flex items-center gap-1 px-2 py-1 text-xs rounded bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100">
+                                    <XCircle class="w-3 h-3" />
                                     Inactive
                                 </span>
-                                </TableCell>
-                                <TableCell class="text-right space-x-2">
-                                <Button
-                                    @click="goToViewPage(coop.id)"
-                                    class="px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500"
-                                >
-                                    View
-                                </Button>
-                                <Button
-                                    @click="goToDeletePage(coop.id)"
-                                    :disabled="deletingId === coop.id"
-                                    class="px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-500"
-                                >
-                                    <span v-if="deletingId === coop.id">Deleting...</span>
-                                    <span v-else>Delete</span>
-                                </Button>
-                                </TableCell>
-                            </TableRow>
-
-                            <TableRow v-if="paginatedCooperatives.length === 0">
-                                <TableCell colspan="7" class="text-center text-gray-500 py-6">
-                                No Cooperatives found.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </div>
-
-                <!-- Mobile Cards -->
-                <div class="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-                    <div
-                        v-for="coop in paginatedCooperatives"
-                        :key="coop.id"
-                        class="p-4 flex flex-col gap-2"
-                    >
-                        <div class="flex justify-between items-center">
-                            <h3 class="font-semibold text-lg text-gray-900 dark:text-gray-100">
-                                {{ coop.name }}
-                            </h3>
-                            <span
-                                v-if="coop.has_ongoing_program"
-                                class="px-2 py-1 text-xs rounded bg-green-100 text-green-700 dark:bg-green-700 dark:text-green-100"
-                            >
-                                Ongoing
-                            </span>
-                            <span
-                                v-else
-                                class="px-2 py-1 text-xs rounded bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100"
-                            >
-                                Inactive
-                            </span>
-                        </div>
+                            </div>
                             <p class="text-sm text-gray-600 dark:text-gray-300">ID: {{ coop.id }}</p>
                             <p class="text-sm text-gray-600 dark:text-gray-300">Type: {{ coop.type }}</p>
                             <p class="text-sm text-gray-600 dark:text-gray-300">Holder: {{ coop.holder }}</p>
                             <p class="text-sm text-gray-600 dark:text-gray-300">
-                            Members: {{ coop.member_count }}
+                                Members: {{ coop.member_count }}
                             </p>
-                        <div class="flex gap-2 mt-2">
-                            <Button
-                                @click="goToViewPage(coop.id)"
-                                class="flex-1 text-center px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600"
-                            >
-                                View
-                            </Button>
-                            <Button
-                                @click="goToDeletePage(coop.id)"
-                                class="flex-1 text-center px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
-                            >
-                                Delete
-                            </Button>
+                            <div class="flex gap-2 mt-2">
+                                <Button @click="goToViewPage(coop.id)"
+                                    class="flex-1 text-center px-3 py-1 rounded-lg bg-blue-500 text-white hover:bg-blue-600">
+                                    View
+                                </Button>
+                                <Button @click="goToDeletePage(coop.id)"
+                                    class="flex-1 text-center px-3 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600">
+                                    Delete
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Export Modal -->
-        <div v-if="showExportModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-sm w-full">
-                <h2 class="text-lg font-semibold mb-4">Do you want to export the file as?</h2>
-                <div class="flex gap-3">
-                <button
-                    class="flex-1 px-4 py-2 rounded bg-blue-500 text-white"
-                    @click="exportType = 'csv'; confirmExport()"
-                >
-                    CSV
-                </button>
-                <button
-                    class="flex-1 px-4 py-2 rounded bg-green-500 text-white"
-                    @click="exportType = 'xlsx'; confirmExport()"
-                >
-                    Excel
-                </button>
-                </div>
-                <button
-                class="mt-4 w-full px-4 py-2 rounded bg-gray-200 dark:bg-gray-700"
-                @click="closeExportModal()"
-                >
-                Cancel
-                </button>
-            </div>
-        </div>
-
-        <!-- Import Modal -->
-        <div v-if="showImportModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full">
-                <h2 class="text-lg font-semibold mb-4">Import from</h2>
-
-                <!-- Goodle Drive & Local Storage-->
-                <div class="flex gap-3 mb-4">
-                <button class="flex-1 px-4 py-2 rounded bg-indigo-500 text-white">Google Drive</button>
-                    <label class="flex-1 cursor-pointer px-4 py-2 rounded bg-gray-100 dark:bg-gray-700 text-center">
-                        Local Storage
-                        <input type="file" class="hidden" @change="onFileChange" />
-                    </label>
-                </div>
-                <p class="text-sm text-gray-500 mt-2">or</p>
-                <!-- Drag & Drop Zone -->
-                <div
-                    class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400 cursor-pointer"
-                    @dragover.prevent
-                    @drop="onDrop"
-                >
-                    Drag & Drop File Here
-                </div>
-                <div class="mt-2">
-                    <input
-                        id="fileInput"
-                        type="file"
-                        @change="onFileChange"
-                        class="w-full"
-                    />
-                </div>
-                <div v-if="file" class="mt-2 flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-2 rounded">
-                    <span class="text-sm text-gray-700 dark:text-gray-300">{{ file.name }}</span>
-                    <button @click="clearFile" class="text-red-500 hover:text-red-700">&times;</button>
-                </div>
-                <div class="mt-4 flex gap-3">
-                    <p class="text-sm text-gray-500">Supported formats: .csv, .xlsx</p>
-                </div>
-                <div class="flex gap-3 mt-6">
+            <!-- Export Modal -->
+            <div v-if="showExportModal"
+                class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 transition duration-300 ease-in-out">
+                <div class="bg-gray-100 dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
+                    <h2 class="text-lg text-center font-semibold mb-4">Do you want to export the file as?</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
+                        Choose your preferred <br> file format to export the data.
+                    </p>
+                    <div class="flex gap-3">
+                        <button
+                            class="flex-1 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                            @click="exportType = 'csv'; confirmExport()">
+                            CSV
+                        </button>
+                        <button
+                            class="flex-1 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm"
+                            @click="exportType = 'xlsx'; confirmExport()">
+                            Excel
+                        </button>
+                    </div>
                     <button
-                        class="flex-1 px-4 py-2 rounded bg-green-500 text-white"
-                        @click="confirmImport"
-                    >
-                        Import
-                    </button>
-                    <button
-                        class="flex-1 px-4 py-2 rounded bg-gray-200 dark:bg-gray-700"
-                        @click="closeImportModal()"
-                    >
+                        class="mt-4 w-full px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 font-medium shadow-sm"
+                        @click="closeExportModal()">
                         Cancel
                     </button>
                 </div>
             </div>
-        </div>
 
-        <!-- Pagination -->
-        <div class="flex flex-col md:flex-row justify-between items-center mt-6 gap-4">
-            <span class="text-sm text-gray-600 dark:text-gray-300">
-            Showing {{ (currentPage - 1) * itemsPerPage + 1 }}
-            -
-            {{ Math.min(currentPage * itemsPerPage, filteredCooperatives.length) }}
-            of {{ filteredCooperatives.length }}
-            </span>
-            <div class="flex items-center gap-2">
-                <Button
-                    :disabled="currentPage === 1"
-                    @click="goToPage(currentPage - 1)"
-                    class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Previous
-                </Button>
-                <span class="text-sm text-gray-700 dark:text-gray-300">
-                    Page {{ currentPage }} of {{ totalPages }}
+            <!-- Import Modal -->
+            <div v-if="showImportModal"
+                class="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 transition duration-300 ease-in-out">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg max-w-md w-full">
+                    <h2 class="text-lg text-center font-semibold mb-4">Import from</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
+                        Choose a file source or drag and drop your file below.
+                    </p>
+
+                    <!-- Goodle Drive & Local Storage-->
+                    <div class="flex gap-3 mb-4">
+                        <button class="flex-1 px-4 py-2 rounded-lg bg-indigo-500 text-white transition">Google
+                            Drive</button>
+                        <label
+                            class="flex-1 cursor-pointer px-4 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition text-center">
+                            Local Storage
+                            <input type="file" class="hidden" @change="onFileChange" />
+                        </label>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-2 pb-2">or</p>
+                    <!-- Drag & Drop Zone -->
+                    <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition"
+                        @dragover.prevent @drop="onDrop">
+                        Drag & Drop File Here
+                    </div>
+                    <div class="mt-3">
+                        <input id="fileInput" type="file" @change="onFileChange" class="w-full" />
+                    </div>
+                    <div v-if="file"
+                        class="mt-2 flex items-center justify-between bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                        <span class="text-sm text-gray-700 dark:text-gray-300">{{ file.name }}</span>
+                        <button @click="clearFile" class="text-red-500 hover:text-red-700">&times;</button>
+                    </div>
+                    <p class="text-sm text-gray-500 text-center">
+                        Supported formats: <span class="font-medium text-gray-700 dark:text-gray-300">.csv, .xlsx</span>
+                    </p>
+                    <div class="flex gap-3 mt-6">
+                        <button
+                            class="flex-1 px-4 py-2 rounded-lg bg-green-500 text-white font-medium hover:bg-green-600"
+                            @click="confirmImport">
+                            Import
+                        </button>
+                        <button
+                            class="flex-1 px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-700 font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                            @click="closeImportModal()">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="flex flex-col md:flex-row justify-between items-center mt-8 px-6 gap-4 pb-5">
+                <!-- Showing text -->
+                <span class="text-sm text-gray-500 dark:text-gray-400">
+                    Showing {{ (currentPage - 1) * itemsPerPage + 1 }} -
+                    {{ Math.min(currentPage * itemsPerPage, filteredCooperatives.length) }}
+                    of {{ filteredCooperatives.length }} results
                 </span>
-                <Button
-                    :disabled="currentPage === totalPages"
-                    @click="goToPage(currentPage + 1)"
-                    class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    Next
-                </Button>
+                <div
+                    class="flex items-center justify-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full shadow-md px-4 py-2">
+                    <!-- Previous Button -->
+                    <button @click="goToPage(currentPage - 1)" :disabled="currentPage === 1"
+                        class="flex items-center text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed px-3">
+                        <ChevronLeft class="w-5 h-5 ml-1" />
+                        <span>Previous</span>
+                    </button>
+
+                    <!-- Page Numbers -->
+                    <div class="flex items-center gap-1 mx-2">
+                        <template v-for="page in totalPages" :key="page">
+                            <button
+                                v-if="page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)"
+                                @click="goToPage(page)" :class="[
+                                    'w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all',
+                                    currentPage === page
+                                        ? 'bg-indigo-600 text-white shadow'
+                                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                ]">
+                                {{ page }}
+                            </button>
+                            <span v-else-if="page === currentPage - 2 || page === currentPage + 2"
+                                class="text-gray-400 px-1">…</span>
+                        </template>
+                    </div>
+
+                    <!-- Next Button -->
+                    <button @click="goToPage(currentPage + 1)" :disabled="currentPage === totalPages"
+                        class="flex items-center text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 disabled:opacity-40 disabled:cursor-not-allowed px-3">
+                        <span>Next</span>
+                        <ChevronRight class="w-5 h-5 mr-1" />
+                    </button>
+                </div>
             </div>
         </div>
-
-        <FlashToast
-            v-if="flash.success"
-            type="success"
-            title="Success"
-            :message="flash.success"
-        />
-        <FlashToast
-            v-if="flash.error"
-            type="error"
-            title="Error"
-            :message="flash.error"
-        />
-        <FlashToast
-            v-if="flash.info"
-            type="info"
-            title="Info"
-            :message="flash.info"
-        />
     </AppLayout>
 </template>

@@ -25,9 +25,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 </script>
 
 <template>
-
-    <Head title="Programs" />
-
+    <Head title="Documentation" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex flex-col gap-6 p-6">
             <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

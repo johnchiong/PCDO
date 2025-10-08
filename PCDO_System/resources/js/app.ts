@@ -13,9 +13,12 @@ import Label from './components/ui/label/Label.vue';
 import Input from './components/ui/input/Input.vue';
 import InputField from './components/ui/input/Input.vue';
 // Common Library Components 
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './components/ui/dropdown-menu';
 import { Table, TableCaption, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { CheckCircle, XCircle, CircleDashed, Search, SquarePen } from 'lucide-vue-next';
-import { DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from 'reka-ui';
+import { Toaster } from '@/components/ui/sonner';
+// Icons
+import { CheckCircle, XCircle, CircleDashed, Search, SquarePen, ChevronRight, ChevronLeft, ChevronDown, Plus, FileUp, FileDown, Users, Building2, Handshake, Pin, ReceiptText, 
+    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // Directives
@@ -25,6 +28,7 @@ import VueApexCharts from "vue3-apexcharts";
 
 const appName = import.meta.env.VITE_APP_NAME || 'Unknown ENV';
 const VueApexChartsComponent = VueApexCharts as any;
+
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -39,6 +43,7 @@ createInertiaApp({
             .component('Button', Button)
             .component('InputField', InputField)
             .component('Form', Form)
+            // Table
             .component('Table', Table)
             .component('Label', Label)
             .component('Input', Input)
@@ -48,15 +53,49 @@ createInertiaApp({
             .component('TableHeader', TableHeader)
             .component('TableRow', TableRow)
             .component('TableCaption', TableCaption)
-            .component('DropdownMenuRoot', DropdownMenuRoot)
+            // Dropdown Menu
+            .component('DropdownMenu', DropdownMenu)
+            .component('DropdownMenuCheckboxItem', DropdownMenuCheckboxItem)
+            .component('DropdownMenuGroup', DropdownMenuGroup)
+            .component('DropdownMenuLabel', DropdownMenuLabel)
+            .component('DropdownMenuPortal', DropdownMenuPortal)
+            .component('DropdownMenuRadioGroup', DropdownMenuRadioGroup)
+            .component('DropdownMenuRadioItem', DropdownMenuRadioItem)
+            .component('DropdownMenuSeparator', DropdownMenuSeparator)
+            .component('DropdownMenuSub', DropdownMenuSub)
+            .component('DropdownMenuSubContent', DropdownMenuSubContent)
+            .component('DropdownMenuSubTrigger', DropdownMenuSubTrigger)
+            .component('DropdownMenuShortcut', DropdownMenuShortcut)
             .component('DropdownMenuTrigger', DropdownMenuTrigger)
             .component('DropdownMenuContent', DropdownMenuContent)
             .component('DropdownMenuItem', DropdownMenuItem)
+            // Sonner Toaster
+            .component('Toaster', Toaster)
+            // Icons
             .component('CheckCircle', CheckCircle)
             .component('XCircle', XCircle)
             .component('CircleDashed', CircleDashed)
             .component('Search', Search)
             .component('SquarePen', SquarePen)
+            .component('ChevronRight', ChevronRight)
+            .component('ChevronLeft', ChevronLeft)
+            .component('ChevronDown', ChevronDown)
+            .component('Plus', Plus)
+            .component('FileUp', FileUp)
+            .component('FileDown', FileDown)
+            .component('Users', Users)
+            .component('Building2', Building2)
+            .component('Handshake', Handshake)
+            .component('Pin', Pin)
+            .component('ReceiptText', ReceiptText)
+            .component('CircleDollarSign', CircleDollarSign)
+            .component('Leaf', Leaf)
+            .component('TriangleAlert', TriangleAlert)
+            .component('Check', Check)
+            .component('Bell', Bell)
+            .component('Upload', Upload)
+            .component('Replace', Replace)
+            // Alert Dialog
             .component('AlertDialog', AlertDialog)
             .component('AlertDialogAction', AlertDialogAction)
             .component('AlertDialogCancel', AlertDialogCancel)

@@ -69,34 +69,26 @@ const sortedDates = Object.keys(groupedNotifications).sort((a, b) => new Date(b)
 
 <template>
   <Head title="Notifications" />
-
   <AppLayout :breadcrumbs="breadcrumbs">
-    <div class="p-6 space-y-6">
-      <p class="text-gray-600 dark:text-gray-400">All Notifications</p>
+    <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
+      <div class="p-6 space-y-6">
+        <p class="text-gray-700 dark:text-gray-200">All Notifications</p>
 
-      <div
-        class="border rounded-2xl shadow-sm bg-gray-50 dark:bg-[#0f172a] 
-               border-gray-200 dark:border-[#1e293b] divide-y 
-               divide-gray-200 dark:divide-[#334155]"
-      >
-        <template v-for="date in sortedDates" :key="date">
-          <!-- Date header -->
-          <div class="bg-gray-100 dark:bg-[#1e293b] px-4 py-2 text-gray-700 dark:text-gray-400 font-semibold text-sm">
-            {{ date }}
-          </div>
+        <div class="border rounded-sm shadow-sm bg-gray-200 dark:bg-gray-800">
+          <template v-for="date in sortedDates" :key="date">
+            <!-- Date header -->
+            <div class="bg-gray-200 dark:bg-gray-900/70 px-4 py-2 text-gray-700 dark:text-gray-300 font-semibold text-sm">
+              {{ date }}
+            </div>
 
-          <!-- Notifications for this date -->
-          <div v-for="notification in groupedNotifications[date]" :key="notification.id">
-            <Link :href="`/notifications/${notification.id}`">
-              <div
-                class="p-4 flex items-start gap-4 transition hover:bg-gray-100 dark:hover:bg-[#0f172b]"
-              >
+            <!-- Notifications for this date -->
+            <div v-for="notification in groupedNotifications[date]" :key="notification.id">
+              <Link :href="`/notifications/${notification.id}`">
+              <div class="p-4 flex items-start gap-4 transition hover:bg-gray-100 dark:hover:bg-gray-700 bg-gray-50 dark:bg-gray-800/70">
                 <!-- Indicator -->
                 <div class="mt-2">
-                  <span
-                    class="inline-block h-3 w-3 rounded-full"
-                    :class="notification.read ? 'bg-gray-400' : 'bg-blue-500 animate-pulse'"
-                  ></span>
+                  <span class="inline-block h-3 w-3 rounded-full"
+                    :class="notification.read ? 'bg-gray-400' : 'bg-blue-500 animate-pulse'"></span>
                 </div>
 
                 <!-- Content -->
@@ -112,9 +104,10 @@ const sortedDates = Object.keys(groupedNotifications).sort((a, b) => new Date(b)
                   </p>
                 </div>
               </div>
-            </Link>
-          </div>
-        </template>
+              </Link>
+            </div>
+          </template>
+        </div>
       </div>
     </div>
   </AppLayout>

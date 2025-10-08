@@ -6,6 +6,7 @@ use App\Models\Barangay;
 use App\Models\City;
 use App\Models\CoopDetail;
 use App\Models\Cooperative;
+use App\Models\Programs;
 use App\Models\Province;
 use App\Models\Region;
 use Illuminate\Http\Request;
@@ -139,8 +140,7 @@ class CooperativesController extends Controller
         CoopDetail::create($detailsData);
 
         return redirect()
-            ->route('cooperatives.show', $cooperative)
-            ->with('success', 'Cooperative created successfully!');
+            ->route('cooperatives.show', $cooperative);
     }
 
     /**
@@ -150,9 +150,25 @@ class CooperativesController extends Controller
     {
         $cooperative->load('details');
 
+        // Get all programs to populate the dropdown
+        $programs = Programs::select('id', 'name')->get();
+
+        // Provide default empty details if none exist
+        $details = $cooperative->details ?? (object) [
+            'coop_type' => '',
+            'status_category' => '',
+            'bond_of_membership' => '',
+            'area_of_operation' => '',
+            'citizenship' => '',
+            'members_count' => 0,
+            'total_asset' => 0,
+            'net_surplus' => 0,
+        ];
+
         return inertia('cooperatives/show', [
             'cooperative' => $cooperative,
-            'details' => $cooperative->details,
+            'details' => $details,
+            'programs' => $programs,
             'breadcrumbs' => [
                 ['title' => 'Cooperatives', 'href' => route('cooperatives.index')],
                 ['title' => $cooperative->name, 'href' => route('cooperatives.show', $cooperative)],
@@ -263,8 +279,7 @@ class CooperativesController extends Controller
 
         } catch (\Exception $e) {
             return redirect()
-                ->route('cooperatives.index')
-                ->with('error', "Something went wrong while deleting.\nError: {$e->getMessage()}");
+                ->route('cooperatives.index');
         }
     }
 
@@ -277,8 +292,7 @@ class CooperativesController extends Controller
         $type = strtolower($request->file('file')->getClientOriginalExtension());
         if (! in_array($type, ['csv', 'xlsx'])) {
             return redirect()
-                ->route('cooperatives.index')
-                ->with('error', 'The file type is not supported.');
+                ->route('cooperatives.index');
         }
 
         if ($type === 'csv') {
@@ -340,8 +354,7 @@ class CooperativesController extends Controller
         $type = strtolower($type);
         if (! in_array($type, ['csv', 'xlsx'])) {
             return redirect()
-                ->route('cooperatives.index')
-                ->with('error', 'The export file type is not supported.');
+                ->route('cooperatives.index');
         }
 
         $fileName = 'cooperatives_'.now()->format('Ymd_His').'.'.$type;

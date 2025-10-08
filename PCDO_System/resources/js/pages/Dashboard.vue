@@ -93,87 +93,90 @@ function goToNotification(id: number) {
     <Head title="Dashboard" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="grid gap-4 md:grid-cols-4 mt-6 px-4 pb-6">
+        <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
+            <div class="grid gap-4 md:grid-cols-4 mt-6 px-4 pb-6">
 
-            <!-- Total Cooperatives -->
-            <div class="col-span-4 md:col-span-1 bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Total Cooperatives</h3>
-                <p class="text-2xl font-extrabold text-blue-600 mt-3">{{ totalCoops }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Registered cooperatives</p>
-            </div>
-
-            <!-- Upcoming Monthly Dues -->
-            <div class="col-span-4 md:col-span-1 bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Upcoming Monthly Dues</h3>
-                <p class="text-2xl font-extrabold text-red-600 mt-3">{{ formatCurrencyShort(upcomingMonthlyDues) }}</p>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Due next month</p>
-            </div>
-
-            <!-- Cash Flow -->
-            <div class="col-span-4 md:col-span-1 bg-gray-100 dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Cash Flow</h3>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Release</p>
-                        <p class="text-2xl font-bold text-blue-600">{{ formatCurrencyShort(totalReleases) }}</p>
-                    </div>
-                    <div class="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 text-center">
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Received</p>
-                        <p class="text-2xl font-bold text-green-600">{{ formatCurrencyShort(totalReceived) }}</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Notifications Card -->
-            <div class="col-span-4 md:col-span-1 row-span-2 bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
-                        Recent Notifications
-                    </h2>
-                    <a href="/notifications" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
-                        See All
-                    </a>
+                <!-- Total Cooperatives -->
+                <div class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Total Cooperatives</h3>
+                    <p class="text-2xl font-extrabold text-blue-600 mt-3">{{ totalCoops }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Registered cooperatives</p>
                 </div>
 
-                <ul class="space-y-3 max-h-[320px] overflow-y-auto pr-2">
-                    <li v-for="notification in notifications" :key="notification.id"
-                        class="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-                        @click="goToNotification(notification.id)">
-                        {{ notification.subject }}
-                        <p class="text-xs text-gray-500 dark:text-gray-300 mt-1">
-                            {{ new Date(notification.created_at).toLocaleString() }}
-                        </p>
-                    </li>
-                </ul>
-            </div>
+                <!-- Upcoming Monthly Dues -->
+                <div class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Upcoming Monthly Dues</h3>
+                    <p class="text-2xl font-extrabold text-red-600 mt-3">{{ formatCurrencyShort(upcomingMonthlyDues) }}
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Due next month</p>
+                </div>
 
-            <!-- Chart Card -->
-            <div class="col-span-4 md:col-span-3 bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                <div class="flex justify-between items-center mb-3">
-                    <div>
+                <!-- Cash Flow -->
+                <div class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Cash Flow</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Release</p>
+                            <p class="text-2xl font-bold text-blue-600">{{ formatCurrencyShort(totalReleases) }}</p>
+                        </div>
+                        <div class="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 text-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Received</p>
+                            <p class="text-2xl font-bold text-green-600">{{ formatCurrencyShort(totalReceived) }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications Card -->
+                <div class="col-span-4 md:col-span-1 row-span-2 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
-                            Program Statistics
+                            Recent Notifications
                         </h2>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                            Overview of active cooperative programs.
-                        </p>
+                        <a href="/notifications" class="text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                            See All
+                        </a>
                     </div>
 
-                    <div class="flex gap-3">
-                        <button class="px-4 py-2 rounded-lg font-medium transition"
-                            :class="view === 'monthly' ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'"
-                            @click="view = 'monthly'">
-                            Monthly
-                        </button>
-                        <button class="px-4 py-2 rounded-lg font-medium transition"
-                            :class="view === 'yearly' ? 'bg-green-600 text-white shadow-md' : 'bg-green-100 text-green-700 hover:bg-green-200'"
-                            @click="view = 'yearly'">
-                            Yearly
-                        </button>
-                    </div>
+                    <ul class="space-y-3 max-h-[320px] overflow-y-auto pr-2">
+                        <li v-for="notification in notifications" :key="notification.id"
+                            class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+                            @click="goToNotification(notification.id)">
+                            {{ notification.subject }}
+                            <p class="text-xs text-gray-500 dark:text-gray-300 mt-1">
+                                {{ new Date(notification.created_at).toLocaleString() }}
+                            </p>
+                        </li>
+                    </ul>
                 </div>
 
-                <VueApexCharts type="bar" height="320" :options="chartOptions" :series="series" />
+                <!-- Chart Card -->
+                <div class="col-span-4 md:col-span-3 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                    <div class="flex justify-between items-center mb-3">
+                        <div>
+                            <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
+                                Program Statistics
+                            </h2>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                Overview of active cooperative programs.
+                            </p>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button class="px-4 py-2 rounded-lg font-medium transition"
+                                :class="view === 'monthly' ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'"
+                                @click="view = 'monthly'">
+                                Monthly
+                            </button>
+                            <button class="px-4 py-2 rounded-lg font-medium transition"
+                                :class="view === 'yearly' ? 'bg-green-600 text-white shadow-md' : 'bg-green-100 text-green-700 hover:bg-green-200'"
+                                @click="view = 'yearly'">
+                                Yearly
+                            </button>
+                        </div>
+                    </div>
+
+                    <VueApexCharts type="bar" height="320" :options="chartOptions" :series="series" />
+                </div>
             </div>
         </div>
     </AppLayout>
