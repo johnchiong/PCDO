@@ -4,15 +4,29 @@ import { LoaderCircle } from 'lucide-vue-next'
 import Button from '@/components/ui/button/Button.vue'
 import { Form } from '@inertiajs/vue3'
 import AuthLayout from '@/layouts/AuthLayout.vue'
+import { toast } from "vue-sonner"
 
 const form = useForm({
   code: '',
 })
+const resendForm = useForm({})
 
 const submit = () => {
   form.post('/login/verify', {
     onError: (errors) => console.log(errors),
   })
+}
+
+const resend = () => {
+    form.post('/login/resend', {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success(`A new code has been sent to your email.`)
+        },
+        onError: () => {
+            toast.error(`Failed to resend code. Please try again.`)
+        },
+    })
 }
 </script>
 
@@ -65,6 +79,17 @@ const submit = () => {
           <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
           <span>Verify</span>
         </Button>
+        <button
+          type="button"
+          @click="resend"
+          :disabled="resendForm.processing"
+          class="text-sm text-indigo-600 hover:text-indigo-800 font-medium underline text-center mt-3 disabled:opacity-50"
+        >
+          <span v-if="!resendForm.processing">Resend Code</span>
+          <span v-else class="flex justify-center items-center gap-2">
+            <LoaderCircle class="h-4 w-4 animate-spin" /> Sending...
+          </span>
+        </button>
       </Form>
     </div>
   </AuthLayout>
