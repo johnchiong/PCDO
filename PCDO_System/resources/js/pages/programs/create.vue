@@ -23,6 +23,7 @@ const form = useForm({
   cooperative_id: query.get('cooperative_id') || '',
   email: '',
   phone_number: '',
+  project: '',
 })
 
 // Get selected cooperative details
@@ -52,6 +53,14 @@ const validatePhone = () => {
   }
 }
 
+//Project field validation
+const validateProject = () => {
+  form.clearErrors('project')
+  if (!form.project) {
+    form.setError('project', 'Project name is required.')
+  }
+}
+
 // Full form validation (when saving)
 const validateForm = () => {
   form.clearErrors()
@@ -64,6 +73,7 @@ const validateForm = () => {
 
   validateEmail()
   validatePhone()
+  validateProject()
 
   return Object.keys(form.errors).length === 0
 }
@@ -136,6 +146,17 @@ const handleSubmit = () => {
                 @blur="validatePhone" />
               <div v-if="form.errors.phone_number" class="text-red-500 text-sm mt-1">
                 {{ form.errors.phone_number }}
+              </div>
+            </div>
+
+            <!-- Project -->
+            <div>
+              <label class="block mb-1 font-medium">Project</label>
+              <input type="text" v-model="form.project" placeholder="Enter Project Name"
+                class="w-full rounded-xl border border-gray-300 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                @blur="validateProject" />
+              <div v-if="form.errors.project" class="text-red-500 text-sm mt-1">
+                {{ form.errors.project }}
               </div>
             </div>
 

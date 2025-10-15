@@ -18,7 +18,7 @@ import { Table, TableCaption, TableBody, TableCell, TableHead, TableHeader, Tabl
 import { Toaster } from '@/components/ui/sonner';
 // Icons
 import { CheckCircle, XCircle, CircleDashed, Search, SquarePen, ChevronRight, ChevronLeft, ChevronDown, Plus, FileUp, FileDown, Users, Building2, Handshake, Pin, ReceiptText, 
-    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace } from 'lucide-vue-next';
+    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace, FileText } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // Directives
@@ -95,6 +95,7 @@ createInertiaApp({
             .component('Bell', Bell)
             .component('Upload', Upload)
             .component('Replace', Replace)
+            .component('FileText', FileText)
             // Alert Dialog
             .component('AlertDialog', AlertDialog)
             .component('AlertDialogAction', AlertDialogAction)

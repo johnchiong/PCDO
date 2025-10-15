@@ -1,23 +1,19 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
+import { Head } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
-import { Head, Link } from '@inertiajs/vue3'
 
 const props = defineProps<{
-    programs: Array<{
-        id: number
-        name: string
-        completed_coops_count: number
+    years: Array<{
+        year: string
+        cooperatives: Array<{
+            id: number
+            name: string
+            program_name: string
+            completed_at: string
+        }>
     }>
 }>()
-
-const programDescriptions: Record<string, string> = {
-    USAD: 'Upgrading Support for Advancement and Development of Enterprises in Cooperative',
-    LICAP: 'Livelihood Credit Assistance Program',
-    COPSE: 'Cooperative Program For Sustainable Enterprise',
-    SULONG: 'Sustained Livelihood Opportunities and Growth',
-    PCLRP: 'Provincial Cooperative Livelihood Recovery Program'
-}
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Documentation', href: '#' },
@@ -25,37 +21,86 @@ const breadcrumbs: BreadcrumbItem[] = [
 </script>
 
 <template>
-    <Head title="Documentation" />
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex flex-col gap-6 p-6">
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Link v-for="program in props.programs" :key="program.id" :href="`/documentation/${program.id}`" class="rounded-2xl shadow-md border border-gray-300 dark:border-gray-700 
-                 bg-gray-200 dark:bg-gray-800 
-                 hover:shadow-xl hover:-translate-y-1 transform transition-all block">
-                <div class="h-2 rounded-t-2xl bg-gradient-to-r from-blue-500 to-indigo-500"></div>
+  <Head title="Documentation" />
+  <AppLayout :breadcrumbs="breadcrumbs">
+    <div class="bg-gray-50 dark:bg-gray-900 min-h-screen px-6 py-8">
+      <!-- Page Title -->
+      <div class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">
+          Documentation by Year
+        </h1>
+        <p class="text-gray-500 dark:text-gray-400 text-sm mt-2">
+          Browse completed cooperative documentation organized by year.
+        </p>
+      </div>
 
-                <div class="p-5 flex flex-col h-full">
-                    <h2 class="text-xl font-bold mb-1 text-gray-900 dark:text-gray-100">
-                        {{ program.name }}
-                    </h2>
+      <!-- No Data State -->
+      <div v-if="!props.years || props.years.length === 0" class="flex flex-col items-center justify-center py-20">
+        <p class="text-gray-500 dark:text-gray-400 text-lg">
+          No documentation data available.
+        </p>
+      </div>
 
-                    <p class="text-gray-700 dark:text-gray-300 text-sm mb-4">
-                        {{ programDescriptions[program.name] }}
-                    </p>
+      <!-- Year Dropdowns -->
+      <div v-else class="max-w-4xl mx-auto space-y-4">
+        <DropdownMenu v-for="yearGroup in props.years" :key="yearGroup.year">
+          <!-- Trigger Button -->
+          <DropdownMenuTrigger asChild>
+            <button
+              class="w-full flex items-center justify-between px-6 py-3 rounded-xl 
+                     bg-indigo-600 text-white font-semibold shadow-sm
+                     hover:bg-indigo-700 active:bg-indigo-800
+                     focus:outline-none focus:ring-2 focus:ring-indigo-400 
+                     transition duration-200"
+            >
+              <span class="text-lg">{{ yearGroup.year }}</span>
+              <ChevronDown class="w-5 h-5 opacity-90" />
+            </button>
+          </DropdownMenuTrigger>
 
-                    <div class="mt-auto flex items-center justify-between">
-                        <span class="text-sm font-medium text-green-700 dark:text-green-400">
-                            Completed Cooperatives
-                        </span>
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold 
-                       bg-blue-100 text-blue-700 
-                       dark:bg-blue-900 dark:text-blue-200">
-                            {{ program.completed_coops_count }}
-                        </span>
-                    </div>
-                </div>
-                </Link>
+          <!-- Dropdown Content -->
+          <DropdownMenuContent
+            side="bottom"
+            align="start"
+            class="w-224 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+          >
+            <div v-if="yearGroup.cooperatives.length > 0">
+              <Table>
+                <TableCaption>
+                  <span class="text-gray-600 dark:text-gray-400 text-sm">
+                    Completed cooperatives for {{ yearGroup.year }}
+                  </span>
+                </TableCaption>
+
+                <TableHeader>
+                  <TableRow class="bg-gray-100 dark:bg-gray-700">
+                    <TableHead class="text-gray-700 dark:text-gray-200">Name</TableHead>
+                    <TableHead class="text-gray-700 dark:text-gray-200">Program</TableHead>
+                    <TableHead class="text-gray-700 dark:text-gray-200">Completed At</TableHead>
+                  </TableRow>
+                </TableHeader>
+
+                <TableBody>
+                  <TableRow
+                    v-for="coop in yearGroup.cooperatives"
+                    :key="coop.id"
+                    @click="$inertia.get(`/documentation/cooperative/${coop.id}`)"
+                    class="cursor-pointer hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
+                  >
+                    <TableCell class="font-medium text-gray-800 dark:text-gray-100">{{ coop.name }}</TableCell>
+                    <TableCell class="text-gray-700 dark:text-gray-300">{{ coop.program_name }}</TableCell>
+                    <TableCell class="text-gray-600 dark:text-gray-400">{{ coop.completed_at }}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
-        </div>
-    </AppLayout>
+
+            <div v-else class="p-5 text-gray-500 dark:text-gray-400 text-center text-sm">
+              No cooperatives completed yet for this year.
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+  </AppLayout>
 </template>

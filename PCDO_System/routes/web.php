@@ -5,11 +5,12 @@ use App\Http\Controllers\CooperativesController;
 use App\Http\Controllers\CoopMemberController;
 // use App\Http\Controllers\CoopHistoryController;
 use App\Http\Controllers\CoopProgramChecklistController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CoopProgramController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProgramController;
+use App\Http\Controllers\ResolvedController;
 use App\Http\Controllers\SyncController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,8 +28,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Cooperatives Nested Routes
     Route::resource('cooperatives.members', CoopMemberController::class);
-    Route::get('cooperatives/{cooperative}/members/{member}/files/{fileId}/download',[CoopMemberController::class, 'downloadFile'])->name('cooperatives.members.files.download');
-    Route::delete('cooperatives/{cooperative}/members/{member}/files/{fileId}',[CoopMemberController::class, 'deleteFile'])->name('cooperatives.members.files.delete');
+    Route::get('cooperatives/{cooperative}/members/{member}/files/{fileId}/download', [CoopMemberController::class, 'downloadFile'])->name('cooperatives.members.files.download');
+    Route::delete('cooperatives/{cooperative}/members/{member}/files/{fileId}', [CoopMemberController::class, 'deleteFile'])->name('cooperatives.members.files.delete');
     Route::get('cooperatives/{cooperative}', [CooperativesController::class, 'show'])->name('cooperatives.show');
 
     // Program Routes
@@ -45,12 +46,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('checklist/{file}/download', [CoopProgramChecklistController::class, 'download'])->name('programs.cooperatives.checklist.download');
         Route::delete('checklist/{file}', [CoopProgramChecklistController::class, 'delete'])->name('programs.cooperatives.checklist.delete');
 
-        //Loan amount and Grace Period
+        // Loan amount and Grace Period
         Route::post('finalize-loan', [ProgramController::class, 'finalizeLoan'])->name('cooperatives.finalizeLoan');
     });
 
     // Generating the Amortization Schedule
-     Route::post('/cooperative-programs/{coopProgram}/generate-amortization',[AmortizationScheduleController::class, 'generateSchedule'])->name('cooperative-programs.generate-amortization');
+    Route::post('/cooperative-programs/{coopProgram}/generate-amortization', [AmortizationScheduleController::class, 'generateSchedule'])->name('cooperative-programs.generate-amortization');
 
     // Cooperatives Programs Routes
     // Route::resource('coopPrograms', CoopProgramController::class);
@@ -65,6 +66,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/schedules/{schedule}/note-payment', [AmortizationScheduleController::class, 'notePayment'])->name('schedules.notePayment');
     Route::post('/schedules/{schedule}/penalty', [AmortizationScheduleController::class, 'penalty'])->name('schedules.penalty');
     Route::post('/schedules/{schedule}/send-overdue-email', [AmortizationScheduleController::class, 'sendOverdueEmail'])->name('schedules.sendOverdueEmail');
+    // Amortization Incomplete
+    Route::get('/amortization/{loan}/download', [AmortizationScheduleController::class, 'downloadPdf'])->name('amortization.download');
+    Route::post('/amortization/{loan}/incomplete', [AmortizationScheduleController::class, 'markIncomplete'])->name('loan.incomplete');
+    Route::post('/amortization/{loan}/resolve', [AmortizationScheduleController::class, 'markResolved'])->name('loan.resolve');
 
     // Notification Routes
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
@@ -72,10 +77,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/schedules/{schedule}/send-notif', [AmortizationScheduleController::class, 'sendOverdueEmail'])->name('schedules.sendNotif');
 
     // Documentation Routes
-    Route::get('documentation/history', [DocumentationController::class, 'history'])->name('documentation.history');
-    Route::get('documentation', [DocumentationController::class, 'index'])->name('documentation.index');
-    Route::get('documentation/{program}', [DocumentationController::class, 'show'])->name('documentation.show');
-    
+    Route::get('/documentation', [DocumentationController::class, 'index'])->name('documentation.index');
+    Route::get('/documentation/cooperative/{id}', [DocumentationController::class, 'show'])->name('documentation.show');
+    Route::get('/documentation/{id}/amortization', [DocumentationController::class, 'amortizationFile'])->name('documentation.amortization');
+    Route::get('/documentation/{id}/details', [DocumentationController::class, 'cooperativeDetailsFile'])->name('documentation.details');
+    Route::get('/documentation/resolved/{id}/file', [DocumentationController::class, 'resolvedFile'])->name('documentation.resolved.file');
+    Route::get('/documentation/checklist/{id}/file', [DocumentationController::class, 'checklistFile'])->name('documentation.checklist.file');
+
+    // Resolved Routes
+    Route::get('/resolved/{coopProgram}/upload', [ResolvedController::class, 'create'])->name('resolved.create');
+    Route::post('/resolved/{coopProgram}', [ResolvedController::class, 'store'])->name('resolved.store');
+    Route::get('/resolved/download/{id}', [ResolvedController::class, 'download'])->name('resolved.download');
 
     // Cooperatives Program Nested Routes
     // Route::resource('coopPrograms/{cooperative}/checklists', CoopProgramChecklistController::class);

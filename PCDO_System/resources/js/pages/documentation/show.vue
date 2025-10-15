@@ -1,132 +1,170 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
+import { Head } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
-import { Head, Link, router } from '@inertiajs/vue3'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
+// Props received from Laravel controller
 const props = defineProps<{
-    program: {
+    cooperative: {
         id: number
         name: string
-        description: string
-    },
-    cooperatives: Array<{
-        id: number
-        name: string
+        program_id: number
+        program_name: string
         program_status: string
-        year?: string
-        files?: Array<{ id: number, name: string, url: string }>
-    }>,
-    selectedYear?: string
+        start_date: string
+        completed_at: string
+    }
 }>()
 
-const programDescriptions: Record<string, string> = {
-    USAD: 'Upgrading Support for Advancement and Development of Enterprises in Cooperative',
-    LICAP: 'Livelihood Credit Assistance Program',
-    COPSE: 'Cooperative Program For Sustainable Enterprise',
-    SULONG: 'Sustained Livelihood Opportunities and Growth',
-    PCLRP: 'Provincial Cooperative Livelihood Recovery Program'
-}
-
+// Breadcrumbs for navigation
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Documentation', href: '/documentation' },
-    { title: props.program.name, href: '#' },
+    { title: props.cooperative.name, href: '#' },
 ]
 
-// Build year options (this year and past 4)
-const currentYear = new Date().getFullYear()
-const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
-
-// Selected year state (sync with backend)
-const selectedYear = ref(props.selectedYear ?? '')
-
-// Reactively update when dropdown changes
-watch(selectedYear, (newYear) => {
-    router.get(`/documentation/${props.program.id}`, { year: newYear || undefined })
-})
+// reactive state for selected file preview
+const selectedFile = ref<{ name: string; url: string } | null>(null)
 </script>
 
 <template>
-    <Head :title="program.name" />
+
+    <Head :title="cooperative.name" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="p-6 space-y-8">
-            <!-- Program Header -->
-            <div
-                class="bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-8">
-                <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3">
-                    📌 {{ program.name }}
-                </h1>
-                <p class="text-gray-600 dark:text-gray-300 text-lg leading-relaxed">
-                    {{ programDescriptions[program.name] }}
-                </p>
-            </div>
+        <div class="bg-gray-50 dark:bg-gray-900 min-h-screen px-4 py-6">
+            <div class="max-w-7xl mx-auto space-y-6">
 
-            <!-- Completed Cooperatives -->
-            <div
-                class="bg-gray-100 dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                        ✅ Completed Cooperatives
-                    </h2>
+                <!-- Cooperative Info Card with Start Date -->
+                <div
+                    class="bg-gray-200/40 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-md px-6 py-5 mb-6">
 
-                    <!-- Year Filter Dropdown -->
-                    <select
-                        v-model="selectedYear"
-                        class="border rounded px-3 py-2 text-sm dark:bg-gray-900 dark:text-gray-200"
-                    >
-                        <option value="">All Years</option>
-                        <option v-for="y in years" :key="y" :value="String(y)">
-                            {{ y }}
-                        </option>
-                    </select>
+                    <!-- Header -->
+                    <div class="mb-4 flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <Building2 class="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">{{ cooperative.name }}</h2>
+                        </div>
+                        <!-- ID Badge -->
+                        <span
+                            class="inline-flex gap-2 px-4 py-2 rounded-full text-sm font-medium bg-indigo-200/40 text-lime-700 dark:bg-lime-800 dark:text-fuchsia-200">
+                            ID: {{ cooperative.id }}
+                        </span>
+                    </div>
+
+                    <!-- Program Info -->
+                    <div
+                        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-gray-700 dark:text-gray-300">
+                        <div
+                            class="bg-gray-50 dark:bg-gray-800/80 p-4 rounded-xl ring-1 ring-gray-300 dark:ring-gray-700 border border-gray-300 dark:border-gray-700 shadow-sm">
+                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Program</p>
+                            <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{{
+                                cooperative.program_name }}</p>
+                        </div>
+
+                        <div
+                            class="bg-gray-50 dark:bg-gray-800/80 p-4 rounded-xl ring-1 ring-gray-300 dark:ring-gray-700 border border-gray-300 dark:border-gray-700 shadow-sm">
+                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</p>
+                            <p class="mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">{{
+                                cooperative.program_status }}</p>
+                        </div>
+
+                        <div
+                            class="bg-gray-50 dark:bg-gray-800/80 p-4 rounded-xl ring-1 ring-gray-300 dark:ring-gray-700 border border-gray-300 dark:border-gray-700 shadow-sm">
+                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Start Date</p>
+                            <p class="mt-1 text-lg font-semibold text-indigo-600 dark:text-indigo-400">
+                                {{ cooperative.start_date || 'N/A' }}
+                            </p>
+                        </div>
+
+                        <div
+                            class="bg-gray-50 dark:bg-gray-800/80 p-4 rounded-xl ring-1 ring-gray-300 dark:ring-gray-700 border border-gray-300 dark:border-gray-700 shadow-sm">
+                            <p class="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400">Completed At</p>
+                            <p class="mt-1 text-lg font-semibold text-emerald-600 dark:text-emerald-400">{{
+                                cooperative.completed_at }}</p>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-                    <Table>
-                        <TableHeader class="bg-gray-300 dark:bg-gray-900">
-                            <TableRow>
-                                <TableHead class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">#</TableHead>
-                                <TableHead class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Cooperative Name</TableHead>
-                                <TableHead class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Status</TableHead>
-                                <TableHead class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Year</TableHead>
-                                <TableHead class="px-6 py-3 text-left text-sm font-semibold text-gray-700 dark:text-gray-300">Action</TableHead>
-                            </TableRow>
-                        </TableHeader>
-
-                        <TableBody>
-                            <TableRow v-for="(coop, index) in cooperatives" :key="coop.id"
-                                class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors bg-gray-200 dark:bg-gray-800">
-                                <TableCell class="px-6 py-4 text-gray-700 dark:text-gray-300">
-                                    {{ index + 1 }}
-                                </TableCell>
-                                <TableCell class="px-6 py-4 font-medium text-gray-900 dark:text-gray-100">
-                                    {{ coop.name }}
-                                </TableCell>
-                                <TableCell class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
-                                        bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                        ✅ Finished
+                <!-- Files & Preview Card -->
+                <div
+                    class="bg-gray-200/40 dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-full md:w-auto">
+                                    <span class="flex items-center gap-2">
+                                        <FileText class="w-4 h-4" />
+                                        View Files
                                     </span>
-                                </TableCell>
-                                <TableCell class="px-6 py-4">
-                                    {{ coop.year ?? '—' }}
-                                </TableCell>
-                                <TableCell class="px-6 py-4">
-                                    <Link :href="`/documentation/history?program_id=${program.id}&coop_id=${coop.id}`"
-                                        class="px-3 py-1 text-xs font-medium rounded bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition">
-                                        View History
-                                    </Link>
-                                </TableCell>
-                            </TableRow>
+                                    <ChevronDown class="w-4 h-4" />
+                                </button>
+                            </DropdownMenuTrigger>
 
-                            <TableRow v-if="cooperatives.length === 0">
-                                <TableCell colspan="5" class="px-6 py-6 text-center text-gray-500 dark:text-gray-400">
-                                    🚫 No completed cooperatives for this program yet.
-                                </TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
+                            <DropdownMenuContent side="bottom" align="start"
+                                class="w-56 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1 mt-1">
+                                <!-- Amortization Schedule -->
+                                <DropdownMenuItem asChild>
+                                    <button
+                                        @click="selectedFile = { name: 'Amortization Schedule', url: `/documentation/${cooperative.program_id}/amortization` }"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        Amortization Schedule
+                                    </button>
+                                </DropdownMenuItem>
+
+                                <!-- Cooperative Details -->
+                                <DropdownMenuItem asChild>
+                                    <button
+                                        @click="selectedFile = { name: 'Cooperative Details', url: `/documentation/${cooperative.program_id}/details` }"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        Cooperative Details
+                                    </button>
+                                </DropdownMenuItem>
+
+                                <!-- Resolved File -->
+                                <DropdownMenuItem asChild>
+                                    <button @click="selectedFile = {
+                                        name: 'Resolved File',
+                                        url: `/documentation/resolved/${cooperative.program_id}/file`
+                                    }"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        Resolved File
+                                    </button>
+                                </DropdownMenuItem>
+
+                                <!-- Checklist of Documents -->
+                                <DropdownMenuItem asChild>
+                                    <button @click="selectedFile = {
+                                        name: 'Checklist of Documents',
+                                        url: `/documentation/checklist/${cooperative.program_id}/file`
+                                    }" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        Checklist of Documents
+                                    </button>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+
+                    <!-- File Preview -->
+                    <div class="mt-6">
+                        <template v-if="selectedFile && selectedFile.url">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                {{ selectedFile.name }} Preview
+                            </h3>
+                            <iframe :src="selectedFile.url"
+                                class="w-full h-[600px] rounded-lg border border-gray-300 dark:border-gray-700"
+                                frameborder="0"></iframe>
+                        </template>
+
+                        <p v-else class="text-gray-500 dark:text-gray-400 text-sm mt-4">
+                            Select a file to preview it here.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>

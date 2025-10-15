@@ -30,13 +30,13 @@ const currentPage = ref(1)
 const itemsPerPage = ref(10)
 
 const filteredCoopPrograms = computed(() => {
-    if (!searchQuery.value) {
-        return props.coopPrograms;
-    }
-    return props.coopPrograms.filter(coop =>
-        coop.program_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        coop.id.toString().includes(searchQuery.value)
-    );
+  if (!searchQuery.value) {
+    return props.coopPrograms;
+  }
+  return props.coopPrograms.filter(coop =>
+    coop.program_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    coop.id.toString().includes(searchQuery.value)
+  );
 });
 
 const filteredPrograms = computed(() => {
@@ -135,7 +135,8 @@ function formatNextDue(date: string | null) {
               List of Cooperatives
             </TableCaption>
             <TableHeader class="bg-gray-200/90 dark:bg-gray-700/50 border-b border-gray-500 dark:border-gray-500">
-              <TableRow class="text-left text-gray-800 dark:text-gray-200 uppercase tracking-wide text-xs font-semibold">
+              <TableRow
+                class="text-left text-gray-800 dark:text-gray-200 uppercase tracking-wide text-xs font-semibold">
                 <TableHead class="py-3 pl-6">ID</TableHead>
                 <TableHead class="pl-13 py-3">COOPERATIVES</TableHead>
                 <TableHead class="pl-13 py-3">PROGRAMS</TableHead>
@@ -164,31 +165,66 @@ function formatNextDue(date: string | null) {
                 <TableCell class="pl-13 text-gray-600 dark:text-gray-300">
                   {{ formatNextDue(program.next_due_date) }}
                 </TableCell>
+                <!-- STATUS -->
                 <TableCell class="pl-13 text-gray-600 dark:text-gray-300">
-                  <span v-if="program.status === 'Finished'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
-                bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                    <CheckCircle class="w-3 h-3" /> <!-- ✅ finished icon -->
-                    Finished
-                  </span>
+                  <!-- Finished -->
+                  <template v-if="program.status === 'Finished'">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
+                  bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                      <CheckCircle class="w-3 h-3" />
+                      Finished
+                    </span>
+                  </template>
 
-                  <span v-else-if="program.status === 'Ongoing'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
-                bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
-                    <CircleDashed class="w-3 h-3 animate-spin" /> <!-- ⭕ ongoing icon -->
-                    Ongoing
-                  </span>
+                  <!-- Resolved -->
+                  <template v-else-if="program.status === 'Resolved'">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
+                  bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                      <CheckCircle class="w-3 h-3" />
+                      Resolved
+                    </span>
+                  </template>
 
-                  <span v-else class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
-                bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
-                    <XCircle class="w-3 h-3" />
-                    {{ program.status }}
-                  </span>
+                  <!-- Ongoing -->
+                  <template v-else-if="program.status === 'Ongoing'">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
+                  bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                      <CircleDashed class="w-3 h-3 animate-spin" />
+                      Ongoing
+                    </span>
+                  </template>
+
+                  <!-- No Amortization -->
+                  <template v-else-if="!program.has_schedule">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
+                  bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-400">
+                      <XCircle class="w-3 h-3" />
+                      No Amortization
+                    </span>
+                  </template>
+
+                  <!-- Fallback -->
+                  <template v-else>
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
+                  bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300">
+                      <XCircle class="w-3 h-3" />
+                      {{ program.status }}
+                    </span>
+                  </template>
                 </TableCell>
-
                 <TableCell class="pl-13 py-4">
-                  <Link :href="`/amortizations/${program.coop_program_id}`"
-                    class="inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow hover:bg-indigo-700 transition">
-                  View Amortization
-                  </Link>
+                  <template v-if="program.has_schedule">
+                    <Link :href="`/amortizations/${program.coop_program_id}`"
+                      class="inline-block px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-medium shadow hover:bg-indigo-700 transition">
+                    View Amortization
+                    </Link>
+                  </template>
+                  <template v-else>
+                    <span
+                      class="inline-block px-4 py-2 rounded-lg bg-gray-300 text-gray-700 dark:bg-gray-700 dark:text-gray-400 text-sm font-medium cursor-not-allowed">
+                      No Amortization
+                    </span>
+                  </template>
                 </TableCell>
               </TableRow>
             </TableBody>

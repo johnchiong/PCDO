@@ -68,6 +68,7 @@ class ProgramController extends Controller
             'cooperative_id' => 'required|exists:cooperatives,id',
             'email' => 'required|email',
             'phone_number' => ['required', 'regex:/^09\d{9}$/'],
+            'project'=>'required|string|max:255',
         ]);
 
         $cooperative = Cooperative::findOrFail($data['cooperative_id']);
@@ -93,6 +94,7 @@ class ProgramController extends Controller
         $coopProgram = CoopProgram::create([
             'coop_id' => $cooperative->id,
             'program_id' => $program->id,
+            'project'=>$data['project'],
             'start_date' => now(),
             'end_date' => now()->addMonths($program->term_months),
             'program_status' => 'Ongoing',

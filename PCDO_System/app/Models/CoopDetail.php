@@ -14,7 +14,7 @@ class CoopDetail extends Model
         'barangay_code',
         'asset_size',
         'coop_type',
-        'status/category',
+        'status_category',
         'bond_of_membership',
         'area_of_operation',
         'citizenship',
@@ -38,21 +38,21 @@ class CoopDetail extends Model
 
     public function region()
     {
-        return $this->belongsTo(Region::class);
+        return $this->belongsTo(Region::class, 'region_code', 'code');
     }
 
     public function province()
     {
-        return $this->belongsTo(Province::class);
+        return $this->belongsTo(Province::class, 'province_code', 'code');
     }
 
     public function city()
     {
-        return $this->belongsTo(City::class);
+        return $this->belongsTo(City::class, 'city_code', 'code');
     }
 
     public function barangay()
     {
-        return $this->belongsTo(Barangay::class);
+        return $this->belongsTo(Barangay::class, 'barangay_code', 'code');
     }
 }

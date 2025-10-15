@@ -15,6 +15,7 @@ class CoopProgram extends Model
         'program_id',
         'name',
         'description',
+        'project',
         'start_date',
         'end_date',
         'program_status',
@@ -30,6 +31,7 @@ class CoopProgram extends Model
         'start_date' => 'datetime',
         'end_date' => 'datetime',
     ];
+
     public function cooperative()
     {
         return $this->belongsTo(Cooperative::class, 'coop_id', 'id');
@@ -49,15 +51,40 @@ class CoopProgram extends Model
     {
         return $this->hasMany(AmortizationSchedules::class, 'coop_program_id');
     }
-    
+
     public function olds()
     {
         return $this->hasMany(AmortizationOld::class, 'coop_program_id');
     }
 
-       public function progressReports()
+    public function programProgress()
     {
-        return $this->hasMany(CoopProgramProgress::class);
+        return $this->hasMany(CoopProgramProgress::class, 'coop_program_id');
+    }
+
+    public function coopDetails()
+    {
+        return $this->hasMany(CoopDetail::class, 'coop_id', 'coop_id');
+    }
+
+    public function coopMemberFiles()
+    {
+        return $this->hasMany(CoopMemberFile::class, 'coop_member_id');
+    }
+
+    public function finishedChecklist()
+    {
+        return $this->hasMany(FinishedCoopProgramChecklist::class, 'coop_program_id');
+    }
+
+    public function delinquents()
+    {
+        return $this->hasMany(Delinquent::class, 'coop_program_id');
+    }
+
+    public function resolvedItems()
+    {
+        return $this->hasMany(Resolved::class, 'coop_program_id');
     }
 
     public function generateChecklists()

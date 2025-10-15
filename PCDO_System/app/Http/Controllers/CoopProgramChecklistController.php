@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\CoopProgram;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Settings;
 use App\Models\CoopProgramChecklist;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+
 
 class CoopProgramChecklistController extends Controller
 {
@@ -39,8 +42,8 @@ class CoopProgramChecklistController extends Controller
         return Inertia::render('programs/checklist', [
             'cooperative' => [
                 'id' => $coopProgram->id,
-                'loan_amount' => $coopProgram->loan_amount,      // ✅ added
-                'with_grace' => $coopProgram->with_grace,       // ✅ added
+                'loan_amount' => $coopProgram->loan_amount,      // added
+                'with_grace' => $coopProgram->with_grace,       // added
                 'cooperative' => $coopProgram->cooperative,
                 'program' => $coopProgram->program,
             ],
@@ -61,28 +64,54 @@ class CoopProgramChecklistController extends Controller
             ->firstOrFail();
 
         $file = $request->file('file');
+        $mime = $file->getClientMimeType();
+        $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
 
+        $pdfBinary = null;
+
+        // Convert DOCX → PDF (in memory, no storage)
+        if (str_contains($mime, 'word')) {
+            $phpWord = IOFactory::load($file->getRealPath());
+
+            // Configure PDF renderer
+            Settings::setPdfRendererName('DomPDF');
+            Settings::setPdfRendererPath(base_path('vendor/dompdf/dompdf'));
+
+            // Use output buffering to capture PDF data
+            $tempPdf = tempnam(sys_get_temp_dir(), 'pdf_');
+            $pdfWriter = IOFactory::createWriter($phpWord, 'PDF');
+            $pdfWriter->save($tempPdf);
+
+            $pdfBinary = file_get_contents($tempPdf);
+            unlink($tempPdf); // delete temp file
+            $mime = 'application/pdf';
+            $fileName .= '.pdf';
+        } else {
+            // Non-DOCX files saved as-is
+            $pdfBinary = file_get_contents($file->getRealPath());
+        }
+
+        // Save or update in DB
         $existing = CoopProgramChecklist::where('coop_program_id', $coopProgram->id)
             ->where('program_checklist_id', $request->program_checklist_id)
             ->first();
 
         if ($existing) {
             $existing->update([
-                'file_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getClientMimeType(),
-                'file_content' => file_get_contents($file->getRealPath()),
+                'file_name' => $fileName,
+                'mime_type' => $mime,
+                'file_content' => $pdfBinary,
             ]);
         } else {
             CoopProgramChecklist::create([
                 'coop_program_id' => $coopProgram->id,
                 'program_checklist_id' => $request->program_checklist_id,
-                'file_name' => $file->getClientOriginalName(),
-                'mime_type' => $file->getClientMimeType(),
-                'file_content' => file_get_contents($file->getRealPath()),
+                'file_name' => $fileName,
+                'mime_type' => $mime,
+                'file_content' => $pdfBinary,
             ]);
         }
 
-        // Return fresh checklistItems (for router.reload)
         return redirect()->route('programs.cooperatives.checklist.show', [
             'program' => $programId,
             'cooperative' => $cooperativeId,

@@ -16,45 +16,50 @@ class ArchiveFinishedPrograms extends Command
     {
         try {
             DB::transaction(function () {
-                $programs = CoopProgram::where('program_status', 'Finished')
+                // Fetch programs that are Finished or Resolved, exported, and not archived
+                $programs = CoopProgram::whereIn('program_status', ['Finished', 'Resolved'])
                     ->where('exported', 1)
                     ->where('archived', 0)
                     ->get();
 
                 foreach ($programs as $program) {
-                    $this->info("Archiving Coop Program ID: {$program->id}");
+                    $this->info("Processing Coop Program ID: {$program->id}");
 
-                    $checklists = CoopProgramChecklist::where('coop_program_id', $program->id)->get();
+                    // Only fetch metadata first to avoid loading large file_content
+                    $checklists = CoopProgramChecklist::where('coop_program_id', $program->id)
+                        ->select('id', 'program_checklist_id', 'file_name', 'mime_type')
+                        ->get();
 
                     if ($checklists->isEmpty()) {
-                        $this->warn("No checklists found for program {$program->id}.");
+                        $this->warn("No checklists found for program {$program->id}");
+                        $program->archived = 1;
+                        $program->save();
                         continue;
                     }
 
-                    // Prepare insert data for finished table
-                    $finishedData = $checklists->map(function ($checklist) use ($program) {
-                        return [
+                    foreach ($checklists as $checklist) {
+                        // Fetch the file content individually
+                        $checklistWithContent = CoopProgramChecklist::find($checklist->id);
+
+                        DB::table('finished_coop_program_checklist')->insert([
                             'coop_program_id' => $program->id,
-                            'checklist_id'    => $checklist->program_checklist_id,
-                            'file_name'       => $checklist->file_name,
-                            'mime_type'       => $checklist->mime_type,
-                            'file_content'    => $checklist->file_content,
+                            'checklist_id'    => $checklistWithContent->program_checklist_id,
+                            'file_name'       => $checklistWithContent->file_name,
+                            'mime_type'       => $checklistWithContent->mime_type,
+                            'file_content'    => $checklistWithContent->file_content,
                             'created_at'      => now(),
                             'updated_at'      => now(),
-                        ];
-                    })->toArray();
+                        ]);
 
-                    // Bulk insert
-                    DB::table('finished_coop_program_checklist')->insert($finishedData);
-
-                    // Delete old checklists
-                    CoopProgramChecklist::where('coop_program_id', $program->id)->delete();
+                        // Delete original checklist
+                        $checklistWithContent->delete();
+                    }
 
                     // Mark program as archived
                     $program->archived = 1;
                     $program->save();
 
-                    $this->info("✔ Program {$program->id} archived.");
+                    $this->info("✔ Program {$program->id} archived successfully.");
                 }
             });
 

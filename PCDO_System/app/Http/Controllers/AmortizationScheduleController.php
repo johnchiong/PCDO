@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AmortizationSchedules;
 use App\Models\CoopProgram;
+use App\Models\Resolved;
 use App\Notifications\LoanOverdueNotification;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -60,10 +61,9 @@ class AmortizationScheduleController extends Controller
                 'cooperative_name' => $p->cooperative?->name ?? 'N/A',
                 'program_name' => $p->program?->name ?? 'N/A',
                 'loan_amount' => $p->loan_amount ?? 0,
-                'status' => $p->program_status,
-                'has_schedule' => $p->amortizationSchedules_count > 0,
+                'status' => $p->program_status ?? 'N/A', 
+                'has_schedule' => $p->amortization_schedules_count > 0,
                 'coop_program_id' => $p->id,
-                // ✅ Get the next due date (earliest unpaid schedule)
                 'next_due_date' => optional(
                     $p->amortizationSchedules->where('status', '!=', 'Paid')->sortBy('due_date')->first()
                 )->due_date?->format('Y-m-d') ?? 'N/A',
@@ -96,6 +96,8 @@ class AmortizationScheduleController extends Controller
                 'program_name' => $coopProgram->program?->name ?? 'N/A',
                 'loan_amount' => $coopProgram->loan_amount ?? 0,
                 'status' => $coopProgram->program_status ?? 'N/A',
+                'program_status' => $coopProgram->program_status ?? 'N/A', //include explicitly
+                'resolved' => $coopProgram->program_status === 'Resolved', //boolean helper
                 'schedules' => $coopProgram->amortizationSchedules->map(fn ($s) => [
                     'id' => $s->id,
                     'due_date' => optional($s->due_date)->format('Y-m-d'),
@@ -133,7 +135,6 @@ class AmortizationScheduleController extends Controller
     {
         $schedule = AmortizationSchedules::with('coopProgram.cooperative', 'pendingnotifications')->findOrFail($scheduleId);
         $programEmail = $schedule->coopProgram->email ?? null;
-
 
         if (! $programEmail) {
             return back()->with('error', 'No email found for this cooperative program.');
@@ -224,5 +225,52 @@ class AmortizationScheduleController extends Controller
         }
 
         return back()->with('success', 'Payment noted successfully.');
+    }
+
+    public function markIncomplete($id)
+    {
+        $coopProgram = CoopProgram::findOrFail($id);
+        $coopProgram->program_status = null;
+        $coopProgram->save();
+
+        return redirect()->back()->with('success', 'Program marked as Incomplete.');
+    }
+
+    public function markResolved(Request $request, $loanId)
+    {
+        $loan = CoopProgram::with('amortizationSchedules')->findOrFail($loanId);
+
+        // Validate uploaded file
+        $request->validate([
+            'receipt' => 'required|mimes:jpg,jpeg,png,pdf|max:5120',
+        ]);
+
+        // Directly read the file as binary (no storage or unlink)
+        $binaryContent = file_get_contents($request->file('receipt')->getRealPath());
+
+        // Save binary into database
+        Resolved::create([
+            'coop_program_id' => $loan->id,
+            'file_content' => $binaryContent,
+        ]);
+
+        // Mark amortization schedules as resolved
+        if ($loan->amortizationSchedules->count() > 0) {
+            foreach ($loan->amortizationSchedules as $schedule) {
+                $schedule->update([
+                    'status' => 'Resolved',
+                    'date_paid' => now(),
+                    'balance' => 0,
+                    'penalty_amount' => 0,
+                ]);
+            }
+        }
+
+        // Update main program status
+        $loan->update(['program_status' => 'Resolved']);
+
+        return redirect()
+            ->back()
+            ->with('success', 'Loan marked as resolved successfully!');
     }
 }
