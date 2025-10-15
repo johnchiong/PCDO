@@ -85,6 +85,39 @@ class AuthenticatedSessionController extends Controller
     }
 
     /**
+     * Handle resubmission of code
+     */
+    public function resendCode(Request $request): RedirectResponse
+    {
+        $userId = session('login_user_id');
+
+        if (! $userId) {
+            return back()->withErrors([
+                'code' => 'Session expired. Please log in again.',
+            ]);
+        }
+
+        $user = User::find($userId);
+
+        if (! $user) {
+            return back()->withErrors([
+                'code' => 'User not found.',
+            ]);
+        }
+
+        $code = rand(100000, 999999);
+
+        session([
+            'login_code' => $code,
+            'login_code_expires' => now()->addMinutes(5),
+        ]);
+
+        Mail::to($user->email)->send(new LoginCodeMail($code));
+
+        return back()->with('status', 'A new code has been sent to your email.');
+    }
+
+    /**
      * Destroy an authenticated session.
      */
     public function destroy(Request $request): RedirectResponse
