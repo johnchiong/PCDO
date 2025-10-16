@@ -1,5 +1,8 @@
 {
+    "name": "laravel-electron-offline-first",
+    "version": "1.0.0",
     "private": true,
+    "main": "electron/main.cjs",
     "type": "module",
     "scripts": {
         "build": "vite build",
@@ -7,7 +10,10 @@
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
-        "lint": "eslint . --fix"
+        "lint": "eslint . --fix",
+        "electron": "electron .",
+        "electron:build": "electron-builder",
+        "electron:pack": "electron-builder --dir"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
@@ -16,7 +22,10 @@
         "@types/node": "^22.13.5",
         "@vitejs/plugin-vue": "^6.0.0",
         "@vue/eslint-config-typescript": "^14.3.0",
-        "concurrently": "^9.0.1",
+        "concurrently": "^9.2.1",
+        "cross-env": "^10.1.0",
+        "electron": "^38.3.0",
+        "electron-builder": "^26.0.12",
         "eslint": "^9.17.0",
         "eslint-config-prettier": "^10.0.1",
         "eslint-plugin-vue": "^9.32.0",
@@ -49,5 +58,38 @@
         "@rollup/rollup-linux-x64-gnu": "4.9.5",
         "@tailwindcss/oxide-linux-x64-gnu": "^4.0.1",
         "lightningcss-linux-x64-gnu": "^1.29.1"
+    },
+    "build": {
+        "appId": "com.pcdo.desktop",
+        "productName": "PCDO Desktop",
+        "directories": {
+            "output": "dist"
+        },
+        "files": [
+            "electron/**/*",
+            "public/**/*",
+            "bootstrap/**/*",
+            "routes/**/*",
+            "app/**/*",
+            "database/**/*",
+            "vendor/**/*",
+            "artisan",
+            "package.json"
+        ],
+        "win": {
+            "target": [
+                "nsis"
+            ],
+            "icon": "electron/icon.png"
+        },
+        "nsis": {
+            "oneClick": false,
+            "allowToChangeInstallationDirectory": true,
+            "createDesktopShortcut": true,
+            "createStartMenuShortcut": true,
+            "perMachine": true,
+            "allowElevation": true,
+            "requestExecutionLevel": "admin"
+        }
     }
 }

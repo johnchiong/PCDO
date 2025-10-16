@@ -1,0 +1,168 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Installer</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            padding: 24px;
+            background: #fafafa;
+        }
+
+        #container {
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        h2 {
+            margin-bottom: 12px;
+        }
+
+        #progress-wrapper {
+            position: relative;
+            width: 100%;
+            height: 22px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+
+        #progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background: #0b6;
+            transition: width 0.3s ease;
+        }
+
+        #status {
+            font-weight: 500;
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        #console {
+            background: #111;
+            color: #fff;
+            padding: 8px;
+            border-radius: 6px;
+            max-height: 200px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        button {
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #222;
+            color: #fff;
+            border: none;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .ok {
+            color: #0b6;
+        }
+
+        .err {
+            color: #c00;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container">
+        <h2>Installer</h2>
+        <div id="status">Ready to start...</div>
+
+        <div id="progress-wrapper">
+            <div id="progress-bar"></div>
+        </div>
+
+        <button id="start">Start Installation</button>
+
+        <pre id="console"></pre>
+    </div>
+
+    <script>
+        const startBtn = document.getElementById('start')
+        const consoleEl = document.getElementById('console')
+        const progressBar = document.getElementById('progress-bar')
+        const statusEl = document.getElementById('status')
+
+        let progress = 0
+        const steps = [
+            { key: 'ensure-sqlite', label: 'Checking for sqlite file...' },
+            { key: 'migrate-sqlite', label: 'Migrating sqlite tables...' },
+            { key: 'sync-database', label: 'Synchronizing Data...' },
+            { key: 'serve-artisan', label: 'Starting Laravel server...' },
+            { key: 'open-app', label: 'Opening app...' },
+        ]
+
+        function setProgress(pct) {
+            progressBar.style.width = pct + '%'
+        }
+
+        function setStatus(msg, cls = '') {
+            statusEl.textContent = msg
+            statusEl.className = cls
+        }
+
+        function log(msg) {
+            consoleEl.textContent += msg + '\n'
+            consoleEl.scrollTop = consoleEl.scrollHeight
+        }
+
+        window.electronAPI.onLog(d => log('[OUT] ' + d))
+        window.electronAPI.onError(d => log('[ERR] ' + d))
+
+        async function runStep(step, label, index) {
+            setStatus(label)
+            const res = await window.electronAPI.runStep(step)
+            if (res.ok) {
+                progress = Math.round(((index + 1) / steps.length) * 100)
+                setProgress(progress)
+                log('[OK] ' + label)
+                return true
+            } else {
+                setStatus(`❌ ${label} FAILED`, 'err')
+                log('[FAILED] ' + res.msg)
+                return false
+            }
+        }
+
+        startBtn.addEventListener('click', async () => {
+            startBtn.disabled = true
+            consoleEl.textContent = ''
+            progress = 0
+            setProgress(0)
+            setStatus('Starting installation...')
+            for (let i = 0; i < steps.length; i++) {
+                const s = steps[i]
+                const ok = await runStep(s.key, s.label, i)
+                if (!ok) {
+                    setProgress(100)
+                    log('Installation aborted.')
+                    startBtn.disabled = false
+                    return
+                }
+            }
+            setStatus('✅ Installation complete!', 'ok')
+            setProgress(100)
+            log('All steps completed successfully.')
+        })
+    </script>
+</body>
+
+</html>

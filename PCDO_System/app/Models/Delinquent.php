@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\SyncLogger;
 use Illuminate\Database\Eloquent\Model;
 
 class Delinquent extends Model
 {
+    use SyncLogger;
+
     protected $fillable = [
         'coop_program_id',
         'ammortization_schedule_id',
@@ -21,6 +24,6 @@ class Delinquent extends Model
 
     public function ammortization()
     {
-        return $this->belongsTo(AmmortizationSchedule::class, 'ammortization_schedule_id');
+        return $this->belongsTo(AmortizationSchedules::class, 'ammortization_schedule_id');
     }
 }
