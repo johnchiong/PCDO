@@ -42,8 +42,8 @@ class CoopProgramChecklistController extends Controller
         return Inertia::render('programs/checklist', [
             'cooperative' => [
                 'id' => $coopProgram->id,
-                'loan_amount' => $coopProgram->loan_amount,      // added
-                'with_grace' => $coopProgram->with_grace,       // added
+                'loan_amount' => $coopProgram->loan_amount, 
+                'with_grace' => $coopProgram->with_grace,  
                 'cooperative' => $coopProgram->cooperative,
                 'program' => $coopProgram->program,
             ],
@@ -56,7 +56,7 @@ class CoopProgramChecklistController extends Controller
     {
         $request->validate([
             'program_checklist_id' => 'required|exists:program_checklists,id',
-            'file' => 'required|file|max:5120', // max 5MB
+            'file' => 'required|file|max:5120',
         ]);
 
         $coopProgram = CoopProgram::where('program_id', $programId)

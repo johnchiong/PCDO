@@ -60,38 +60,43 @@
             background-color: #eaeaea;
         }
 
-        .conforme {
-            text-align: center;
-            margin-left: 400px;
+        .signature-section {
+            margin-top: 80px;
+            width: 100%;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
         }
 
-        .signature-section {
-            margin-top: 60px;
-            width: 100%;
+        .sig-line {
+            border-bottom: 1px solid #000;
+            width: 180px;
+            height: 30px;
+            margin: 0 auto 3px auto;
+        }
+
+        .sig-label {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 2px;
         }
 
         .signature-table {
             width: 100%;
             border-collapse: collapse;
-            text-align: center;
         }
 
-        .signature-block {
-            width: 33.33%;
-            vertical-align: bottom;
-            padding-top: 40px;
+        .signature-table td {
+            vertical-align: top;
+            border: none;
+            padding: 0;
         }
 
-        .sig-line {
-            border-bottom: 1px solid #000;
-            width: 80%;
-            margin: 0 auto 5px auto;
-            height: 30px;
+        .right {
+            text-align: right;
         }
 
-        .signature-block p {
-            margin-top: 5px;
-            font-weight: bold;
+        .bottom-row {
+            margin-top: 80px;
         }
     </style>
 </head>
@@ -170,7 +175,7 @@
                 </tr>
             @endforeach
 
-            {{-- ✅ Total Row --}}
+            {{-- Total Row --}}
             <tr class="total-row">
                 <td colspan="2">Total</td>
                 <td>{{ number_format($totalInstallment, 2) }}</td>
@@ -179,21 +184,28 @@
         </tbody>
     </table>
 
-    {{-- Signature Section --}}
     <div class="signature-section">
         <table class="signature-table">
             <tr>
-                <td class="signature-block">
+                <!-- Empty left cell -->
+                <td></td>
+                <!-- Conforme on the right -->
+                <td class="right">
                     <div class="sig-line"></div>
-                    <p>Prepared by:</p>
+                    <div class="sig-label">Conforme:</div>
                 </td>
-                <td class="signature-block">
+            </tr>
+            <tr style="height: 60px;"></tr> <!-- spacing -->
+            <tr>
+                <!-- Prepared by -->
+                <td style="text-align: center;">
                     <div class="sig-line"></div>
-                    <p>Noted by:</p>
+                    <div class="sig-label">Prepared by:</div>
                 </td>
-                <td class="signature-block">
+                <!-- Noted by -->
+                <td style="text-align: center;">
                     <div class="sig-line"></div>
-                    <p>Conforme:</p>
+                    <div class="sig-label">Noted by:</div>
                 </td>
             </tr>
         </table>

@@ -193,7 +193,7 @@ function handleSubmit() {
                             <label class="block mb-2">Existing Files</label>
                             <ul class="space-y-2">
                                 <li v-for="f in props.member.files" :key="f.id"
-                                    class="flex justify-between items-center bg-gray-100 p-2 rounded">
+                                    class="flex justify-between items-center bg-gray-200 dark:bg-gray-700 p-2 rounded">
                                     <span>{{ f.file_name }}</span>
                                     <div class="flex gap-3">
                                         <button type="button" class="text-blue-600 underline text-sm"

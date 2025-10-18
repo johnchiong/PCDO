@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\AmortizationOld;
 use App\Models\CoopProgram;
-use App\Models\Programs;
+use App\Models\Delinquent;
 use App\Models\Resolved;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
@@ -12,6 +12,7 @@ use setasign\Fpdi\Fpdi;
 
 class DocumentationController extends Controller
 {
+    // Show the Documentation yearly filter of Cooperative
     public function index()
     {
         // Fetch completed, exported, and archived cooperative programs
@@ -52,6 +53,7 @@ class DocumentationController extends Controller
         ]);
     }
 
+    // Show the Full Documentation of the Selected Cooperative
     public function show($coopId)
     {
         // Load CoopProgram with related data
@@ -150,6 +152,7 @@ class DocumentationController extends Controller
         ]);
     }
 
+    // View the Amortization File in PDF
     public function amortizationFile($id)
     {
         $amortization = AmortizationOld::where('coop_program_id', $id)->first();
@@ -164,6 +167,7 @@ class DocumentationController extends Controller
         ]);
     }
 
+    // View the Cooperative Details in PDF
     public function cooperativeDetailsFile($id)
     {
         // Load CoopProgram with related cooperative, program, and coopDetails + related location names
@@ -187,27 +191,48 @@ class DocumentationController extends Controller
         return $pdf->stream('cooperative_details.pdf');
     }
 
+    // View the Resolved File that sent
     public function resolvedFile($coopId)
     {
-        // Get the resolved record for this coop program
+        // Fetch the latest resolved record
         $resolved = Resolved::where('coop_program_id', $coopId)->latest()->first();
 
-        if (! $resolved || ! $resolved->file_content) {
-            abort(404, 'Resolved file not found.');
-        }
-
-        // Detect file type automatically if you didn’t save file_type
         $finfo = finfo_open();
         $mimeType = finfo_buffer($finfo, $resolved->file_content, FILEINFO_MIME_TYPE);
         finfo_close($finfo);
 
-        // Return the file inline (display inside iframe or <img>)
-        return new Response($resolved->file_content, 200, [
-            'Content-Type' => $mimeType,
-            'Content-Disposition' => 'inline; filename="resolved_file_'.$resolved->id.'"',
-        ]);
+        // Handle PDF files directly
+        if (str_contains($mimeType, 'pdf')) {
+            return new Response($resolved->file_content, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="Resolved_File.pdf"',
+            ]);
+        }
+
+        // Determine correct extension
+        $extension = match (true) {
+            str_contains($mimeType, 'jpeg') => 'jpg',
+            str_contains($mimeType, 'jpg') => 'jpg',
+            str_contains($mimeType, 'png') => 'png',
+            default => 'jpg', // fallback
+        };
+
+        // Add the missing dot before extension
+        $tempPath = storage_path('app/temp_resolved_image_'.uniqid().'.'.$extension);
+        file_put_contents($tempPath, $resolved->file_content);
+
+        // Convert the image into a PDF
+        $pdf = new Fpdi;
+        $pdf->AddPage();
+        $pdf->Image($tempPath, 15, 25, 180, 230);
+        unlink($tempPath); // Delete after use
+
+        return response($pdf->Output('S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="Resolved_Image.pdf"');
     }
 
+    // View all the Checklist File that is Uploaded in PDF
     public function checklistFile($coopProgramId)
     {
         $coopProgram = CoopProgram::with([
@@ -243,14 +268,14 @@ class DocumentationController extends Controller
             abort(404, 'No checklist found for this cooperative program.');
         }
 
-        // Step 1: Generate your main checklist overview PDF
+        // Generate a main checklist overview PDF
         $mainPdf = Pdf::loadView('coop_program_checklist', compact('checklists', 'coopProgram'))
             ->setPaper('legal', 'portrait');
 
         $mainPdfPath = storage_path('app/public/main_checklist.pdf');
         file_put_contents($mainPdfPath, $mainPdf->output());
 
-        // Step 2: Initialize FPDI and add main PDF
+        // Initialize the FPDI and add main PDF
         $pdf = new Fpdi;
         $pageCount = $pdf->setSourceFile($mainPdfPath);
         for ($i = 1; $i <= $pageCount; $i++) {
@@ -259,7 +284,7 @@ class DocumentationController extends Controller
             $pdf->useTemplate($tpl);
         }
 
-        // Step 3: Append attachments
+        // Append attachments
         foreach ($checklists as $item) {
             if (! empty($item->file_content)) {
                 $extension = str_contains($item->mime_type, 'pdf') ? 'pdf' : 'jpg';
@@ -284,9 +309,150 @@ class DocumentationController extends Controller
 
         @unlink($mainPdfPath);
 
-        // Step 4: Stream final merged PDF
+        // Stream final merged PDF
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="Checklist.pdf"');
+    }
+
+    public function memberFile($coopProgramId)
+    {
+        $coopProgram = CoopProgram::with('coopMemberFiles')->findOrFail($coopProgramId);
+
+        $memberFiles = $coopProgram->cooperative?->members->flatMap(fn ($m) => $m->files) ?? collect();
+
+        if ($memberFiles->isEmpty()) {
+            abort(404, 'No member files found for this cooperative.');
+        }
+
+        // Create FPDI instance
+        $pdf = new Fpdi;
+
+        foreach ($memberFiles as $file) {
+            $filePath = storage_path('app/private/'.$file->file_path);
+
+            if (! file_exists($filePath)) {
+                continue;
+            }
+
+            $mime = mime_content_type($filePath);
+
+            if (str_contains($mime, 'pdf')) {
+                // Directly merge PDF
+                $pages = $pdf->setSourceFile($filePath);
+                for ($p = 1; $p <= $pages; $p++) {
+                    $tpl = $pdf->importPage($p);
+                    $pdf->AddPage();
+                    $pdf->useTemplate($tpl);
+                }
+            } elseif (str_contains($mime, 'image')) {
+                // Convert image to PDF page
+                $pdf->AddPage();
+                $pdf->Image($filePath, 15, 25, 180, 230);
+                $pdf->SetFont('Arial', '', 10);
+                $pdf->SetY(-25);
+            }
+        }
+
+        return response($pdf->Output('S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="Member_Files.pdf"');
+    }
+
+    public function delinquentReport($coopProgramId)
+    {
+        $coopProgram = CoopProgram::with(['cooperative'])->findOrFail($coopProgramId);
+        $coop = $coopProgram->cooperative;
+
+        // chairman
+        $chairman = $coopProgram->cooperative->members
+            ->where('position', 'Chairman')
+            ->first();
+        $chairmanFullName = $chairman
+            ? trim("{$chairman->first_name} {$chairman->middle_initial} {$chairman->last_name}")
+            : 'N/A';
+
+        // treasurer
+        $treasurer = $coopProgram->cooperative->members
+            ->where('position', 'Treasurer')
+            ->first();
+        $treasurerFullName = $treasurer
+            ? trim("{$treasurer->first_name} {$treasurer->middle_initial} {$treasurer->last_name}")
+            : 'N/A';
+
+        // manager
+        $manager = $coopProgram->cooperative->members
+            ->where('position', 'Manager')
+            ->first();
+        $managerFullName = $manager
+            ? trim("{$manager->first_name} {$manager->middle_initial} {$manager->last_name}")
+            : 'N/A';
+
+        $details = $coop->details ?? null;
+
+        $province = $details?->province?->name ?? null;
+        $city = $details?->city?->name ?? null;
+
+        $fulladdress = trim("{$province},{$city}");
+
+        $contact = $coopProgram->number ?? 'N/A';
+
+        $delinquents = Delinquent::where('coop_program_id', $coopProgramId)->get();
+
+        $pdf = PDF::loadView('delinquent_report', [
+            'coopProgram' => $coopProgram,
+            'coop' => $coop,
+            'address' => $fulladdress ?: 'N/A',
+            'chairman' => $chairmanFullName,
+            'treasurer' => $treasurerFullName,
+            'manager' => $managerFullName,
+            'contact' => $contact,
+            'delinquents' => $delinquents,
+        ]);
+
+        return $pdf->stream('Delinquency_Report.pdf');
+    }
+
+    public function progressReportFile($coopProgramId)
+    {
+        $coopProgram = CoopProgram::with(['programProgress'])->findOrFail($coopProgramId);
+        $progressReports = $coopProgram->programProgress;
+
+        if ($progressReports->isEmpty()) {
+            abort(404, 'No progress reports found for this cooperative.');
+        }
+
+        // Create FPDI instance
+        $pdf = new \setasign\Fpdi\Fpdi;
+
+        foreach ($progressReports as $progress) {
+            $pdf->AddPage();
+
+            // Title
+            $pdf->SetFont('Arial', 'B', 14);
+            $pdf->Cell(0, 10, iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $progress->title), 0, 1, 'C');
+            $pdf->Ln(5);
+
+            // Description
+            $pdf->SetFont('Arial', '', 11);
+            $pdf->MultiCell(0, 7, iconv('UTF-8', 'ISO-8859-1//TRANSLIT', $progress->description ?? 'No description.'), 0, 'L');
+            $pdf->Ln(5);
+
+            // Handle image file
+            if ($progress->file_content && str_contains($progress->mime_type ?? '', 'image')) {
+                $decoded = base64_decode($progress->file_content);
+                $tmpPath = storage_path('app/temp_'.uniqid().'.jpg');
+                file_put_contents($tmpPath, $decoded);
+
+                // Adjust placement or size as needed
+                $pdf->Image($tmpPath, 20, 60, 170);
+                unlink($tmpPath);
+            }
+        }
+
+        // Output PDF inline to browser/iframe
+        return response($pdf->Output('S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="Progress_Reports.pdf"');
     }
 }

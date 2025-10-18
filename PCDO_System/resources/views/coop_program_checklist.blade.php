@@ -102,7 +102,7 @@
 </head>
 
 <body>
-    <h2>CHECKLIST OF DOCUMENTS</h2>
+    <h2>Checklist of Documents</h2>
 
     <div class="section">
         <p><strong>Cooperative:</strong> {{ $coopProgram->cooperative->name ?? 'N/A' }}</p>

@@ -14,9 +14,9 @@ use Inertia\Response;
 
 class ProgramController extends Controller
 {
-    /**
-     * Display a listing of the programs with cooperative count.
-     */
+
+    // Display a listing of the programs with cooperative count.
+
     public function index()
     {
         $programs = Programs::withCount('coopProgram')->get();
@@ -25,14 +25,14 @@ class ProgramController extends Controller
             'programs' => $programs->map(fn ($program) => [
                 'id' => $program->id,
                 'name' => $program->name,
-                'cooperatives_count' => $program->coop_program_count, // from withCount
+                'cooperatives_count' => $program->coop_program_count,
             ]),
         ]);
     }
 
-    /**
-     * Show one program and its cooperatives.
-     */
+
+    // Show one program and its cooperatives.
+
     public function show($id)
     {
         $program = Programs::findOrFail($id);
@@ -57,7 +57,7 @@ class ProgramController extends Controller
         $cooperatives = Cooperative::all(['id', 'name']);
 
         return Inertia::render('programs/create', [
-            'program' => $program,          // ✅ pass program so props.program.id works
+            'program' => $program,         
             'cooperatives' => $cooperatives,
         ]);
     }
@@ -73,7 +73,7 @@ class ProgramController extends Controller
 
         $cooperative = Cooperative::findOrFail($data['cooperative_id']);
 
-        // ✅ Same validation logic you had before...
+        // Same validation logic you had before...
         $ongoingPrograms = CoopProgram::where('coop_id', $cooperative->id)
             ->where('program_status', 'Ongoing')
             ->with('program')
@@ -133,7 +133,7 @@ class ProgramController extends Controller
             ]);
         }
 
-        // ✅ Server-side enforcement
+        // Server-side enforcement
         $totalChecklists = $program->checklists()->count();
         $completedChecklists = $coopProgram->checklist()->whereNotNull('file_name')->count();
 
@@ -157,14 +157,12 @@ class ProgramController extends Controller
     public function archiveFinishedProgram($coopProgramId)
     {
         DB::transaction(function () use ($coopProgramId) {
-            // 1. Get the coop program
             $coopProgram = CoopProgram::with('checklists.uploads')->findOrFail($coopProgramId);
 
             if ($coopProgram->program_status !== 'Finished' || $coopProgram->exported !== 1) {
                 throw new \Exception('Program must be finished and exported before archiving.');
             }
 
-            // 2. Move CoopProgram to FinishedCoopProgram
             $finished = FinishedCoopProgram::create([
                 'coop_id' => $coopProgram->coop_id,
                 'program_id' => $coopProgram->program_id,
@@ -178,7 +176,6 @@ class ProgramController extends Controller
                 'exported' => true,
             ]);
 
-            // 3. Move Checklists + Uploads
             foreach ($coopProgram->checklists as $checklist) {
                 foreach ($checklist->uploads as $upload) {
                     FinishedCoopProgramChecklist::create([
@@ -192,7 +189,6 @@ class ProgramController extends Controller
                 }
             }
 
-            // 4. Delete original records
             CoopProgramChecklist::where('coop_program_id', $coopProgram->id)->delete();
             $coopProgram->delete();
         });

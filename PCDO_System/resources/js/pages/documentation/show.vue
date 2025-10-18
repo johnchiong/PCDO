@@ -4,7 +4,7 @@ import { Head } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
 import { ref } from 'vue'
 
-// Props received from Laravel controller
+
 const props = defineProps<{
     cooperative: {
         id: number
@@ -89,11 +89,13 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                 <!-- Files & Preview Card -->
                 <div
                     class="bg-gray-200/40 dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                    <!-- Header: Dropdown Button -->
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-end gap-4 mb-4">
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <button
-                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-full md:w-auto">
+                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-full md:w-auto shadow-md">
                                     <span class="flex items-center gap-2">
                                         <FileText class="w-4 h-4" />
                                         View Files
@@ -102,66 +104,47 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                                 </button>
                             </DropdownMenuTrigger>
 
-                            <DropdownMenuContent side="bottom" align="start"
-                                class="w-56 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1 mt-1">
-                                <!-- Amortization Schedule -->
-                                <DropdownMenuItem asChild>
-                                    <button
-                                        @click="selectedFile = { name: 'Amortization Schedule', url: `/documentation/${cooperative.program_id}/amortization` }"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                                        Amortization Schedule
-                                    </button>
-                                </DropdownMenuItem>
-
-                                <!-- Cooperative Details -->
-                                <DropdownMenuItem asChild>
-                                    <button
-                                        @click="selectedFile = { name: 'Cooperative Details', url: `/documentation/${cooperative.program_id}/details` }"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                                        Cooperative Details
-                                    </button>
-                                </DropdownMenuItem>
-
-                                <!-- Resolved File -->
-                                <DropdownMenuItem asChild>
-                                    <button @click="selectedFile = {
-                                        name: 'Resolved File',
-                                        url: `/documentation/resolved/${cooperative.program_id}/file`
-                                    }"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                                        Resolved File
-                                    </button>
-                                </DropdownMenuItem>
-
-                                <!-- Checklist of Documents -->
-                                <DropdownMenuItem asChild>
-                                    <button @click="selectedFile = {
-                                        name: 'Checklist of Documents',
-                                        url: `/documentation/checklist/${cooperative.program_id}/file`
-                                    }" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                                        Checklist of Documents
-                                    </button>
-                                </DropdownMenuItem>
+                            <DropdownMenuContent side="bottom" align="end"
+                                class="w-80 bg-white dark:bg-gray-900 shadow-2xl rounded-lg border border-gray-200 dark:border-gray-700 p-1 mt-1">
+                                <!-- Dropdown Items -->
+                                <template v-for="(item, i) in [
+                                    { name: 'Amortization Schedule', url: `/documentation/${cooperative.program_id}/amortization` },
+                                    { name: 'Cooperative Details', url: `/documentation/${cooperative.program_id}/details` },
+                                    { name: 'Resolved File', url: `/documentation/${cooperative.program_id}/resolved` },
+                                    { name: 'Checklist of Documents', url: `/documentation/${cooperative.program_id}/checklist` },
+                                    { name: 'Cooperative Members Documents', url: `/documentation/${cooperative.program_id}/member-files` },
+                                    { name: 'Delinquent Reports', url: `/documentation/${cooperative.program_id}/delinquent` },
+                                    { name: 'Progress Reports', url: `/documentation/${cooperative.program_id}/progress` },
+                                ]" :key="i">
+                                    <DropdownMenuItem asChild>
+                                        <button @click="selectedFile = { name: item.name, url: item.url }"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <FileText class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                            {{ item.name }}
+                                        </button>
+                                    </DropdownMenuItem>
+                                </template>
                             </DropdownMenuContent>
                         </DropdownMenu>
                     </div>
 
-                    <!-- File Preview -->
-                    <div class="mt-6">
+                    <!-- File Preview Section -->
+                    <div
+                        class="rounded-xl border border-gray-300/50 dark:border-gray-700 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm shadow-inner p-6 transition">
                         <template v-if="selectedFile && selectedFile.url">
-                            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                            <h3
+                                class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+                                <FileText class="w-5 h-5 text-indigo-500" />
                                 {{ selectedFile.name }} Preview
                             </h3>
                             <iframe :src="selectedFile.url"
-                                class="w-full h-[600px] rounded-lg border border-gray-300 dark:border-gray-700"
+                                class="w-full h-[600px] rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"
                                 frameborder="0"></iframe>
                         </template>
 
-                        <p v-else class="text-gray-500 dark:text-gray-400 text-sm mt-4">
+                        <p v-else
+                            class="text-gray-500 dark:text-gray-400 text-sm flex items-center justify-center gap-2 py-24 italic">
+                            <FileText class="w-4 h-4 text-indigo-400" />
                             Select a file to preview it here.
                         </p>
                     </div>

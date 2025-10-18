@@ -12,6 +12,7 @@ use Inertia\Inertia;
 
 class DashboardController extends Controller
 {
+    // Shows the whole Dashboard
     public function index()
     {
         // Count all registered cooperatives

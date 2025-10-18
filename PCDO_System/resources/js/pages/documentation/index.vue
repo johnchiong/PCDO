@@ -42,7 +42,7 @@ const breadcrumbs: BreadcrumbItem[] = [
       </div>
 
       <!-- Year Dropdowns -->
-      <div v-else class="max-w-4xl mx-auto space-y-4">
+      <div v-else class="max-w-6x2 mx-auto space-y-4">
         <DropdownMenu v-for="yearGroup in props.years" :key="yearGroup.year">
           <!-- Trigger Button -->
           <DropdownMenuTrigger asChild>
@@ -62,7 +62,7 @@ const breadcrumbs: BreadcrumbItem[] = [
           <DropdownMenuContent
             side="bottom"
             align="start"
-            class="w-224 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
+            class="w-302 mt-2 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div v-if="yearGroup.cooperatives.length > 0">
               <Table>
