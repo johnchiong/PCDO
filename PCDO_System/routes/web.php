@@ -3,7 +3,6 @@
 use App\Http\Controllers\AmortizationScheduleController;
 use App\Http\Controllers\CooperativesController;
 use App\Http\Controllers\CoopMemberController;
-// use App\Http\Controllers\CoopHistoryController;
 use App\Http\Controllers\CoopProgramChecklistController;
 use App\Http\Controllers\CoopProgramController;
 use App\Http\Controllers\CoopProgramProgressController;
@@ -13,11 +12,14 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\ResolvedController;
 use App\Http\Controllers\SyncController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
 })->name('home');
+
+Route::get('/ping', fn () => response()->json(['pong' => true]));
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -102,7 +104,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route::resource('coopPrograms/{cooperative}/checklists', CoopProgramChecklistController::class);
 
     // Custom Command Routes
-    Route::get('/sync', [SyncController::class, 'sync'])->name('sync');
+    Route::get('/sync', function () {
+        Artisan::call('sync:database');
+
+        return response()->json(['status' => 'synced']);
+    });
+
+    Route::get('/sync/status', [SyncController::class, 'status']);
+    Route::post('/sync/trigger', [SyncController::class, 'trigger']);
 });
 
 require __DIR__.'/settings.php';

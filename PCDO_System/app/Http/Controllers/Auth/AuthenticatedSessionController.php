@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Mail\LoginCodeMail;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Mail;
-use App\Models\User;
-use App\Mail\LoginCodeMail;
+use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,7 +32,7 @@ class AuthenticatedSessionController extends Controller
      */
     public function store(LoginRequest $request): RedirectResponse
     {
-        if (!Auth::validate($request->only('email', 'password'))) {
+        if (! Auth::validate($request->only('email', 'password'))) {
             return back()->withErrors([
                 'email' => __('auth.failed'),
             ]);
@@ -49,7 +49,8 @@ class AuthenticatedSessionController extends Controller
 
         Mail::to($user->email)->send(new LoginCodeMail($code));
 
-        return redirect()->route('login.verify');    }
+        return redirect()->route('login.verify');
+    }
 
     /**
      * Show the verify code page.
@@ -81,6 +82,39 @@ class AuthenticatedSessionController extends Controller
         }
 
         return back()->withErrors(['code' => 'Invalid or expired code.']);
+    }
+
+    /**
+     * Handle resubmission of code
+     */
+    public function resendCode(Request $request): RedirectResponse
+    {
+        $userId = session('login_user_id');
+
+        if (! $userId) {
+            return back()->withErrors([
+                'code' => 'Session expired. Please log in again.',
+            ]);
+        }
+
+        $user = User::find($userId);
+
+        if (! $user) {
+            return back()->withErrors([
+                'code' => 'User not found.',
+            ]);
+        }
+
+        $code = rand(100000, 999999);
+
+        session([
+            'login_code' => $code,
+            'login_code_expires' => now()->addMinutes(5),
+        ]);
+
+        Mail::to($user->email)->send(new LoginCodeMail($code));
+
+        return back()->with('status', 'A new code has been sent to your email.');
     }
 
     /**
