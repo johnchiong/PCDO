@@ -70,13 +70,43 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 </p>
                             </div>
 
-                            <!-- Right side: Add Cooperative Button -->
+                            <!-- Right side: Add Dropdown Button -->
                             <div>
-                                <Link :href="`/programs/${program.id}/cooperatives/create`"
-                                    class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md transition">
-                                <Plus class="w-4 h-4 text-green-300 dark:text-green-400" />
-                                Add Cooperative
-                                </Link>
+                                <DropdownMenu>
+                                    <!-- Trigger Button -->
+                                    <DropdownMenuTrigger asChild>
+                                        <button
+                                            class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm font-medium transition w-33">
+                                            <span class="flex items-center gap-2">
+                                                <Plus class="w-4 h-4" /> Add
+                                            </span>
+                                            <ChevronDown class="w-4 h-4" />
+                                        </button>
+                                    </DropdownMenuTrigger>
+
+                                    <!-- Dropdown Content -->
+                                    <DropdownMenuContent side="bottom" align="end"
+                                        class="w-52 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+
+                                        <!-- Add Cooperative -->
+                                        <DropdownMenuItem asChild>
+                                            <Link :href="`/programs/${program.id}/cooperatives/create`"
+                                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <Building2 class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            Add Cooperative
+                                            </Link>
+                                        </DropdownMenuItem>
+
+                                        <!-- Add Progress Report -->
+                                        <DropdownMenuItem asChild>
+                                            <Link :href="`/programs/${program.id}/progress/create`"
+                                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <FileText class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                            Add Progress Report
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </div>
                     </div>
@@ -108,7 +138,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     </TableCell>
                                     <TableCell class="pl-30 py-3 font-medium text-gray-900 dark:text-gray-100">{{
                                         coop.name
-                                    }}</TableCell>
+                                        }}</TableCell>
                                     <TableCell class="pl-30 py-3">
                                         <span v-if="coop.program_status === 'Finished'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
                                         bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
@@ -125,8 +155,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     <TableCell class="pl-30 py-3">
                                         <Link :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
                                             class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md transition">
-                                            <Upload class="w-4 h-4"/>
-                                            <span>Upload Checklist</span>
+                                        <Upload class="w-4 h-4" />
+                                        <span>Upload Checklist</span>
                                         </Link>
                                     </TableCell>
                                 </TableRow>

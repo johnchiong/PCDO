@@ -258,7 +258,7 @@ async function submitReceipt() {
     onSuccess: () => {
       toast.success("Loan marked as resolved successfully!");
       closeReceiptModal();
-      router.reload(); // 🔁 refresh page to reflect resolved state
+      router.reload();
     },
     onError: () => {
       toast.error("Failed to resolve loan. Please try again.");

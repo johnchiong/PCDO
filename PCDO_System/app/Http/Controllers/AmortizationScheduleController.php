@@ -51,6 +51,7 @@ class AmortizationScheduleController extends Controller
             ->with('success', 'Amortization schedule generated successfully!');
     }
 
+    // Show the Cooperative table 
     public function index()
     {
         $loans = CoopProgram::with(['program', 'cooperative', 'amortizationSchedules'])
@@ -74,6 +75,7 @@ class AmortizationScheduleController extends Controller
         ]);
     }
 
+    // Show the Amortization Schedule
     public function show($coopProgramId)
     {
         $coopProgram = CoopProgram::with('cooperative', 'program', 'amortizationSchedules')
@@ -116,6 +118,7 @@ class AmortizationScheduleController extends Controller
         ]);
     }
 
+    // Marks Paid
     public function markPaid(AmortizationSchedules $schedule)
     {
         $schedule->update([
@@ -128,9 +131,8 @@ class AmortizationScheduleController extends Controller
         return back()->with('success', 'Payment marked as paid.');
     }
 
-    /**
-     * Send overdue email notification for a schedule.
-     */
+    
+    // Sends Overdue Email
     public function sendOverdueEmail($scheduleId)
     {
         $schedule = AmortizationSchedules::with('coopProgram.cooperative', 'pendingnotifications')->findOrFail($scheduleId);
@@ -151,13 +153,11 @@ class AmortizationScheduleController extends Controller
         return back()->with('success', 'Overdue email sent to '.$programEmail);
     }
 
-    /**
-     * Add or remove penalty from a schedule.
-     */
+    // Add or remove penalty from a schedule
     public function penalty(Request $request, AmortizationSchedules $schedule)
     {
         if ($request->has('add')) {
-            $penalty = $schedule->installment * 0.01; // 1% penalty
+            $penalty = $schedule->installment * 0.01;
             $schedule->penalty_amount += $penalty;
             $schedule->save();
 
@@ -174,9 +174,8 @@ class AmortizationScheduleController extends Controller
         return back()->with('error', 'Invalid penalty action.');
     }
 
-    /**
-     * Note a payment amount (partial or full) for a schedule.
-     */
+    
+    // Note a payment amount (partial or full) for a schedule.
     public function notePayment(Request $request, $id)
     {
         $schedule = AmortizationSchedules::findOrFail($id);
@@ -193,6 +192,7 @@ class AmortizationScheduleController extends Controller
             ->orderBy('due_date', 'asc')
             ->get();
 
+        // Reads everything and loops
         foreach ($schedules as $sch) {
             if ($remaining <= 0) {
                 break;
@@ -227,6 +227,7 @@ class AmortizationScheduleController extends Controller
         return back()->with('success', 'Payment noted successfully.');
     }
 
+    // Marks Incomplete
     public function markIncomplete($id)
     {
         $coopProgram = CoopProgram::findOrFail($id);
@@ -236,6 +237,7 @@ class AmortizationScheduleController extends Controller
         return redirect()->back()->with('success', 'Program marked as Incomplete.');
     }
 
+    // Marks Resolved
     public function markResolved(Request $request, $loanId)
     {
         $loan = CoopProgram::with('amortizationSchedules')->findOrFail($loanId);

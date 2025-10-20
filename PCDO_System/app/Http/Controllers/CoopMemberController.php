@@ -6,7 +6,10 @@ use App\Models\Cooperative;
 use App\Models\CoopMember;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Settings;
 
 class CoopMemberController extends Controller
 {
@@ -77,11 +80,46 @@ class CoopMemberController extends Controller
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $uploaded) {
-                $path = $uploaded->store('member_files');
+                $mime = $uploaded->getClientMimeType();
+                $originalName = pathinfo($uploaded->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = strtolower($uploaded->getClientOriginalExtension());
+                $finalPath = null;
+                $finalFileName = null;
+                $finalMime = 'application/pdf';
+
+                // Convert DOC or DOCX → PDF
+                if (in_array($extension, ['doc', 'docx'])) {
+                    // Load DOC/DOCX
+                    $phpWord = IOFactory::load($uploaded->getRealPath());
+
+                    // Setup PDF renderer (Dompdf)
+                    Settings::setPdfRendererName('DomPDF');
+                    Settings::setPdfRendererPath(base_path('vendor/dompdf/dompdf'));
+
+                    // Save temporary PDF
+                    $tempPdf = tempnam(sys_get_temp_dir(), 'member_pdf_');
+                    $pdfWriter = IOFactory::createWriter($phpWord, 'PDF');
+                    $pdfWriter->save($tempPdf);
+
+                    // Store in storage/app/private/member_files
+                    $pdfContent = file_get_contents($tempPdf);
+                    unlink($tempPdf);
+
+                    $finalFileName = $originalName.'.pdf';
+                    $finalPath = 'member_files/'.Str::uuid().'.pdf';
+                    Storage::put($finalPath, $pdfContent);
+                } else {
+                    // For other file types: pdf, jpg, jpeg, png
+                    $finalFileName = $uploaded->getClientOriginalName();
+                    $finalMime = $mime;
+                    $finalPath = $uploaded->store('member_files');
+                }
+
+                // Save to database
                 $member->files()->create([
-                    'file_path' => $path,
-                    'file_name' => $uploaded->getClientOriginalName(),
-                    'file_type' => $uploaded->getClientMimeType(),
+                    'file_path' => $finalPath,
+                    'file_name' => $finalFileName,
+                    'file_type' => $finalMime,
                 ]);
             }
         }
@@ -136,7 +174,7 @@ class CoopMemberController extends Controller
             'last_name' => 'nullable|string',
             'suffix' => 'nullable|string',
             'is_representative' => 'boolean',
-            'files.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png',
+            'files.*' => 'nullable|file|mimes:pdf,doc,docx,jpg,jpeg,png',
         ]);
 
         $memberData = collect($validated)->except('files')->toArray();
@@ -144,11 +182,46 @@ class CoopMemberController extends Controller
 
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $uploaded) {
-                $path = $uploaded->store('member_files');
+                $mime = $uploaded->getClientMimeType();
+                $originalName = pathinfo($uploaded->getClientOriginalName(), PATHINFO_FILENAME);
+                $extension = strtolower($uploaded->getClientOriginalExtension());
+                $finalPath = null;
+                $finalFileName = null;
+                $finalMime = 'application/pdf';
+
+                // Convert DOC or DOCX → PDF
+                if (in_array($extension, ['doc', 'docx'])) {
+                    // Load DOC/DOCX
+                    $phpWord = IOFactory::load($uploaded->getRealPath());
+
+                    // Setup PDF renderer (Dompdf)
+                    Settings::setPdfRendererName('DomPDF');
+                    Settings::setPdfRendererPath(base_path('vendor/dompdf/dompdf'));
+
+                    // Save temporary PDF
+                    $tempPdf = tempnam(sys_get_temp_dir(), 'member_pdf_');
+                    $pdfWriter = IOFactory::createWriter($phpWord, 'PDF');
+                    $pdfWriter->save($tempPdf);
+
+                    // Store in storage/app/private/member_files
+                    $pdfContent = file_get_contents($tempPdf);
+                    unlink($tempPdf);
+
+                    $finalFileName = $originalName.'.pdf';
+                    $finalPath = 'member_files/'.Str::uuid().'.pdf';
+                    Storage::put($finalPath, $pdfContent);
+                } else {
+                    // For other file types: pdf, jpg, jpeg, png
+                    $finalFileName = $uploaded->getClientOriginalName();
+                    $finalMime = $mime;
+                    $finalPath = $uploaded->store('member_files');
+                }
+
+                // Save to database
                 $member->files()->create([
-                    'file_path' => $path,
-                    'file_name' => $uploaded->getClientOriginalName(),
-                    'file_type' => $uploaded->getClientMimeType(),
+                    'file_path' => $finalPath,
+                    'file_name' => $finalFileName,
+                    'file_type' => $finalMime,
                 ]);
             }
         }

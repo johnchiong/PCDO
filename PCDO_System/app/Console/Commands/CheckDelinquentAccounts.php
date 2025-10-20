@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
-use App\Models\AmmortizationSchedule;
+use App\Models\AmortizationSchedules;
 use App\Models\Delinquent;
 use Carbon\Carbon;
 
@@ -14,10 +14,10 @@ class CheckDelinquentAccounts extends Command
 
     public function handle()
     {
-        $this->info('🏁 Checking for delinquent amortization schedules...');
+        $this->info('Checking for delinquent amortization schedules...');
 
         $now = Carbon::now();
-        $schedules = AmmortizationSchedule::with('coopProgram')->get();
+        $schedules = AmortizationSchedules::with('coopProgram')->get();
 
         $count = 0;
 
@@ -34,7 +34,7 @@ class CheckDelinquentAccounts extends Command
 
                 if ($datePaid->greaterThan($dueDate) && $monthsDiff >= 4) {
                     $this->markAsDelinquent($schedule, $dueDate, $datePaid);
-                    $this->line("🔴 Schedule {$schedule->id} — Paid {$monthsDiff} months late");
+                    $this->line(" Schedule {$schedule->id} — Paid {$monthsDiff} months late");
                     $count++;
                 }
             }
@@ -45,20 +45,20 @@ class CheckDelinquentAccounts extends Command
 
                 if ($now->greaterThan($dueDate) && $monthsDiff >= 4) {
                     $this->markAsDelinquent($schedule, $dueDate, null);
-                    $this->line("⚠️ Schedule {$schedule->id} — Unpaid for {$monthsDiff} months");
+                    $this->line(" Schedule {$schedule->id} — Unpaid for {$monthsDiff} months");
                     $count++;
                 }
             }
         }
 
-        $this->info("✅ $count delinquent records identified.");
+        $this->info(" $count delinquent records identified.");
         return Command::SUCCESS;
     }
 
     private function markAsDelinquent($schedule, $dueDate, $datePaid)
     {
         Delinquent::updateOrCreate(
-            ['ammortization_schedule_id' => $schedule->id],
+            ['amortization_schedule_id' => $schedule->id],
             [
                 'coop_program_id' => $schedule->coop_program_id,
                 'due_date' => $dueDate,

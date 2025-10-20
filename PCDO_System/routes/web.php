@@ -4,6 +4,8 @@ use App\Http\Controllers\AmortizationScheduleController;
 use App\Http\Controllers\CooperativesController;
 use App\Http\Controllers\CoopMemberController;
 use App\Http\Controllers\CoopProgramChecklistController;
+use App\Http\Controllers\CoopProgramController;
+use App\Http\Controllers\CoopProgramProgressController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\NotificationController;
@@ -40,14 +42,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/programs/{program}/cooperatives/create', [ProgramController::class, 'createCooperative'])->name('programs.cooperatives.create');
     Route::post('/programs/{program}/cooperatives', [ProgramController::class, 'storeCooperative'])->name('programs.cooperatives.store');
 
+    // Progress Report
+    Route::get('/programs/{program}/progress/create', [CoopProgramProgressController::class, 'create'])->name('programs.progress.create');
+    Route::post('/programs/{program}/progress', [CoopProgramProgressController::class, 'store'])->name('programs.progress.store');
+    Route::get('/progress/{report}', [CoopProgramProgressController::class, 'show'])->name('programs.progress.show');
+    Route::get('/progress/{report}/download', [CoopProgramProgressController::class, 'download'])->name('programs.progress.download');
+    
     // Nested routes for checklists under a specific program and cooperative
     Route::prefix('programs/{program}/cooperatives/{cooperative}')->group(function () {
         Route::get('checklist', [CoopProgramChecklistController::class, 'show'])->name('programs.cooperatives.checklist.show');
         Route::post('checklist/upload', [CoopProgramChecklistController::class, 'upload'])->name('programs.cooperatives.checklist.upload');
         Route::get('checklist/{file}/download', [CoopProgramChecklistController::class, 'download'])->name('programs.cooperatives.checklist.download');
         Route::delete('checklist/{file}', [CoopProgramChecklistController::class, 'delete'])->name('programs.cooperatives.checklist.delete');
-
-        // Loan amount and Grace Period
         Route::post('finalize-loan', [ProgramController::class, 'finalizeLoan'])->name('cooperatives.finalizeLoan');
     });
 
@@ -67,6 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/schedules/{schedule}/note-payment', [AmortizationScheduleController::class, 'notePayment'])->name('schedules.notePayment');
     Route::post('/schedules/{schedule}/penalty', [AmortizationScheduleController::class, 'penalty'])->name('schedules.penalty');
     Route::post('/schedules/{schedule}/send-overdue-email', [AmortizationScheduleController::class, 'sendOverdueEmail'])->name('schedules.sendOverdueEmail');
+
     // Amortization Incomplete
     Route::get('/amortization/{loan}/download', [AmortizationScheduleController::class, 'downloadPdf'])->name('amortization.download');
     Route::post('/amortization/{loan}/incomplete', [AmortizationScheduleController::class, 'markIncomplete'])->name('loan.incomplete');
@@ -82,8 +89,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/documentation/cooperative/{id}', [DocumentationController::class, 'show'])->name('documentation.show');
     Route::get('/documentation/{id}/amortization', [DocumentationController::class, 'amortizationFile'])->name('documentation.amortization');
     Route::get('/documentation/{id}/details', [DocumentationController::class, 'cooperativeDetailsFile'])->name('documentation.details');
-    Route::get('/documentation/resolved/{id}/file', [DocumentationController::class, 'resolvedFile'])->name('documentation.resolved.file');
-    Route::get('/documentation/checklist/{id}/file', [DocumentationController::class, 'checklistFile'])->name('documentation.checklist.file');
+    Route::get('/documentation/{id}/resolved', [DocumentationController::class, 'resolvedFile'])->name('documentation.resolved.file');
+    Route::get('/documentation/{id}/checklist', [DocumentationController::class, 'checklistFile'])->name('documentation.checklist.file');
+    Route::get('/documentation/{id}/member-files/', [DocumentationController::class, 'memberFile'])->name('documentation.member-files');
+    Route::get('/documentation/{id}/delinquent', [DocumentationController::class, 'delinquentReport'])->name('documentation.delinquent');
+    Route::get('/documentation/{id}/progress', [DocumentationController::class, 'progressReportFile'])->name('documentation.progress.file');
 
     // Resolved Routes
     Route::get('/resolved/{coopProgram}/upload', [ResolvedController::class, 'create'])->name('resolved.create');
