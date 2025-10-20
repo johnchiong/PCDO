@@ -1,70 +1,67 @@
 <?php
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
-use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
 
 class AdminController extends Controller
 {
-    /**
-     * Show admin dashboard with users and recent sync logs.
-     */
     public function index(Request $request)
     {
-        // Fetch users with their roles
+        $search = $request->query('search', '');
+
         $users = User::with('roles:id,name')
             ->select('id', 'name', 'email', 'created_at')
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%$search%")
+                        ->orWhere('email', 'like', "%$search%");
+                });
+            })
             ->orderBy('created_at', 'desc')
-            ->limit(50)
-            ->get()
-            ->map(function ($user) {
+            ->paginate(20)
+            ->withQueryString()
+            ->through(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'role' => $user->roles->pluck('name')->first() ?? '—',
+                    'roles' => $user->roles->pluck('name'),
                     'created_at' => $user->created_at,
                 ];
             });
 
-        // Fetch total users
         $totalUsers = User::count();
 
-        // Fetch available roles from Spatie
         $roles = Role::select('id', 'name')->orderBy('name')->get();
 
-        // Recent sync logs
         $recentLogs = DB::table('sync_logs')
-            ->select('id', 'table_name', 'action', 'record_id', 'created_at')
-            ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->select('id', 'table_name', 'user_id', 'operation', 'record_id', 'changes', 'executed_at as created_at')
+            ->orderBy('executed_at', 'desc')
+            ->paginate(10);
 
         return Inertia::render('admin/Dashboard', [
             'users' => $users,
             'totalUsers' => $totalUsers,
             'roles' => $roles,
             'recentLogs' => $recentLogs,
+            'filters' => ['search' => $search],
         ]);
     }
 
-    /**
-     * Create new user and assign role.
-     */
     public function storeUser(Request $request)
     {
         $data = $request->validate([
-            'name' => ['required','string','max:255'],
-            'email' => ['required','email','max:255', Rule::unique('users','email')],
-            'role' => ['required','exists:roles,name'],
-            'password' => ['required','string','min:6'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'role' => ['required', 'exists:roles,name'],
+            'password' => ['required', 'string', 'min:6'],
         ]);
 
         $user = User::create([
@@ -73,9 +70,15 @@ class AdminController extends Controller
             'password' => Hash::make($data['password']),
         ]);
 
-        // Assign role using Spatie
         $user->assignRole($data['role']);
 
-        return redirect()->route('admin.dashboard')->with('success', 'User created successfully.');
+        return back()->with('success', 'User created successfully.');
+    }
+
+    public function destroyUser(User $user)
+    {
+        $user->delete();
+
+        return back()->with('success', 'User deleted successfully.');
     }
 }

@@ -187,7 +187,7 @@ usePolling(["cooperatives"], 15000);
                 <!-- Top Actions Card -->
                 <div
                     class="bg-gray-200 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
-                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-0">
 
                         <!-- Search Bar -->
                         <div class="relative flex-1 md:w-96">
@@ -196,56 +196,54 @@ usePolling(["cooperatives"], 15000);
                                 class="pl-9 pr-3 w-full rounded-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200" />
                         </div>
 
-                        <!-- Placeholder for Future Filter -->
-                        <div>
+                        <!-- Filter + Actions Wrapper -->
+                        <div class="flex flex-1 gap-3 justify-between md:justify-end">
+                            <!-- Filter Dropdown -->
                             <select
                                 class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-indigo-500">
                                 <option value="">Filter by...</option>
                                 <option value="active">Active</option>
                                 <option value="inactive">Inactive</option>
                             </select>
+
+                            <!-- Actions Dropdown -->
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
+                                        <span class="flex items-center gap-2">
+                                            <Plus class="w-4 h-4" /> Actions
+                                        </span>
+                                        <ChevronDown class="w-4 h-4" />
+                                    </button>
+                                </DropdownMenuTrigger>
+
+                                <DropdownMenuContent side="bottom" align="end"
+                                    class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                    <DropdownMenuItem asChild>
+                                        <button @click="goToCreatePage()"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                            Create
+                                        </button>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <button @click="openImportModal()"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <FileUp class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            Import Data
+                                        </button>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <button @click="openExportModal()"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <FileDown class="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                                            Export Data
+                                        </button>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                         </div>
-
-                        <DropdownMenu>
-                            <!-- Trigger Button -->
-                            <DropdownMenuTrigger asChild>
-                                <button
-                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
-                                    <span class="flex items-center gap-2">
-                                        <Plus class="w-4 h-4" /> Actions
-                                    </span>
-                                    <ChevronDown class="w-4 h-4" />
-                                </button>
-                            </DropdownMenuTrigger>
-
-                            <!-- Dropdown Content aligned to right -->
-                            <DropdownMenuContent side="bottom" align="end"
-                                class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
-                                <DropdownMenuItem asChild>
-                                    <button @click="goToCreatePage()"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
-                                        Create
-                                    </button>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem asChild>
-                                    <button @click="openImportModal()"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <FileUp class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                        Import Data
-                                    </button>
-                                </DropdownMenuItem>
-
-                                <DropdownMenuItem asChild>
-                                    <button @click="openExportModal()"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <FileDown class="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
-                                        Export Data
-                                    </button>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
-                        </DropdownMenu>
                     </div>
                 </div>
             </div>

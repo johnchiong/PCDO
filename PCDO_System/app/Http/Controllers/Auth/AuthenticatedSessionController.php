@@ -78,7 +78,17 @@ class AuthenticatedSessionController extends Controller
 
             session()->forget(['login_user_id', 'login_code', 'login_code_expires']);
 
-            return redirect()->intended(route('dashboard', absolute: false));
+            $user = Auth::user();
+
+            // Redirect based on role
+            if ($user->hasRole('admin')) {
+                return redirect()->route('admin.dashboard');
+            } elseif ($user->hasRole('officer')) {
+                return redirect()->route('dashboard');
+            } else {
+                // fallback for users with no role or other roles
+                return redirect()->route('home');
+            }
         }
 
         return back()->withErrors(['code' => 'Invalid or expired code.']);

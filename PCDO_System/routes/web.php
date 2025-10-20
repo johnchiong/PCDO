@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AmortizationScheduleController;
 use App\Http\Controllers\CooperativesController;
 use App\Http\Controllers\CoopMemberController;
@@ -10,9 +11,11 @@ use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\ResolvedController;
-use App\Http\Controllers\Admin\AdminController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Middleware\RoleMiddleware;
+
+app('router')->aliasMiddleware('role', RoleMiddleware::class);
 
 Route::get('/', function () {
     return redirect()->route('dashboard');
@@ -20,9 +23,10 @@ Route::get('/', function () {
 
 Route::get('/ping', fn () => response()->json(['pong' => true]));
 
-Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
-    Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.users.store');
+    Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.storeUser');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
@@ -51,7 +55,7 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     Route::post('/programs/{program}/progress', [CoopProgramProgressController::class, 'store'])->name('programs.progress.store');
     Route::get('/progress/{report}', [CoopProgramProgressController::class, 'show'])->name('programs.progress.show');
     Route::get('/progress/{report}/download', [CoopProgramProgressController::class, 'download'])->name('programs.progress.download');
-    
+
     // Nested routes for checklists under a specific program and cooperative
     Route::prefix('programs/{program}/cooperatives/{cooperative}')->group(function () {
         Route::get('checklist', [CoopProgramChecklistController::class, 'show'])->name('programs.cooperatives.checklist.show');

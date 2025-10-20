@@ -12,7 +12,7 @@ export function useSyncStatus(
             const res = await fetch(url, { cache: 'no-cache' })
             if (!res.ok) throw new Error()
             const data = await res.json()
-            isOnline.value = data.online === true
+            isOnline.value = data.pong === true
         } catch {
             isOnline.value = false
         }
