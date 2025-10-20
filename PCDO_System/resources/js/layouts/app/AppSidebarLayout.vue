@@ -15,27 +15,12 @@ withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 })
 
-const { isOnline, isSyncing, lastSync, status } = useSyncStatus()
+const { isOnline} = useSyncStatus()
 
 const statusColor = computed(() => {
-    if (isSyncing.value) return 'bg-blue-500'
     return isOnline.value ? 'bg-green-500' : 'bg-red-500'
 })
 
-const formattedLastSync = computed(() => {
-    if (!lastSync.value) return null
-    try {
-        return new Date(lastSync.value).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true,
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-        })
-    } catch {
-        return null
-    }
-})
 </script>
 
 <template>
@@ -52,16 +37,6 @@ const formattedLastSync = computed(() => {
                             statusColor
                         ]"
                     />
-                    <span
-                        class="font-medium transition-colors duration-300"
-                        :class="{ 'text-gray-700': isOnline, 'text-red-500': !isOnline }"
-                    >
-                        {{ isSyncing ? 'Syncing…' : status }}
-                    </span>
-
-                    <span v-if="formattedLastSync" class="text-xs text-gray-400">
-                        • Last sync: {{ formattedLastSync }}
-                    </span>
                 </div>
             </div>
 

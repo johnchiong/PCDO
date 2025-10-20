@@ -31,7 +31,7 @@ return [
 
     'connections' => [
 
-        'sqlite_local' => [
+        'sqlite' => [
             'driver' => 'sqlite',
             'database' => env('DB_SQLITE_LOCAL', database_path('database.sqlite')),
             'prefix' => '',
@@ -41,7 +41,7 @@ return [
             'synchronous' => null,
         ],
 
-        'mysql_cloud' => [
+        'mysql' => [
             'driver' => 'mysql',
             'host' => env('DB_CLOUD_HOST', env('DB_HOST', '127.0.0.1')),
             'port' => env('DB_CLOUD_PORT', env('DB_PORT', '3306')),
