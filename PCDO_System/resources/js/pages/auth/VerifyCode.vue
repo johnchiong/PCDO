@@ -1,15 +1,16 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import { useForm, Head } from '@inertiajs/vue3'
 import { LoaderCircle } from 'lucide-vue-next'
 import Button from '@/components/ui/button/Button.vue'
-import { Form } from '@inertiajs/vue3'
 import AuthLayout from '@/layouts/AuthLayout.vue'
 import { toast } from "vue-sonner"
 
-const form = useForm({
-  code: '',
-})
+const form = useForm({ code: '' })
 const resendForm = useForm({})
+
+const timer = ref(0)
+let interval: ReturnType<typeof setInterval> | null = null
 
 const submit = () => {
   form.post('/login/verify', {
@@ -17,17 +18,36 @@ const submit = () => {
   })
 }
 
-const resend = () => {
-    form.post('/login/resend', {
-        preserveScroll: true,
-        onSuccess: () => {
-            toast.success(`A new code has been sent to your email.`)
-        },
-        onError: () => {
-            toast.error(`Failed to resend code. Please try again.`)
-        },
-    })
+const startTimer = (seconds: number) => {
+  timer.value = seconds
+  interval = setInterval(() => {
+    timer.value--
+    if (timer.value <= 0 && interval) {
+      clearInterval(interval)
+      interval = null
+    }
+  }, 1000)
 }
+
+const resend = () => {
+  if (timer.value > 0) return
+
+  resendForm.post('/login/resend', {
+    preserveScroll: true,
+    onSuccess: () => {
+      toast.success(`A new code has been sent to your email.`)
+      startTimer(60) // 60 seconds before allowing resend
+    },
+    onError: () => {
+      toast.error(`Failed to resend code. Please try again.`)
+    },
+  })
+}
+
+const resendLabel = computed(() => {
+  if (timer.value > 0) return `Resend Code (${timer.value}s)`
+  return 'Resend Code'
+})
 </script>
 
 <template>
@@ -41,7 +61,6 @@ const resend = () => {
       class="max-w-md mx-auto mt-1 p-8 rounded-2xl shadow-lg 
              bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700"
     >
-      <!-- Header -->
       <h1 class="text-2xl font-bold text-center mb-2 text-gray-900 dark:text-gray-100">
         Verify Code
       </h1>
@@ -49,9 +68,7 @@ const resend = () => {
         Please check your email and enter the 6-digit code below.
       </p>
 
-      <!-- Form -->
-      <Form @submit.prevent="submit" class="flex flex-col gap-6">
-        <!-- Input styled like OTP -->
+      <form @submit.prevent="submit" class="flex flex-col gap-6">
         <input
           type="text"
           v-model="form.code"
@@ -64,12 +81,10 @@ const resend = () => {
                  rounded-xl p-3 transition bg-gray-50 dark:bg-gray-800"
         />
 
-        <!-- Error message -->
         <div v-if="form.errors.code" class="text-center text-red-600 text-sm">
           {{ form.errors.code }}
         </div>
 
-        <!-- Button -->
         <Button
           :disabled="form.processing"
           class="w-full flex justify-center items-center gap-2 py-3 
@@ -79,18 +94,19 @@ const resend = () => {
           <LoaderCircle v-if="form.processing" class="h-4 w-4 animate-spin" />
           <span>Verify</span>
         </Button>
+
         <button
           type="button"
           @click="resend"
-          :disabled="resendForm.processing"
+          :disabled="resendForm.processing || timer > 0"
           class="text-sm text-indigo-600 hover:text-indigo-800 font-medium underline text-center mt-3 disabled:opacity-50"
         >
-          <span v-if="!resendForm.processing">Resend Code</span>
+          <span v-if="!resendForm.processing">{{ resendLabel }}</span>
           <span v-else class="flex justify-center items-center gap-2">
             <LoaderCircle class="h-4 w-4 animate-spin" /> Sending...
           </span>
         </button>
-      </Form>
+      </form>
     </div>
   </AuthLayout>
 </template>

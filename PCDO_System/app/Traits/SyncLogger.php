@@ -2,8 +2,8 @@
 
 namespace App\Traits;
 
+use App\Models\SyncLog;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 trait SyncLogger
 {
@@ -34,15 +34,16 @@ trait SyncLogger
         $user = Auth::user();
         $source = config('database.default');
 
-        DB::connection($source)->table('sync_logs')->insert([
+        SyncLog::create([
             'table_name' => $model->getTable(),
             'operation' => $operation,
             'record_id' => $model->id,
             'user_id' => $user?->id ?? 0,
             'user_name' => $user?->name ?? 'system',
-            'changes' => json_encode($changes ?? $model->attributesToArray(), JSON_UNESCAPED_UNICODE),
+            'changes' => $changes ?? $model->getAttributes(),
             'source' => $source,
             'executed_at' => now(),
         ]);
+
     }
 }

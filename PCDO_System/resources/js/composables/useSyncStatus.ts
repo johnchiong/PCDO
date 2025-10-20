@@ -1,29 +1,58 @@
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 export function useSyncStatus() {
     const isOnline = ref(false)
-    const status = ref<'Online' | 'Offline'>('Offline')
+    const isSyncing = ref(false)
+    const lastSync = ref<string | null>(null)
+    const status = ref('Offline')
+    let intervalId: ReturnType<typeof setInterval> | null = null
+    let syncingManually = false
 
-    async function checkStatus() {
+    async function refreshStatus() {
         try {
-            const res = await fetch('/ping', { method: 'GET', cache: 'no-cache' })
-            if (res.ok) {
-                status.value = 'Online'
-                isOnline.value = true
-            } else {
-                status.value = 'Offline'
-                isOnline.value = false
+            const res = await fetch('/sync/status', { cache: 'no-cache' })
+            if (!res.ok) throw new Error()
+            const data = await res.json()
+
+            isOnline.value = data.online
+            isSyncing.value = data.syncing
+            lastSync.value = data.last_sync
+            status.value = data.online ? 'Online' : 'Offline'
+
+            if (data.online && !data.syncing && !syncingManually) {
+                syncingManually = true
+                await autoSync()
+                syncingManually = false
             }
         } catch {
-            status.value = 'Offline'
             isOnline.value = false
+            status.value = 'Offline'
+        }
+    }
+
+    async function autoSync() {
+        try {
+            isSyncing.value = true
+            const res = await fetch('/sync/trigger', { method: 'POST' })
+            if (res.ok) await refreshStatus()
+        } catch {
+        } finally {
+            isSyncing.value = false
         }
     }
 
     onMounted(() => {
-        checkStatus()
-        setInterval(checkStatus, 10000)
+        refreshStatus()
+        if (!intervalId)
+            intervalId = setInterval(refreshStatus, 10000)
     })
 
-    return { isOnline, status, checkStatus }
+    onUnmounted(() => {
+        if (intervalId) {
+            clearInterval(intervalId)
+            intervalId = null
+        }
+    })
+
+    return { isOnline, isSyncing, lastSync, status, refreshStatus, autoSync }
 }

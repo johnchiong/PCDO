@@ -13,22 +13,20 @@ import Label from './components/ui/label/Label.vue';
 import Input from './components/ui/input/Input.vue';
 import InputField from './components/ui/input/Input.vue';
 // Common Library Components 
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuPortal, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuShortcut, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from './components/ui/dropdown-menu';
 import { Table, TableCaption, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Toaster } from '@/components/ui/sonner';
 // Icons
-import { CheckCircle, XCircle, CircleDashed, Search, SquarePen, ChevronRight, ChevronLeft, ChevronDown, Plus, FileUp, FileDown, Users, Building2, Handshake, Pin, ReceiptText, 
-    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace, FileText } from 'lucide-vue-next';
+import {
+    CheckCircle, XCircle, CircleDashed, Search, SquarePen, ChevronRight, ChevronLeft, ChevronDown, Plus, FileUp, FileDown, Users, Building2, Handshake, Pin, ReceiptText,
+    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace, FileText
+} from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 // Directives
 import ClickOutside from './directives/ClickOutside';
-//Charts
-import VueApexCharts from "vue3-apexcharts";
 
 const appName = import.meta.env.VITE_APP_NAME || 'Unknown ENV';
-const VueApexChartsComponent = VueApexCharts as any;
-
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
@@ -36,7 +34,6 @@ createInertiaApp({
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
-            .use(VueApexChartsComponent)
             .directive('click-outside', ClickOutside)
             .component('Head', Head)
             .component('Link', Link)

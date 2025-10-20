@@ -1,6 +1,8 @@
 {
-    "name": "laravel-electron-offline-first",
+    "name": "pcdo-system",
     "version": "1.0.0",
+    "author": "Relova, Chiong, Francisco",
+    "description": "This is a PCDO Desktop Application.",
     "private": true,
     "main": "electron/main.cjs",
     "type": "module",
@@ -10,10 +12,9 @@
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
-        "lint": "eslint . --fix",
         "electron": "electron .",
         "electron:build": "electron-builder",
-        "electron:pack": "electron-builder --dir"
+        "electron:build:win": "electron-builder --windows"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",
@@ -66,21 +67,45 @@
             "output": "dist"
         },
         "files": [
-            "electron/**/*",
-            "public/**/*",
-            "bootstrap/**/*",
-            "routes/**/*",
-            "app/**/*",
-            "database/**/*",
-            "vendor/**/*",
+            "electron/",
+            "public/",
+            "resources/",
+            "bootstrap/",
+            "app/",
+            "routes/",
+            "config/",
+            "database/",
+            ".env",
             "artisan",
-            "package.json"
+            "vendor/"
+        ],
+        "asar": true,
+        "asarUnpack": [
+            ".env",
+            "bootstrap/**",
+            "config/**",
+            "app/**",
+            "routes/**",
+            "database/**",
+            "storage/**"
+        ],
+        "extraResources": [
+            {
+                "from": "electron/resources/php/",
+                "to": "php/"
+            }
         ],
         "win": {
             "target": [
-                "nsis"
+                {
+                    "target": "nsis",
+                    "arch": [
+                        "x64",
+                        "ia32"
+                    ]
+                }
             ],
-            "icon": "electron/icon.png"
+            "icon": "resources/icon.ico"
         },
         "nsis": {
             "oneClick": false,
@@ -89,7 +114,11 @@
             "createStartMenuShortcut": true,
             "perMachine": true,
             "allowElevation": true,
-            "requestExecutionLevel": "admin"
+            "shortcutName": "PCDOapp",
+            "deleteAppDataOnUninstall": true,
+            "installerIcon": "",
+            "uninstallerIcon": "",
+            "displayLanguageSelector": false
         }
     }
 }

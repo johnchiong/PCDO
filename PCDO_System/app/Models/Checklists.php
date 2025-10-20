@@ -2,13 +2,10 @@
 
 namespace App\Models;
 
-use App\Traits\SyncLogger;
 use Illuminate\Database\Eloquent\Model;
 
 class Checklists extends Model
 {
-    use SyncLogger;
-
     protected $fillable = ['name'];
 
     public $timestamps = false;
