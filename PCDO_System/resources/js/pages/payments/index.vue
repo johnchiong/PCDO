@@ -119,7 +119,7 @@ function formatNextDue(date: string | null) {
                 <option value="">All Status</option>
                 <option value="Ongoing">Ongoing</option>
                 <option value="Finished">Finished</option>
-                <option value="Inactive">Inactive</option>
+                <option value="Resolved">Resolved</option>
               </select>
             </div>
           </div>

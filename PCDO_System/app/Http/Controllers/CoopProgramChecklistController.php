@@ -3,12 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\CoopProgram;
-use PhpOffice\PhpWord\IOFactory;
-use PhpOffice\PhpWord\Settings;
 use App\Models\CoopProgramChecklist;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\Settings;
 
 class CoopProgramChecklistController extends Controller
 {
@@ -42,8 +41,8 @@ class CoopProgramChecklistController extends Controller
         return Inertia::render('programs/checklist', [
             'cooperative' => [
                 'id' => $coopProgram->id,
-                'loan_amount' => $coopProgram->loan_amount, 
-                'with_grace' => $coopProgram->with_grace,  
+                'loan_amount' => $coopProgram->loan_amount,
+                'with_grace' => $coopProgram->with_grace,
                 'cooperative' => $coopProgram->cooperative,
                 'program' => $coopProgram->program,
             ],
@@ -116,6 +115,27 @@ class CoopProgramChecklistController extends Controller
             'program' => $programId,
             'cooperative' => $cooperativeId,
         ]);
+    }
+
+    public function preview($programId, $cooperativeId, $fileId)
+    {
+        $upload = CoopProgramChecklist::findOrFail($fileId);
+
+        return response($upload->file_content)
+            ->header('Content-Type', $upload->mime_type)
+            ->header('Content-Disposition', 'inline; filename="'.$upload->file_name.'"');
+    }
+
+    public function consent($programId, $cooperativeId)
+    {
+        $coopProgram = CoopProgram::where('program_id', $programId)
+            ->where('coop_id', $cooperativeId)
+            ->firstOrFail();
+
+        $coopProgram->consenter = auth()->user()->id;
+        $coopProgram->save();
+
+        return back()->with('success', 'Consent has been recorded successfully.');
     }
 
     // Download a file

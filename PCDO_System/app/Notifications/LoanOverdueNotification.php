@@ -66,7 +66,7 @@ class LoanOverdueNotification extends Notification
         $subject = $mail->subject;
         $body = implode("\n", $mail->introLines);
 
-        // ✅ Save to DB
+        // Save to DB
         $pending = $schedule->pendingnotifications()
             ->where('processed', 0)
             ->first();

@@ -23,6 +23,8 @@ export interface Details {
   members_count: number;
   total_asset: number;
   net_surplus: number;
+  email: string;
+  number: string;
 }
 
 export interface Holder { id: number; name: string; }

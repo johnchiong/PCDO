@@ -6,52 +6,13 @@ use App\Models\AmortizationSchedules;
 use App\Models\CoopProgram;
 use App\Models\Resolved;
 use App\Notifications\LoanOverdueNotification;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class AmortizationScheduleController extends Controller
 {
-    public function generateSchedule($coopProgramId)
-    {
-        $coopProgram = CoopProgram::with('program')->findOrFail($coopProgramId);
-
-        // Prevent duplicate generation
-        if ($coopProgram->amortizationSchedules()->exists()) {
-            return back()->with('error', 'Amortization schedule already exists.');
-        }
-
-        // Calculate months to pay
-        $monthsToPay = $coopProgram->program->term_months - $coopProgram->with_grace;
-        if ($monthsToPay <= 0) {
-            return back()->with('error', 'Invalid term or grace period.');
-        }
-
-        // Compute monthly installment
-        $amountPerMonth = round($coopProgram->loan_amount / $monthsToPay, 2);
-        $startDate = Carbon::parse($coopProgram->start_date)->addMonths($coopProgram->with_grace);
-
-        // Generate amortization schedule
-        for ($i = 1; $i <= $monthsToPay; $i++) {
-            $amountDue = ($i === $monthsToPay)
-                ? $coopProgram->loan_amount - ($amountPerMonth * ($monthsToPay - 1))
-                : $amountPerMonth;
-
-            AmortizationSchedules::create([
-                'coop_program_id' => $coopProgram->id,
-                'due_date' => $startDate->copy()->addMonths($i - 1),
-                'installment' => $amountDue,
-                'status' => 'Unpaid',
-            ]);
-        }
-
-        return redirect()
-            ->route('programs.show', $coopProgram->program_id)
-            ->with('success', 'Amortization schedule generated successfully!');
-    }
-
-    // Show the Cooperative table 
+    // Show the Cooperative table
     public function index()
     {
         $loans = CoopProgram::with(['program', 'cooperative', 'amortizationSchedules'])
@@ -62,7 +23,7 @@ class AmortizationScheduleController extends Controller
                 'cooperative_name' => $p->cooperative?->name ?? 'N/A',
                 'program_name' => $p->program?->name ?? 'N/A',
                 'loan_amount' => $p->loan_amount ?? 0,
-                'status' => $p->program_status ?? 'N/A', 
+                'status' => $p->program_status ?? 'N/A',
                 'has_schedule' => $p->amortization_schedules_count > 0,
                 'coop_program_id' => $p->id,
                 'next_due_date' => optional(
@@ -98,8 +59,8 @@ class AmortizationScheduleController extends Controller
                 'program_name' => $coopProgram->program?->name ?? 'N/A',
                 'loan_amount' => $coopProgram->loan_amount ?? 0,
                 'status' => $coopProgram->program_status ?? 'N/A',
-                'program_status' => $coopProgram->program_status ?? 'N/A', //include explicitly
-                'resolved' => $coopProgram->program_status === 'Resolved', //boolean helper
+                'program_status' => $coopProgram->program_status ?? 'N/A',
+                'resolved' => $coopProgram->program_status === 'Resolved',
                 'schedules' => $coopProgram->amortizationSchedules->map(fn ($s) => [
                     'id' => $s->id,
                     'due_date' => optional($s->due_date)->format('Y-m-d'),
@@ -131,7 +92,6 @@ class AmortizationScheduleController extends Controller
         return back()->with('success', 'Payment marked as paid.');
     }
 
-    
     // Sends Overdue Email
     public function sendOverdueEmail($scheduleId)
     {
@@ -145,7 +105,7 @@ class AmortizationScheduleController extends Controller
         Notification::route('mail', $programEmail)
             ->notify(new LoanOverdueNotification($schedule));
 
-        // ✅ Mark related pending notifications as processed
+        // Mark related pending notifications as processed
         $schedule->pendingnotifications()
             ->where('type', 'overdue')
             ->update(['processed' => 1]);
@@ -156,25 +116,37 @@ class AmortizationScheduleController extends Controller
     // Add or remove penalty from a schedule
     public function penalty(Request $request, AmortizationSchedules $schedule)
     {
+        // Automatically add 1% penalty if overdue and unpaid
         if ($request->has('add')) {
-            $penalty = $schedule->installment * 0.01;
-            $schedule->penalty_amount += $penalty;
-            $schedule->save();
+            $today = now();
+            if ($schedule->due_date < $today && $schedule->status !== 'Paid') {
+                $penalty = $schedule->installment * 0.01;
+                $schedule->penalty_amount += $penalty;
+                $schedule->save();
 
-            return back()->with('success', '1% penalty added to this overdue schedule.');
+                return back()->with('success', '1% penalty added automatically for overdue payment.');
+            }
+
+            return back()->with('info', 'Schedule is not overdue or already paid.');
         }
 
+        // Remove penalty with remarks saved in notes column
         if ($request->has('remove')) {
-            $schedule->penalty_amount = 0;
-            $schedule->save();
+            $validated = $request->validate([
+                'remarks' => 'required|string|max:255',
+            ]);
 
-            return back()->with('success', 'Penalty removed from this schedule.');
+            $schedule->update([
+                'penalty_amount' => 0,
+                'notes' => $validated['remarks'], // save remarks here
+            ]);
+
+            return back()->with('success', 'Penalty removed and remarks saved successfully.');
         }
 
-        return back()->with('error', 'Invalid penalty action.');
+        return back()->with('error', 'Invalid action.');
     }
 
-    
     // Note a payment amount (partial or full) for a schedule.
     public function notePayment(Request $request, $id)
     {

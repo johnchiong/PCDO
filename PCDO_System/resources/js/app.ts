@@ -21,6 +21,7 @@ import { CheckCircle, XCircle, CircleDashed, Search, SquarePen, ChevronRight, Ch
     CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace, FileText } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 // Directives
 import ClickOutside from './directives/ClickOutside';
 //Charts
@@ -109,6 +110,10 @@ createInertiaApp({
             .component('Alert', Alert)
             .component('AlertDescription', AlertDescription)
             .component('AlertTitle', AlertTitle)
+            .component('Dialog', Dialog)
+            .component('DialogContent', DialogContent)
+            .component('DialogHeader', DialogHeader)
+            .component('DialogTitle', DialogTitle)
             .mount(el);
     },
     progress: {

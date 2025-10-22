@@ -37,25 +37,25 @@ class ProcessPendingNotifications extends Command
 
             if ($email) {
                 try {
-                    // ✅ Build notification but intercept the MailMessage
+                    //  Build notification but intercept the MailMessage
                     $notification = new LoanOverdueNotification($schedule);
                     $mailMessage = $notification->toMail($schedule); // returns MailMessage
 
                     // Send the notification
                     Notification::route('mail', $email)->notify($notification);
 
-                    // ✅ Save subject/body in PendingNotification before archiving
+                    //  Save subject/body in PendingNotification before archiving
                     $notif->subject   = $mailMessage->subject ?? 'Loan Notification';
                     $notif->body      = implode("\n", $mailMessage->introLines ?? []);
                     $notif->processed = 1;
                     $notif->save();
 
-                    $this->info("✅ Notification sent to {$email} for {$coopName}, type: {$notif->type}");
+                    $this->info(" Notification sent to {$email} for {$coopName}, type: {$notif->type}");
                 } catch (\Exception $e) {
-                    $this->error("❌ Failed to send notification to {$email}: " . $e->getMessage());
+                    $this->error(" Failed to send notification to {$email}: " . $e->getMessage());
                 }
             } else {
-                $this->warn("❌ No email found for coop program ID {$schedule->coop_program_id}");
+                $this->warn(" No email found for coop program ID {$schedule->coop_program_id}");
             }
         }
 

@@ -50,13 +50,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('programs/{program}/cooperatives/{cooperative}')->group(function () {
         Route::get('checklist', [CoopProgramChecklistController::class, 'show'])->name('programs.cooperatives.checklist.show');
         Route::post('checklist/upload', [CoopProgramChecklistController::class, 'upload'])->name('programs.cooperatives.checklist.upload');
+        Route::get('checklist/{file}/preview', [CoopProgramChecklistController::class, 'preview'])->name('programs.cooperatives.checklist.preview');
+        Route::post('consent', [CoopProgramChecklistController::class, 'consent'])->name('programs.cooperatives.consent');
         Route::get('checklist/{file}/download', [CoopProgramChecklistController::class, 'download'])->name('programs.cooperatives.checklist.download');
         Route::delete('checklist/{file}', [CoopProgramChecklistController::class, 'delete'])->name('programs.cooperatives.checklist.delete');
         Route::post('finalize-loan', [ProgramController::class, 'finalizeLoan'])->name('cooperatives.finalizeLoan');
     });
-
-    // Generating the Amortization Schedule
-    Route::post('/cooperative-programs/{coopProgram}/generate-amortization', [AmortizationScheduleController::class, 'generateSchedule'])->name('cooperative-programs.generate-amortization');
 
     // Cooperatives Programs Routes
     // Route::resource('coopPrograms', CoopProgramController::class);
@@ -93,10 +92,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/documentation/{id}/delinquent', [DocumentationController::class, 'delinquentReport'])->name('documentation.delinquent');
     Route::get('/documentation/{id}/progress', [DocumentationController::class, 'progressReportFile'])->name('documentation.progress.file');
 
-    // Resolved Routes
-    Route::get('/resolved/{coopProgram}/upload', [ResolvedController::class, 'create'])->name('resolved.create');
-    Route::post('/resolved/{coopProgram}', [ResolvedController::class, 'store'])->name('resolved.store');
-    Route::get('/resolved/download/{id}', [ResolvedController::class, 'download'])->name('resolved.download');
+    // // Resolved Routes
+    // Route::get('/resolved/{coopProgram}/upload', [ResolvedController::class, 'create'])->name('resolved.create');
+    // Route::post('/resolved/{coopProgram}', [ResolvedController::class, 'store'])->name('resolved.store');
+    // Route::get('/resolved/download/{id}', [ResolvedController::class, 'download'])->name('resolved.download');
 
     // Cooperatives Program Nested Routes
     // Route::resource('coopPrograms/{cooperative}/checklists', CoopProgramChecklistController::class);

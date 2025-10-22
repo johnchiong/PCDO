@@ -21,6 +21,8 @@ class CoopDetail extends Model
         'members_count',
         'total_asset',
         'net_surplus',
+        'number',
+        'email',
     ];
 
     protected $table = 'coop_details';

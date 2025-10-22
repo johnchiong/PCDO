@@ -3,7 +3,6 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { BreadcrumbItem } from '@/types';
 import type { Member } from '@/types/cooperatives';
 import { router, usePage } from '@inertiajs/vue3';
-// import FlashToast from '@/components/FlashToast.vue';
 import { computed, ref } from 'vue';
 import Button from '@/components/ui/button/Button.vue';
 

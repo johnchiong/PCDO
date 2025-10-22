@@ -129,7 +129,7 @@ function confirmDelete(id: number, first_name: string, last_name: string) {
 
                     <!-- Year Filter -->
                     <div v-if="years.length" class="flex flex-wrap gap-2 px-6 mt-4">
-                        <Button v-for="year in years" :key="year" @click="activeYear = year" class="px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
+                        <Button v-for="year in years" :key="year" @click="activeYear = year" class="px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
                         border border-gray-300 dark:border-gray-700
                         hover:scale-105 hover:shadow-sm" :class="activeYear === year
                             ? 'bg-indigo-600 text-white shadow-md dark:bg-indigo-500'

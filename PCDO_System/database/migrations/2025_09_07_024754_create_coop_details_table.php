@@ -31,6 +31,8 @@ return new class extends Migration
             $table->bigInteger('members_count')->nullable();
             $table->bigInteger('total_asset')->nullable();
             $table->bigInteger('net_surplus')->nullable();
+            $table->string('number')->nullable();
+            $table->string('email')->nullable();
             $table->timestamps();
         });
     }

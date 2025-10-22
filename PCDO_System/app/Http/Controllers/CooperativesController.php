@@ -52,6 +52,15 @@ class CooperativesController extends Controller
         ]);
     }
 
+    public function getDetails($id)
+    {
+        $coop = Cooperative::with('coopDetail')->findOrFail($id);
+        return response()->json([
+            'number' => optional($coop->coopDetail)->number,
+            'email' => optional($coop->coopDetail)->email,
+        ]);
+    }
+
     /**
      * Show the form for creating a new resource.
      */
@@ -107,6 +116,8 @@ class CooperativesController extends Controller
             'members_count' => 'required|integer|min:1',
             'total_asset' => 'required|numeric|min:0',
             'net_surplus' => 'required|numeric',
+            'email' => 'required|string|max:25',
+            'number' => 'required|string|max:20',
         ]);
 
         $cooperative = Cooperative::where('name', $data['name'])->first();
@@ -136,6 +147,8 @@ class CooperativesController extends Controller
             'members_count' => $data['members_count'],
             'total_asset' => $data['total_asset'],
             'net_surplus' => $data['net_surplus'],
+            'email' => $data['email'],
+            'number' => $data['number'],
         ];
         CoopDetail::create($detailsData);
 
@@ -234,6 +247,8 @@ class CooperativesController extends Controller
             'members_count' => 'required|integer|min:1',
             'total_asset' => 'required|numeric|min:0',
             'net_surplus' => 'required|numeric',
+            'email' => 'required|string|max:25',
+            'number' => 'required|string|max:20',
         ]);
 
         $cooperative->update([
@@ -257,6 +272,8 @@ class CooperativesController extends Controller
                 'members_count' => $data['members_count'],
                 'total_asset' => $data['total_asset'],
                 'net_surplus' => $data['net_surplus'],
+                'email' => $data['email'],
+                'number' => $data['number'],
             ]
         );
 
@@ -385,6 +402,8 @@ class CooperativesController extends Controller
             'Members Count',
             'Total Asset',
             'Net Surplus',
+            'Email',
+            'Contact Number',
         ]));
 
         $coops = Cooperative::with('details.region', 'details.province', 'details.city', 'details.barangay')->get();
@@ -407,6 +426,8 @@ class CooperativesController extends Controller
                 $d->members_count ?? '',
                 $d->total_asset ?? '',
                 $d->net_surplus ?? '',
+                $d->email ?? '',
+                $d->number ?? '',
             ]));
         }
 
