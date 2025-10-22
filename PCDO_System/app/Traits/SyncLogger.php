@@ -34,16 +34,30 @@ trait SyncLogger
         $user = Auth::user();
         $source = config('database.default');
 
+        $safeChanges = self::sanitizeForJson($changes ?? $model->getAttributes());
+
         SyncLog::create([
             'table_name' => $model->getTable(),
             'operation' => $operation,
             'record_id' => $model->id,
             'user_id' => $user?->id ?? 0,
             'user_name' => $user?->name ?? 'system',
-            'changes' => $changes ?? $model->getAttributes(),
+            'changes' => $safeChanges,
             'source' => $source,
             'executed_at' => now(),
         ]);
+    }
 
+    protected static function sanitizeForJson($data)
+    {
+        if (is_array($data)) {
+            return array_map([self::class, 'sanitizeForJson'], $data);
+        }
+
+        if (is_string($data)) {
+            return mb_convert_encoding($data, 'UTF-8', 'UTF-8');
+        }
+
+        return $data;
     }
 }
