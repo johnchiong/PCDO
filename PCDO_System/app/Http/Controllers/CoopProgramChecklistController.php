@@ -43,6 +43,7 @@ class CoopProgramChecklistController extends Controller
                 'id' => $coopProgram->id,
                 'loan_amount' => $coopProgram->loan_amount,
                 'with_grace' => $coopProgram->with_grace,
+                'consenter' => $coopProgram->consenter,
                 'cooperative' => $coopProgram->cooperative,
                 'program' => $coopProgram->program,
             ],

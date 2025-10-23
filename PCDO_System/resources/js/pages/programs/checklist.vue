@@ -39,10 +39,7 @@ const allUploadsDone = computed(() =>
   props.checklistItems.every(item => item.upload)
 )
 
-// Check if consent exists
-const hasConsent = computed(() =>
-  props.cooperative && props.cooperative.consenter !== null
-)
+const canFinalizeLoan = computed(() => allUploadsDone.value && !!props.cooperative.consenter)
 
 // Disable upload if previous checklist not uploaded
 const isDisabled = (index: number) =>
@@ -61,9 +58,24 @@ const loanForm = useForm<LoanFormData>({
   with_grace: props.cooperative.with_grace || 0,
 })
 
-const showPreviewModal = ref(false)
-const selectedFile = ref<{ name: string; url: string } | null>(null)
+const selectedFile = ref<{ id: number; name: string; url: string } | null>(null)
 const isConsented = ref(false);
+const showPreviewModal = ref(false)
+watch(showPreviewModal, (isOpen) => {
+  if (isOpen) {
+    const firstUploaded = props.checklistItems.find(item => item.upload)
+    if (firstUploaded?.upload) {
+      selectedFile.value = {
+        id: firstUploaded.upload.id,
+        name: firstUploaded.upload.file_name,
+        url: `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/${firstUploaded.upload.id}/preview`
+      }
+    }
+  } else {
+    selectedFile.value = null
+    isConsented.value = false
+  }
+})
 
 //Saves the Consent
 function saveConsent() {
@@ -77,6 +89,7 @@ function saveConsent() {
         toast.success('Consent recorded successfully!')
         isConsented.value = false
         showPreviewModal.value = false
+        router.reload({ only: ['checklistItems', 'cooperative'] })
       },
       onError: () => {
         toast.error('Failed to record consent.')
@@ -85,16 +98,14 @@ function saveConsent() {
   )
 }
 
-
 // When clicking a file in the modal
 function openFilePreview(item: any) {
   selectedFile.value = {
+    id: item.upload.id,
     name: item.upload.file_name,
     url: `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/${item.upload.id}/preview`
   }
 }
-
-// showPreviewModal.value = true
 
 // Handle file upload
 function handleUpload(index: number, item: ChecklistItem) {
@@ -133,28 +144,7 @@ function submitLoan() {
   )
 }
 
-const consentChecked = ref(false)
-
-function handleConsent() {
-  if (!props.cooperative.program) return
-
-  router.post(
-    `/programs/${props.cooperative.program.id}/cooperatives/${props.cooperative.cooperative.id}/consent`,
-    {},
-    {
-      onSuccess: () => {
-        toast.success('Consent recorded successfully!')
-        consentChecked.value = false
-        showPreviewModal.value = false
-      },
-      onError: () => {
-        toast.error('Failed to record consent.')
-      }
-    }
-  )
-}
-
-// if all checklist is uploaded the modal shows and if not they will go back to the show
+// if all checklist they can go view the files they uploaded and it will preselect the first file
 function handleSaveProgress() {
   if (allUploadsDone.value) {
     showPreviewModal.value = true
@@ -223,7 +213,7 @@ const breadcrumbs: BreadcrumbItem[] = [
           </div>
 
           <!-- Loan form -->
-          <form v-else-if="allUploadsDone && hasConsent" @submit.prevent="submitLoan" class="space-y-4">
+          <form v-if="canFinalizeLoan" @submit.prevent="submitLoan" class="space-y-4">
             <!-- Loan Amount -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -312,7 +302,7 @@ const breadcrumbs: BreadcrumbItem[] = [
           </form>
 
           <!-- When all files are uploaded but no consent yet -->
-          <div v-else-if="allUploadsDone && !hasConsent"
+          <div v-else-if="allUploadsDone && !props.cooperative.consenter"
             class="bg-yellow-50 border border-yellow-200 p-4 rounded text-yellow-800">
             Please confirm the checklist consent before finalizing the loan.
           </div>
@@ -403,8 +393,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                 <h4 class="text-gray-700 dark:text-gray-300 mb-2">Checklists</h4>
                 <ul class="space-y-1">
                   <li v-for="(item, i) in props.checklistItems" :key="i">
-                    <button v-if="item.upload" @click="openFilePreview(item)"
-                      class="block w-full text-left p-2 rounded-lg text-gray-800 dark:text-gray-100 hover:bg-indigo-100 dark:hover:bg-gray-700 transition">
+                    <button v-if="item.upload" @click="openFilePreview(item)" :class="[
+                      'block w-full text-left p-2 rounded-lg transition',
+                      selectedFile?.id === item.upload.id
+                        ? 'bg-indigo-700 text-white font-medium shadow-sm'
+                        : 'text-gray-800 dark:text-gray-100 hover:bg-indigo-100 dark:hover:bg-gray-700'
+                    ]">
                       {{ item.name }}
                     </button>
                   </li>
@@ -451,9 +445,14 @@ const breadcrumbs: BreadcrumbItem[] = [
         </Dialog>
 
         <div class="flex justify-end mt-6">
-          <button type="button" @click="handleSaveProgress"
+          <button v-if="!allUploadsDone" type="button" @click="handleSaveProgress"
             class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md">
             Save Progress
+          </button>
+
+          <button v-else type="button" @click="showPreviewModal = true"
+            class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md">
+            Confirm Checklist
           </button>
         </div>
       </div>

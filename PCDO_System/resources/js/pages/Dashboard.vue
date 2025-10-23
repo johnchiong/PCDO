@@ -137,7 +137,7 @@ function goToNotification(id: number) {
                         </a>
                     </div>
 
-                    <ul class="space-y-3 max-h-[320px] overflow-y-auto pr-2">
+                    <ul class="space-y-3 max-h-[450px] overflow-y-auto pr-2">
                         <li v-for="notification in notifications" :key="notification.id"
                             class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition"
                             @click="goToNotification(notification.id)">

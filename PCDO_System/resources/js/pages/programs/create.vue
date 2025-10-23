@@ -83,8 +83,8 @@ const handleSubmit = () => {
               </div>
             </div>
 
-            <!--  Show cooperative name if pre-filled -->
-            <div v-else>
+            <!-- Show cooperative name if pre-filled -->
+            <div v-else class="flex items-center justify-between">
               <input type="hidden" v-model="form.cooperative_id" />
               <p class="text-gray-700 dark:text-gray-300 font-medium">
                 Cooperative:
@@ -92,6 +92,11 @@ const handleSubmit = () => {
                   {{ selectedCooperative?.name || 'Unknown' }}
                 </span>
               </p>
+              <!-- X button to reset -->
+              <button type="button" @click="form.cooperative_id = ''"
+                class="ml-3 text-red-400 hover:text-red-600 transition">
+                <X class="w-5 h-5" />
+              </button>
             </div>
 
             <!-- Project -->
