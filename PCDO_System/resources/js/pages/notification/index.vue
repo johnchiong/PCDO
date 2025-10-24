@@ -25,13 +25,13 @@ const breadcrumbs: BreadcrumbItem[] = [
   { title: 'Notifications', href: '/notifications' },
 ]
 
-// ✅ helper to truncate
+//  helper to truncate
 function truncate(text: string, length: number = 80) {
   if (!text) return ''
   return text.length > length ? text.substring(0, length) + '...' : text
 }
 
-// ✅ helper to format full date and time
+//  helper to format full date and time
 function formatDateTime(dateStr: string) {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -44,7 +44,7 @@ function formatDateTime(dateStr: string) {
   })
 }
 
-// ✅ helper to format only date for grouping
+//  helper to format only date for grouping
 function formatDateOnly(dateStr: string) {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -55,7 +55,7 @@ function formatDateOnly(dateStr: string) {
   })
 }
 
-// ✅ group notifications by date
+//  group notifications by date
 const groupedNotifications = props.notifications.reduce((groups: Record<string, typeof props.notifications>, notification) => {
   const date = formatDateOnly(notification.created_at)
   if (!groups[date]) groups[date] = []
@@ -63,7 +63,7 @@ const groupedNotifications = props.notifications.reduce((groups: Record<string, 
   return groups
 }, {})
 
-// ✅ sort dates descending
+// sort dates descending
 const sortedDates = Object.keys(groupedNotifications).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
 </script>
 

@@ -36,7 +36,10 @@ class ExportCompletedLoans extends Command
             }
 
             foreach ($coopPrograms as $coopProgram) {
-                $schedules = $coopProgram->amortizationSchedules->sortBy('due_date');
+                $schedules = $coopProgram->amortizationSchedules()
+                    ->select('id', 'due_date', 'installment', 'date_paid', 'amount_paid', 'status', 'notes')
+                    ->orderBy('due_date')
+                    ->get();
                 if ($schedules->isEmpty()) {
                     continue;
                 }

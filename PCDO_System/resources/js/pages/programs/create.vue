@@ -21,8 +21,6 @@ const query = new URLSearchParams(window.location.search)
 
 const form = useForm({
   cooperative_id: query.get('cooperative_id') || '',
-  email: '',
-  phone_number: '',
   project: '',
 })
 
@@ -30,28 +28,6 @@ const form = useForm({
 const selectedCooperative = computed(() =>
   props.cooperatives.find(c => String(c.id) === String(form.cooperative_id))
 )
-
-// Email field validation
-const validateEmail = () => {
-  form.clearErrors('email')
-  if (form.email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(form.email)) {
-      form.setError('email', 'Enter a valid email address.')
-    }
-  }
-}
-
-// Phone field validation
-const validatePhone = () => {
-  form.clearErrors('phone_number')
-  if (form.phone_number) {
-    const phoneRegex = /^09\d{9}$/
-    if (!phoneRegex.test(form.phone_number)) {
-      form.setError('phone_number', 'Enter a valid mobile number (e.g., 09123456789).')
-    }
-  }
-}
 
 //Project field validation
 const validateProject = () => {
@@ -64,15 +40,6 @@ const validateProject = () => {
 // Full form validation (when saving)
 const validateForm = () => {
   form.clearErrors()
-
-  if (!form.email && !form.phone_number) {
-    form.setError('email', 'Provide at least an email or phone number.')
-    form.setError('phone_number', 'Provide at least an email or phone number.')
-    return false
-  }
-
-  validateEmail()
-  validatePhone()
   validateProject()
 
   return Object.keys(form.errors).length === 0
@@ -116,8 +83,8 @@ const handleSubmit = () => {
               </div>
             </div>
 
-            <!-- 👇 Show cooperative name if pre-filled -->
-            <div v-else>
+            <!-- Show cooperative name if pre-filled -->
+            <div v-else class="flex items-center justify-between">
               <input type="hidden" v-model="form.cooperative_id" />
               <p class="text-gray-700 dark:text-gray-300 font-medium">
                 Cooperative:
@@ -125,28 +92,11 @@ const handleSubmit = () => {
                   {{ selectedCooperative?.name || 'Unknown' }}
                 </span>
               </p>
-            </div>
-
-            <!-- Email -->
-            <div>
-              <label class="block mb-1 font-medium">Email</label>
-              <input type="email" v-model="form.email" placeholder="Enter Email"
-                class="w-full rounded-xl border border-gray-300 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                @blur="validateEmail" />
-              <div v-if="form.errors.email" class="text-red-500 text-sm mt-1">
-                {{ form.errors.email }}
-              </div>
-            </div>
-
-            <!-- Phone -->
-            <div>
-              <label class="block mb-1 font-medium">Mobile / Phone Number</label>
-              <input type="text" v-model="form.phone_number" maxlength="11" placeholder="e.g. 09123456789"
-                class="w-full rounded-xl border border-gray-300 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                @blur="validatePhone" />
-              <div v-if="form.errors.phone_number" class="text-red-500 text-sm mt-1">
-                {{ form.errors.phone_number }}
-              </div>
+              <!-- X button to reset -->
+              <button type="button" @click="form.cooperative_id = ''"
+                class="ml-3 text-red-400 hover:text-red-600 transition">
+                <X class="w-5 h-5" />
+              </button>
             </div>
 
             <!-- Project -->

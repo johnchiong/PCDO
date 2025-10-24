@@ -25,6 +25,7 @@ class CoopProgram extends Model
         'loan_amount',
         'with_grace',
         'exported',
+        'consenter'
     ];
 
     protected $casts = [

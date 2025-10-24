@@ -51,7 +51,11 @@ class Cooperative extends Model
 
     public function oldPrograms()
     {
-        return $this->hasMany(AmortizationOld::class, 'coop_program_id'); // if your table is literally named "old"
+        return $this->hasMany(AmortizationOld::class, 'coop_program_id');
+    }
+    public function coopDetail()
+    {
+        return $this->hasOne(CoopDetail::class, 'coop_id', 'id');
     }
 
     public function progressReports()

@@ -77,6 +77,7 @@ const allPeriods = computed(() => {
   const periods: { type: 'grace' | 'schedule'; label: string; data?: Schedule; totalDue?: number }[] = []
   let carryOver = 0
   const grace = props.coopProgram.grace_period || 0
+  const today = new Date()
 
   // Grace periods
   for (let i = 1; i <= grace; i++) {
@@ -86,9 +87,15 @@ const allPeriods = computed(() => {
   // Schedule rows with dues including carry-over
   props.coopProgram.schedules.forEach((s, i) => {
     const installment = Number(s.installment) || 0
-    const penalty = Number(s.penalty_amount) || 0
-    const paid = Number(s.amount_paid) || 0
+    let penalty = Number(s.penalty_amount) || 0
 
+    // Auto-add 1% penalty if overdue and unpaid
+    if (!s.is_paid && new Date(s.due_date) < today && penalty === 0) {
+      penalty = installment * 0.01
+      s.penalty_amount = penalty // update the row to reflect it
+    }
+
+    const paid = Number(s.amount_paid) || 0
     const dues = installment + penalty + carryOver
     const unpaid = Math.max(0, Math.round(dues - paid))
 
@@ -148,6 +155,42 @@ function markPaid(scheduleId: number, periodLabel: string) {
       onError: () => {
         toast.error('Failed to mark as paid. Please try again.')
       }
+    }
+  )
+}
+
+const showPenaltyModal = ref(false)
+const penaltyRemarks = ref('')
+const selectedScheduleId = ref<number | null>(null)
+
+function openPenaltyModal(scheduleId: number) {
+  selectedScheduleId.value = scheduleId
+  showPenaltyModal.value = true
+}
+
+function closePenaltyModal() {
+  showPenaltyModal.value = false
+  penaltyRemarks.value = ''
+  selectedScheduleId.value = null
+}
+
+function submitPenaltyRemoval() {
+  if (!penaltyRemarks.value.trim()) {
+    toast.error('Please enter remarks before removing penalty.')
+    return
+  }
+
+  router.post(`/schedules/${selectedScheduleId.value}/penalty`,
+    { remove: true, remarks: penaltyRemarks.value },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Penalty removed successfully.')
+        closePenaltyModal()
+      },
+      onError: () => {
+        toast.error('Failed to remove penalty.')
+      },
     }
   )
 }
@@ -418,13 +461,14 @@ function onFileChange(e: Event) {
                         <span class="font-medium text-gray-700 dark:text-gray-300">
                           ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
                         </span>
-                        <Button size="sm" :disabled="row.data.is_paid"
-                          @click="togglePenalty(row.data.id, row.data.penalty_amount! > 0, row.data!)" :class="[
-                            'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
-                            row.data.penalty_amount! > 0
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-orange-500 hover:bg-orange-600 text-white'
-                          ]">
+                        <Button size="sm" :disabled="row.data.is_paid" @click="row.data.penalty_amount! > 0
+                          ? openPenaltyModal(row.data.id)
+                          : togglePenalty(row.data.id, false, row.data!)" :class="[
+                        'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
+                        row.data.penalty_amount! > 0
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                        ]">
                           <span v-if="row.data.penalty_amount! > 0">✕ Remove</span>
                           <span v-else class="inline-flex items-center gap-1">
                             <Plus class="w-3 h-3" />
@@ -584,6 +628,35 @@ function onFileChange(e: Event) {
                     class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
                     <span v-if="isSubmitting">Submitting...</span>
                     <span v-else>Submit Receipt</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Penalty Removal Modal -->
+            <div v-if="showPenaltyModal"
+              class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+              <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[90%] max-w-md p-6 relative">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  Remove Penalty
+                </h3>
+
+                <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  Please provide a reason for removing this penalty.
+                </p>
+
+                <textarea v-model="penaltyRemarks" rows="3"
+                  class="w-full p-3 border rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-700 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 text-sm"
+                  placeholder="Enter remarks here..."></textarea>
+
+                <div class="mt-5 flex justify-end gap-3">
+                  <button @click="closePenaltyModal"
+                    class="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100">
+                    Cancel
+                  </button>
+                  <button @click="submitPenaltyRemoval"
+                    class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white">
+                    Confirm Remove
                   </button>
                 </div>
               </div>

@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
-import { computed } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { toast } from 'vue-sonner'
 
 // Interfaces
@@ -13,11 +13,12 @@ interface ChecklistItem {
 }
 
 interface CoopProgram {
-  id: number                 // <-- coop_program.id
+  id: number
   cooperative: { id: number; name: string }
   program?: { id: number; name: string; min_amount: number; max_amount: number } | null
   loan_amount?: number | null
   with_grace?: number | null
+  consenter?: string | null
 }
 
 // Loan form
@@ -28,22 +29,17 @@ interface LoanFormData {
 
 // Props
 const props = defineProps<{
-  cooperative: CoopProgram        // This is the coop_program
+  cooperative: CoopProgram
   checklistItems: ChecklistItem[]
 }>()
 
 
 // All uploads must be completed before finalizing loan
 const allUploadsDone = computed(() =>
-  props.checklistItems.some(item => item.upload)
+  props.checklistItems.every(item => item.upload)
 )
 
-// Condition for showing Generate Amortization button
-const canGenerateAmortization = computed(() =>
-  allUploadsDone.value &&
-  typeof props.cooperative.loan_amount === 'number' &&
-  (props.cooperative.loan_amount ?? 0) > 0
-)
+const canFinalizeLoan = computed(() => allUploadsDone.value && !!props.cooperative.consenter)
 
 // Disable upload if previous checklist not uploaded
 const isDisabled = (index: number) =>
@@ -62,7 +58,54 @@ const loanForm = useForm<LoanFormData>({
   with_grace: props.cooperative.with_grace || 0,
 })
 
-const amortizationForm = useForm({})
+const selectedFile = ref<{ id: number; name: string; url: string } | null>(null)
+const isConsented = ref(false);
+const showPreviewModal = ref(false)
+watch(showPreviewModal, (isOpen) => {
+  if (isOpen) {
+    const firstUploaded = props.checklistItems.find(item => item.upload)
+    if (firstUploaded?.upload) {
+      selectedFile.value = {
+        id: firstUploaded.upload.id,
+        name: firstUploaded.upload.file_name,
+        url: `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/${firstUploaded.upload.id}/preview`
+      }
+    }
+  } else {
+    selectedFile.value = null
+    isConsented.value = false
+  }
+})
+
+//Saves the Consent
+function saveConsent() {
+  if (!isConsented.value) return
+
+  router.post(
+    `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/consent`,
+    {},
+    {
+      onSuccess: () => {
+        toast.success('Consent recorded successfully!')
+        isConsented.value = false
+        showPreviewModal.value = false
+        router.reload({ only: ['checklistItems', 'cooperative'] })
+      },
+      onError: () => {
+        toast.error('Failed to record consent.')
+      },
+    }
+  )
+}
+
+// When clicking a file in the modal
+function openFilePreview(item: any) {
+  selectedFile.value = {
+    id: item.upload.id,
+    name: item.upload.file_name,
+    url: `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/${item.upload.id}/preview`
+  }
+}
 
 // Handle file upload
 function handleUpload(index: number, item: ChecklistItem) {
@@ -92,8 +135,7 @@ function submitLoan() {
     `/programs/${props.cooperative.program.id}/cooperatives/${props.cooperative.cooperative.id}/finalize-loan`,
     {
       onSuccess: () => {
-        router.reload({only: ['cooperative']})
-        toast.success('Loan finalized successfully!')
+        toast.success('Loan finalized and amortization schedule generated successfully!')
       },
       onError: () => {
         toast.error('Failed to finalize loan. Please try again.')
@@ -102,19 +144,13 @@ function submitLoan() {
   )
 }
 
-// Generate amortization
-function generateAmortization() {
-  amortizationForm.post(
-    `/cooperative-programs/${props.cooperative.id}/generate-amortization`,
-    {
-      onSuccess: () => {
-        router.visit(`/amortizations/${props.cooperative.id}?flash=amortization_success`)
-      },
-      onError: () => {
-        toast.error('Failed to generate amortization. Please try again.')
-      }
-    }
-  )
+// if all checklist they can go view the files they uploaded and it will preselect the first file
+function handleSaveProgress() {
+  if (allUploadsDone.value) {
+    showPreviewModal.value = true
+  } else {
+    router.visit(`/programs/${props.cooperative.program?.id}`)
+  }
 }
 
 function handleDelete(uploadId: number, fileName: string) {
@@ -177,7 +213,7 @@ const breadcrumbs: BreadcrumbItem[] = [
           </div>
 
           <!-- Loan form -->
-          <form v-else-if="allUploadsDone" @submit.prevent="submitLoan" class="space-y-4">
+          <form v-if="canFinalizeLoan" @submit.prevent="submitLoan" class="space-y-4">
             <!-- Loan Amount -->
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -265,6 +301,13 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
           </form>
 
+          <!-- When all files are uploaded but no consent yet -->
+          <div v-else-if="allUploadsDone && !props.cooperative.consenter"
+            class="bg-yellow-50 border border-yellow-200 p-4 rounded text-yellow-800">
+            Please confirm the checklist consent before finalizing the loan.
+          </div>
+
+          <!-- When files are still missing -->
           <div v-else class="bg-yellow-50 border border-yellow-200 p-4 rounded text-yellow-800">
             Please upload all required documents before finalizing the loan.
           </div>
@@ -336,17 +379,80 @@ const breadcrumbs: BreadcrumbItem[] = [
           </form>
         </div>
 
-        <!-- Save Progress / Generate Amortization -->
-        <div class="flex justify-end mt-6">
-          <button v-if="canGenerateAmortization" @click="generateAmortization"
-            class="bg-green-600 hover:bg-green-700 text-white px-5 py-2 rounded-lg shadow-md"
-            :disabled="amortizationForm.processing">
-            Generate Amortization
-          </button>
+        <Dialog v-model:open="showPreviewModal">
+          <DialogContent class="!max-w-[85vw] bg-gray-100/90 dark:bg-gray-900 rounded-xl shadow-xl overflow-hidden p-4">
+            <DialogHeader>
+              <DialogTitle class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Uploaded Checklist Preview
+              </DialogTitle>
+            </DialogHeader>
 
-          <button v-else type="button" @click="router.visit(`/programs/${props.cooperative.program?.id}`)"
+            <div class="flex h-[80vh]">
+              <!-- Left Side: Checklist Navigation -->
+              <div class="w-1/4 border-r border-gray-300 dark:border-gray-700 p-4 space-y-2 overflow-y-auto">
+                <h4 class="text-gray-700 dark:text-gray-300 mb-2">Checklists</h4>
+                <ul class="space-y-1">
+                  <li v-for="(item, i) in props.checklistItems" :key="i">
+                    <button v-if="item.upload" @click="openFilePreview(item)" :class="[
+                      'block w-full text-left p-2 rounded-lg transition',
+                      selectedFile?.id === item.upload.id
+                        ? 'bg-indigo-700 text-white font-medium shadow-sm'
+                        : 'text-gray-800 dark:text-gray-100 hover:bg-indigo-100 dark:hover:bg-gray-700'
+                    ]">
+                      {{ item.name }}
+                    </button>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Right Side: File Preview -->
+              <div class="flex-1 p-4 overflow-y-auto max-h-[80vh]">
+                <div v-if="selectedFile">
+                  <p class="text-gray-800 dark:text-gray-100 mb-3">
+                    Viewing: <strong>{{ selectedFile.name }}</strong>
+                  </p>
+
+                  <iframe v-if="selectedFile.url" :src="selectedFile.url"
+                    class="w-full h-[60vh] border rounded-lg"></iframe>
+
+                  <!-- Consent Section (below preview) -->
+                  <div
+                    class="mt-6 bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
+                    <p class="text-gray-800 dark:text-gray-200 mb-3">
+                      Please review the checklist documents carefully and confirm the if all the files are correct.
+                    </p>
+
+                    <div class="flex items-center mb-4">
+                      <input id="consentCheckbox" type="checkbox" v-model="isConsented"
+                        class="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 dark:bg-gray-700 dark:border-gray-600" />
+                      <label for="consentCheckbox" class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        I hereby give consent on behalf of the cooperative.
+                      </label>
+                    </div>
+
+                    <div class="text-right">
+                      <button type="button" @click="saveConsent" :disabled="!isConsented"
+                        class="px-4 py-2 rounded-lg shadow-md text-white"
+                        :class="isConsented ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'">
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <div class="flex justify-end mt-6">
+          <button v-if="!allUploadsDone" type="button" @click="handleSaveProgress"
             class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md">
             Save Progress
+          </button>
+
+          <button v-else type="button" @click="showPreviewModal = true"
+            class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md">
+            Confirm Checklist
           </button>
         </div>
       </div>

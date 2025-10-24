@@ -19,10 +19,12 @@ import { Toaster } from '@/components/ui/sonner';
 // Icons
 import {
     CheckCircle, XCircle, CircleDashed, Search, SquarePen, ChevronRight, ChevronLeft, ChevronDown, Plus, FileUp, FileDown, Users, Building2, Handshake, Pin, ReceiptText,
-    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace, FileText
+    CircleDollarSign, Leaf, TriangleAlert, Check, Bell, Upload, Replace, FileText, X
 } from 'lucide-vue-next';
+
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from '@/components/ui/alert-dialog'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 // Directives
 import ClickOutside from './directives/ClickOutside';
 
@@ -93,6 +95,7 @@ createInertiaApp({
             .component('Upload', Upload)
             .component('Replace', Replace)
             .component('FileText', FileText)
+            .component('X', X)
             // Alert Dialog
             .component('AlertDialog', AlertDialog)
             .component('AlertDialogAction', AlertDialogAction)
@@ -106,6 +109,10 @@ createInertiaApp({
             .component('Alert', Alert)
             .component('AlertDescription', AlertDescription)
             .component('AlertTitle', AlertTitle)
+            .component('Dialog', Dialog)
+            .component('DialogContent', DialogContent)
+            .component('DialogHeader', DialogHeader)
+            .component('DialogTitle', DialogTitle)
             .mount(el);
     },
     progress: {

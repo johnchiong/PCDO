@@ -40,6 +40,8 @@ const form = useForm({
     members_count: details?.members_count ?? '',
     total_asset: details?.total_asset ?? '',
     net_surplus: details?.net_surplus ?? '',
+    email: details?.email ?? '',
+    number: details?.number ?? '',
 })
 
 const { drafts, useDraft, deleteDraft, clearDrafts } = useDrafts(form, 'cooperatives')
@@ -187,6 +189,30 @@ const filteredBarangays = computed(() =>
     props.barangays.filter(b => String(b.city_code) === String(form.city_code))
 )
 
+// Email field validation
+const validateEmail = () => {
+    form.clearErrors('email')
+    if (form.email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+        if (!emailRegex.test(form.email)) {
+            form.setError('email', 'Enter a valid email address.')
+        }
+    }
+}
+
+// Phone field validation
+const validatePhone = () => {
+  form.clearErrors('number')
+  if (form.number) {
+    const phoneRegex = /^09\d{9}$/
+    if (!phoneRegex.test(form.number)) {
+      form.setError('number', 'Enter a valid mobile number (e.g., 09123456789).')
+    }
+  }
+}
+
+validateEmail()
+validatePhone()
 
 // Location Dependency Map
 const dependencyMap = {
@@ -231,6 +257,8 @@ function handleSubmit() {
         'members_count',
         'total_asset',
         'net_surplus',
+        'email',
+        'number',
     ];
 
     const emptyFields = requiredFields.filter(field => {
@@ -247,19 +275,19 @@ function handleSubmit() {
 
     if (emptyFields.length) {
         submitting.value = false;
-            toast.error(`Please fill in all required fields:\n- ${emptyFields.join('\n- ')}`)
+        toast.error(`Please fill in all required fields:\n- ${emptyFields.join('\n- ')}`)
         return;
     }
 
     if (!isIdFormatValid(form.id)) {
         submitting.value = false;
-            toast.error('Invalid ID format. Correct format is YYYY-XXXX (e.g., 2024-1234)')
+        toast.error('Invalid ID format. Correct format is YYYY-XXXX (e.g., 2024-1234)')
         return;
     }
 
     if (isDuplicateId.value || isDuplicateName.value) {
         submitting.value = false;
-            toast.error('Duplicate Cooperative ID or Name found.')
+        toast.error('Duplicate Cooperative ID or Name found.')
         return;
     }
 
@@ -292,7 +320,8 @@ usePolling(["cooperatives"], 30000, () => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
             <div class="max-w-7x7 p-6">
-                <div class="bg-gray-100/80 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
+                <div
+                    class="bg-gray-100/80 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
                         <Plus class="w-10 h-10 text-blue-600 dark:text-blue-400 flex-shrink-0" /> Create Cooperative
                     </h1>
@@ -385,7 +414,8 @@ usePolling(["cooperatives"], 30000, () => {
                             isIdFormatValid(form.id) &&
                             !isDuplicateName &&
                             form.name
-                        " class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                        "
+                            class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                             <!-- Region -->
                             <div>
                                 <Label for="region" class="mb-2">Region</Label>
@@ -507,6 +537,22 @@ usePolling(["cooperatives"], 30000, () => {
                                 <input id="surplus" v-model="form.net_surplus" type="number"
                                     class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                                     placeholder="Enter Net Surplus" />
+                            </div>
+
+                            <!-- Email -->
+                            <div>
+                                <Label for="email" class="mb-2">Email</Label>
+                                <input id="email" v-model="form.email" type="email"
+                                    class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    @blur="validateEmail"  placeholder="Enter Email" />
+                            </div>
+
+                            <!-- Mobile Number -->
+                            <div>
+                                <Label for="number" class="mb-2">Contact Number</Label>
+                                <input id="number" v-model="form.number" type="text" maxlength="11"
+                                    class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                    @blur="validatePhone"  placeholder="e.g. 09123456789" />
                             </div>
 
                             <!-- Submit -->

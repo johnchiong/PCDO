@@ -19,16 +19,31 @@ const deletingId = ref<string | null>(null)
 
 const page = usePage();
 
+const statusFilter = ref<'ongoing' | 'inactive' | ''>('')
+
 const filteredCooperatives = computed(() => {
-    if (!searchQuery.value) {
-        return props.cooperatives;
+    let cooperatives = props.cooperatives
+
+    // Filter by search query first
+    if (searchQuery.value) {
+        cooperatives = cooperatives.filter(coop =>
+            coop.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+            coop.id.toString().includes(searchQuery.value) ||
+            (coop.holder?.toLowerCase().includes(searchQuery.value.toLowerCase() ?? false))
+        )
     }
-    return props.cooperatives.filter(coop =>
-        coop.name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        coop.id.toString().includes(searchQuery.value) ||
-        (coop.holder?.toLowerCase().includes(searchQuery.value.toLowerCase() ?? false))
-    );
-});
+
+    // Filter by status
+    if (statusFilter.value) {
+        cooperatives = cooperatives.filter(coop => {
+            if (statusFilter.value === 'ongoing') return coop.has_ongoing_program
+            if (statusFilter.value === 'inactive') return !coop.has_ongoing_program
+            return true
+        })
+    }
+
+    return cooperatives
+})
 
 const paginatedCooperatives = computed(() => {
     const start = (currentPage.value - 1) * itemsPerPage.value;
@@ -52,6 +67,7 @@ const goToPage = (page: number) => {
         currentPage.value = page;
     }
 };
+
 
 function openExportModal() {
     showExportModal.value = true;
@@ -196,15 +212,36 @@ usePolling(["cooperatives"], 15000);
                                 class="pl-9 pr-3 w-full rounded-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200" />
                         </div>
 
-                        <!-- Filter + Actions Wrapper -->
-                        <div class="flex flex-1 gap-3 justify-between md:justify-end">
-                            <!-- Filter Dropdown -->
-                            <select
-                                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-indigo-500">
-                                <option value="">Filter by...</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                        <!-- Placeholder for Future Filter -->
+                        <select v-model="statusFilter"
+                            class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-indigo-500">
+                            <option value="">All Status</option>
+                            <option value="ongoing">Ongoing</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+
+                        <DropdownMenu>
+                            <!-- Trigger Button -->
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
+                                    <span class="flex items-center gap-2">
+                                        <Plus class="w-4 h-4" /> Actions
+                                    </span>
+                                    <ChevronDown class="w-4 h-4" />
+                                </button>
+                            </DropdownMenuTrigger>
+
+                            <!-- Dropdown Content aligned to right -->
+                            <DropdownMenuContent side="bottom" align="end"
+                                class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                <DropdownMenuItem asChild>
+                                    <button @click="goToCreatePage()"
+                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                        <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                        Create
+                                    </button>
+                                </DropdownMenuItem>
 
                             <!-- Actions Dropdown -->
                             <DropdownMenu>
@@ -337,7 +374,7 @@ usePolling(["cooperatives"], 15000);
                                                     <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         Are you sure you want to delete <strong>{{ coop.name
-                                                        }}</strong>?
+                                                            }}</strong>?
                                                         This action cannot be undone.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
