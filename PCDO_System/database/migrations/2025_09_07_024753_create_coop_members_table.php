@@ -13,15 +13,19 @@ return new class extends Migration
     {
         Schema::create('coop_members', function (Blueprint $table) {
             $table->id();
-            $table->string('coop_id');
-            $table->foreign('coop_id')->references('id')->on('cooperatives')->onDelete('cascade')->onUpdate('cascade');
-            $table->enum('position', ['Chairman', 'Treasurer', 'Manager', 'Member']);
-            $table->string('first_name')->nullable();
-            $table->char('middle_initial')->nullable();
-            $table->string('last_name')->nullable();
-            $table->string('suffix')->nullable();
-            $table->boolean('is_representative')->default(false);
-            $table->year('active_year');
+            $table->foreignId('coop_program_id')->constrained('coop_programs')->onDelete('cascade');
+            $table->string('name');
+            $table->string('position')->default('Member');
+            $table->string('biodata_path')->nullable();
+            $table->timestamps();
+        });
+
+        Schema::create('coop_member_files', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('coop_member_id')->constrained()->onDelete('cascade');
+            $table->string('file_name');
+            $table->string('file_path');
+            $table->string('file_type');
             $table->timestamps();
         });
     }
@@ -31,6 +35,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('coop_member_files');
         Schema::dropIfExists('coop_members');
     }
 };

@@ -32,12 +32,10 @@ class AdminController extends Controller
                     'id' => $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
-                    'roles' => $user->roles->pluck('name'),
+                    'roles' => $user->roles->map(fn ($r) => ['id' => $r->id, 'name' => $r->name]),
                     'created_at' => $user->created_at,
                 ];
             });
-
-        $totalUsers = User::count();
 
         $roles = Role::select('id', 'name')->orderBy('name')->get();
 
@@ -48,7 +46,6 @@ class AdminController extends Controller
 
         return Inertia::render('admin/Dashboard', [
             'users' => $users,
-            'totalUsers' => $totalUsers,
             'roles' => $roles,
             'recentLogs' => $recentLogs,
             'filters' => ['search' => $search],
@@ -57,10 +54,20 @@ class AdminController extends Controller
 
     public function storeUser(Request $request)
     {
+        $authUser = $request->user();
+
+        if ($authUser->hasRole('superadmin')) {
+            $allowedRoles = ['admin', 'officer'];
+        } elseif ($authUser->hasRole('admin')) {
+            $allowedRoles = ['officer'];
+        } else {
+            abort(403, 'Unauthorized to create users.');
+        }
+
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
-            'role' => ['required', 'exists:roles,name'],
+            'role' => ['required', Rule::in($allowedRoles)],
             'password' => ['required', 'string', 'min:6'],
         ]);
 
@@ -75,8 +82,24 @@ class AdminController extends Controller
         return back()->with('success', 'User created successfully.');
     }
 
-    public function destroyUser(User $user)
+    public function destroyUser(User $user, Request $request)
     {
+        $authUser = $request->user();
+
+        $targetRoles = $user->roles->pluck('name')->toArray();
+
+        if ($authUser->hasRole('superadmin')) {
+            if (! in_array('admin', $targetRoles) && ! in_array('officer', $targetRoles)) {
+                abort(403, 'Superadmin can only delete admins or officers.');
+            }
+        } elseif ($authUser->hasRole('admin')) {
+            if (! in_array('officer', $targetRoles)) {
+                abort(403, 'Admin can only delete officers.');
+            }
+        } else {
+            abort(403, 'Unauthorized to delete users.');
+        }
+
         $user->delete();
 
         return back()->with('success', 'User deleted successfully.');

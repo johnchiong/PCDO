@@ -27,10 +27,16 @@ export type AppPageProps<
     sidebarOpen: boolean;
 };
 
+export interface Role {
+    id: number;
+    name: string;
+}
+
 export interface User {
     id: number;
     name: string;
     email: string;
+    roles: Role[];
     avatar?: string;
     email_verified_at: string | null;
     created_at: string;

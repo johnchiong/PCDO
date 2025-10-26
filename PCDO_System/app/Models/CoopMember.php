@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\SyncLogger;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CoopMember extends Model
 {
@@ -13,19 +14,14 @@ class CoopMember extends Model
 
     protected $fillable = [
         'coop_id',
+        'name',
         'position',
-        'first_name',
-        'last_name',
-        'middle_initial',
-        'suffix',
-        'is_representative',
-        'date_of_birth',
-        'active_year',
+        'biodata_path',
     ];
 
-    public function cooperatives()
+    public function program(): BelongsTo
     {
-        return $this->belongsToOne(Cooperative::class, 'coop_member_cooperative', 'coop_member_id', 'cooperative_id');
+        return $this->belongsTo(CoopProgram::class, 'coop_program_id');
     }
 
     public function files()
