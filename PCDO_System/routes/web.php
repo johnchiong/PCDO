@@ -23,7 +23,7 @@ Route::get('/', function () {
 
 Route::get('/ping', fn () => response()->json(['pong' => true]));
 
-Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
+Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.storeUser');
     Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
@@ -37,17 +37,11 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     Route::get('cooperatives/export/{type}', [CooperativesController::class, 'export'])->name('cooperatives.export');
     Route::post('cooperatives/import', [CooperativesController::class, 'import'])->name('cooperatives.import');
 
-    // Members
-    Route::prefix('programs/{program}')->group(function () {
-        Route::get('members', [CoopMemberController::class, 'index'])->name('program.members.index');
-        Route::get('members/create', [CoopMemberController::class, 'create'])->name('program.members.create');
-        Route::post('members', [CoopMemberController::class, 'store'])->name('program.members.store');
-        Route::get('members/{member}/edit', [CoopMemberController::class, 'edit'])->name('program.members.edit');
-        Route::put('members/{member}', [CoopMemberController::class, 'update'])->name('program.members.update');
-        Route::delete('members/{member}', [CoopMemberController::class, 'destroy'])->name('program.members.destroy');
-        Route::get('members/{member}/biodata', [CoopMemberController::class, 'downloadBiodata'])->name('program.members.downloadBiodata');
-        Route::get('members/{member}/files/{fileId}', [CoopMemberController::class, 'downloadFile'])->name('program.members.downloadFile');
-    });
+    // Cooperatives Nested Routes
+    Route::resource('cooperatives.members', CoopMemberController::class);
+    Route::get('cooperatives/{cooperative}/members/{member}/files/{fileId}/download', [CoopMemberController::class, 'downloadFile'])->name('cooperatives.members.files.download');
+    Route::delete('cooperatives/{cooperative}/members/{member}/files/{fileId}', [CoopMemberController::class, 'deleteFile'])->name('cooperatives.members.files.delete');
+    Route::get('cooperatives/{cooperative}', [CooperativesController::class, 'show'])->name('cooperatives.show');
 
     // Program Routes
     Route::resource('programs', ProgramController::class);
