@@ -6,31 +6,51 @@ use App\Http\Controllers\CooperativesController;
 use App\Http\Controllers\CoopMemberController;
 use App\Http\Controllers\CoopProgramChecklistController;
 use App\Http\Controllers\CoopProgramProgressController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProgramController;
-use App\Http\Controllers\ResolvedController;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Spatie\Permission\Middleware\RoleMiddleware;
 
 app('router')->aliasMiddleware('role', RoleMiddleware::class);
 
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    $user = Auth::user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    if (in_array($user->role, ['superadmin', 'admin'])) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($user->role === 'officer') {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
 })->name('home');
 
 Route::get('/ping', fn () => response()->json(['pong' => true]));
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
     Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
     Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.storeUser');
     Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
 });
 
 Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+        if (in_array($user->role, ['superadmin', 'admin'])) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return app(App\Http\Controllers\DashboardController::class)->index();
+    })->name('dashboard');
 
     // Cooperatives Routes
     Route::resource('cooperatives', CooperativesController::class);

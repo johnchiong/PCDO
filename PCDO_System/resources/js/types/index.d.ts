@@ -33,8 +33,14 @@ export interface User {
     email: string;
     avatar?: string;
     email_verified_at: string | null;
+    roles?: Role[]
     created_at: string;
     updated_at: string;
+}
+
+export interface Role {
+    id: number
+    name: string
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;

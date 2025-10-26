@@ -221,28 +221,6 @@ usePolling(["cooperatives"], 15000);
                         </select>
 
                         <DropdownMenu>
-                            <!-- Trigger Button -->
-                            <DropdownMenuTrigger asChild>
-                                <button
-                                    class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
-                                    <span class="flex items-center gap-2">
-                                        <Plus class="w-4 h-4" /> Actions
-                                    </span>
-                                    <ChevronDown class="w-4 h-4" />
-                                </button>
-                            </DropdownMenuTrigger>
-
-                            <!-- Dropdown Content aligned to right -->
-                            <DropdownMenuContent side="bottom" align="end"
-                                class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
-                                <DropdownMenuItem asChild>
-                                    <button @click="goToCreatePage()"
-                                        class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                        <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
-                                        Create
-                                    </button>
-                                </DropdownMenuItem>
-
                             <!-- Actions Dropdown -->
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
@@ -280,7 +258,7 @@ usePolling(["cooperatives"], 15000);
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
-                        </div>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>
