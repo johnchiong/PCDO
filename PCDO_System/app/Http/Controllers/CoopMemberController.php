@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cooperative;
 use App\Models\CoopMember;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -433,5 +434,134 @@ class CoopMemberController extends Controller
         return redirect()
             ->route('cooperatives.members.show', [$cooperative->id, $member->id])
             ->with('success', 'File deleted successfully.');
+    }
+
+    public function downloadBiodataPdf(Cooperative $cooperative, CoopMember $member)
+    {
+        // Map your database fields to the template variables
+        $data = [
+            // === PERSONAL INFO ===
+            'position_desired' => $member->position,
+            'active_year' => $member->active_year,
+            'given_name' => $member->first_name,
+            'surname' => $member->last_name,
+            'middle_initial' => $member->middle_name ? substr($member->middle_name, 0, 1).'.' : '',
+            'date' => now()->format('F d, Y'),
+
+            'present_address' => trim(($member->street ? $member->street.', ' : '').($member->city ?? '')),
+            'present_tel' => $member->telephone,
+            'permanent_address' => $member->parent_address,
+            'permanent_tel' => $member->contact,
+
+            'citizenship' => $member->citizenship,
+            'birth_date' => \Carbon\Carbon::parse($member->birthdate)->format('F d, Y'),
+            'birth_place' => $member->birthplace,
+            'religion' => $member->religion,
+            'age' => $member->age,
+            'sex' => $member->sex,
+            'civil_status' => $member->marital_status,
+            'height' => $member->height ? $member->height.' cm' : '',
+            'weight' => $member->weight ? $member->weight.' kg' : '',
+
+            'spouse' => $member->spouse_name,
+            'spouse_occupation' => $member->spouse_occupation,
+            'spouse_age' => $member->spouse_age,
+            'children' => collect([
+                $member->dependent1_name ? $member->dependent1_name.' ('.$member->dependent1_age.')' : null,
+                $member->dependent2_name ? $member->dependent2_name.' ('.$member->dependent2_age.')' : null,
+            ])->filter()->join(', '),
+
+            'father' => $member->father_name,
+            'father_occupation' => $member->father_occupation,
+            'father_age' => $member->father_age,
+            'father_address' => $member->parent_address,
+
+            'mother' => $member->mother_name,
+            'mother_occupation' => $member->mother_occupation,
+            'mother_age' => $member->mother_age,
+            'mother_address' => $member->parent_address,
+
+            'emergency_person' => $member->emergency_name,
+            'emergency_tel' => $member->emergency_contact,
+            'emergency_address' => $member->parent_address,
+
+            // === EDUCATION ===
+            'school_elem' => $member->elementary_name,
+            'degree_elem' => $member->elementary_degree,
+            'grad_elem' => $member->elementary_end,
+
+            'school_hs' => $member->hs_name,
+            'degree_hs' => $member->hs_degree,
+            'grad_hs' => $member->hs_end,
+
+            'school_college' => $member->college_name,
+            'degree_college' => $member->college_degree,
+            'grad_college' => $member->college_end,
+
+            'school_voc' => $member->course_name,
+            'degree_voc' => $member->course_degree,
+            'grad_voc' => $member->course_end,
+
+            'school_others' => $member->others_name,
+            'degree_others' => $member->others_degree,
+            'grad_others' => $member->others_end,
+
+            'skills' => $member->course_degree,
+
+            // === EMPLOYMENT RECORDS ===
+            'job_company_1' => $member->company1_name,
+            'job_occupation_1' => $member->company1_position,
+            'job_period_1' => $member->company1_start && $member->company1_end
+                                ? \Carbon\Carbon::parse($member->company1_start)->format('M Y').' - '.\Carbon\Carbon::parse($member->company1_end)->format('M Y')
+                                : '',
+            'job_earnings_1' => $member->company1_rfl,
+
+            'job_company_2' => $member->company2_name,
+            'job_occupation_2' => $member->company2_position,
+            'job_period_2' => $member->company2_start && $member->company2_end
+                                ? \Carbon\Carbon::parse($member->company2_start)->format('M Y').' - '.\Carbon\Carbon::parse($member->company2_end)->format('M Y')
+                                : '',
+            'job_earnings_2' => $member->company2_rfl,
+
+            'job_company_3' => $member->company3_name,
+            'job_occupation_3' => $member->company3_position,
+            'job_period_3' => $member->company3_start && $member->company3_end
+                                ? \Carbon\Carbon::parse($member->company3_start)->format('M Y').' - '.\Carbon\Carbon::parse($member->company3_end)->format('M Y')
+                                : '',
+            'job_earnings_3' => $member->company3_rfl,
+
+            'job_company_4' => $member->company4_name,
+            'job_occupation_4' => $member->company4_position,
+            'job_period_4' => $member->company4_start && $member->company4_end
+                                ? \Carbon\Carbon::parse($member->company4_start)->format('M Y').' - '.\Carbon\Carbon::parse($member->company4_end)->format('M Y')
+                                : '',
+            'job_earnings_4' => $member->company4_rfl,
+
+            'job_company_5' => $member->company5_name,
+            'job_occupation_5' => $member->company5_position,
+            'job_period_5' => $member->company5_start && $member->company5_end
+                                ? \Carbon\Carbon::parse($member->company5_start)->format('M Y').' - '.\Carbon\Carbon::parse($member->company5_end)->format('M Y')
+                                : '',
+            'job_earnings_5' => $member->company5_rfl,
+
+            // === CHARACTER REFERENCES ===
+            'ref_name_1' => $member->ref1_name,
+            'ref_occupation_1' => $member->ref1_position,
+            'ref_address_1' => $member->ref1_company,
+            'ref_tel_1' => $member->ref1_contact,
+
+            'ref_name_2' => $member->ref2_name,
+            'ref_occupation_2' => $member->ref2_position,
+            'ref_address_2' => $member->ref2_company,
+            'ref_tel_2' => $member->ref2_contact,
+        ];
+        // Generate PDF using your Blade template
+        $pdf = Pdf::loadView('bio_data', $data);
+
+        // Optional: set paper size (Legal) and orientation
+        $pdf->setPaper('legal', 'portrait');
+
+        // Download directly
+        return $pdf->download($member->last_name.'_Biodata.pdf');
     }
 }

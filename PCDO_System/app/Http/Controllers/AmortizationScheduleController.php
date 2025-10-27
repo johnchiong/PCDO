@@ -6,6 +6,7 @@ use App\Models\AmortizationSchedules;
 use App\Models\CoopProgram;
 use App\Models\Resolved;
 use App\Notifications\LoanOverdueNotification;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -96,7 +97,7 @@ class AmortizationScheduleController extends Controller
     public function sendOverdueEmail($scheduleId)
     {
         $schedule = AmortizationSchedules::with('coopProgram.cooperative', 'pendingnotifications')->findOrFail($scheduleId);
-        $programEmail = $schedule->coopProgram->email ?? null;
+        $programEmail = $schedule->coopProgram->cooperative->coopDetail->email ?? null;
 
         if (! $programEmail) {
             return back()->with('error', 'No email found for this cooperative program.');
@@ -246,5 +247,76 @@ class AmortizationScheduleController extends Controller
         return redirect()
             ->back()
             ->with('success', 'Loan marked as resolved successfully!');
+    }
+
+    public function downloadAmortizationPdf($coopProgramId)
+    {
+        $coopProgram = CoopProgram::with([
+            'amortizationSchedules',
+            'cooperative.details.province',
+            'cooperative.details.city',
+            'cooperative.members',
+            'program',
+        ])->findOrFail($coopProgramId);
+
+        // Collect amortization schedules (even unpaid ones)
+        $schedules = $coopProgram->amortizationSchedules()
+            ->orderBy('due_date', 'asc')
+            ->get();
+
+        // Identify cooperative officers
+        $chairman = $coopProgram->cooperative->members
+            ->where('position', 'Chairman')
+            ->first();
+        $treasurer = $coopProgram->cooperative->members
+            ->where('position', 'Treasurer')
+            ->first();
+        $manager = $coopProgram->cooperative->members
+            ->where('position', 'Manager')
+            ->first();
+
+        $chairmanFullName = $chairman
+            ? trim("{$chairman->first_name} {$chairman->middle_initial} {$chairman->last_name}")
+            : 'N/A';
+        $treasurerFullName = $treasurer
+            ? trim("{$treasurer->first_name} {$treasurer->middle_initial} {$treasurer->last_name}")
+            : 'N/A';
+        $managerFullName = $manager
+            ? trim("{$manager->first_name} {$manager->middle_initial} {$manager->last_name}")
+            : 'N/A';
+
+        // Address and contact info
+        $details = $coopProgram->cooperative->details ?? null;
+        $province = $details?->province?->name ?? '';
+        $city = $details?->city?->name ?? '';
+        $address = trim("{$province}, {$city}");
+        $contact = $details?->contact_number ?? 'N/A';
+
+        // Prepare data for Blade
+        $data = [
+            'coop' => $coopProgram->cooperative,
+            'coopProgram' => $coopProgram,
+            'schedules' => $schedules,
+            'address' => $address,
+            'contact' => $contact,
+            'chairman' => $chairmanFullName,
+            'treasurer' => $treasurerFullName,
+            'manager' => $managerFullName,
+        ];
+
+        // Generate PDF using the same amortization_schedule.blade.php view
+        $pdf = Pdf::loadView('amortization_schedule', $data)
+            ->setPaper('legal', 'portrait')
+            ->setOptions([
+                'dpi' => 80,
+                'defaultFont' => 'sans-serif',
+                'isHtml5ParserEnabled' => true,
+                'isRemoteEnabled' => true,
+            ]);
+
+        // Download filename
+        $filename = ($coopProgram->cooperative->name ?? 'Cooperative').'_Amortization_Schedule.pdf';
+
+        return $pdf->download($filename);
     }
 }

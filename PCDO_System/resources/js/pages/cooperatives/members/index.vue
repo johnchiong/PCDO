@@ -163,7 +163,7 @@ function confirmDelete(id: number, first_name: string, last_name: string) {
                                     <TableRow v-for="mem in members" :key="mem.id"
                                         class="hover:bg-gray-50 dark:hover:bg-gray-600/50">
                                         <TableCell class="pl-16 text-gray-600 dark:text-gray-300">
-                                            {{ mem.first_name }} {{ mem.middle_initial ? mem.middle_initial + '. ' :
+                                            {{ mem.first_name }} {{ mem.middle_name ? mem.middle_name + '. ' :
                                                 '' }}{{ mem.last_name }}
                                         </TableCell>
                                         <TableCell class="pl-16 text-gray-600 dark:text-gray-300">
