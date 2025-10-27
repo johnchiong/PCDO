@@ -18,6 +18,7 @@ interface Schedule {
   date_paid?: string | null
   balance?: number
   amount_paid?: number
+  penalty_removed?: boolean 
 }
 
 interface CoopProgram {
@@ -89,12 +90,6 @@ const allPeriods = computed(() => {
     const installment = Number(s.installment) || 0
     let penalty = Number(s.penalty_amount) || 0
 
-    // Auto-add 1% penalty if overdue and unpaid
-    if (!s.is_paid && new Date(s.due_date) < today && penalty === 0) {
-      penalty = installment * 0.01
-      s.penalty_amount = penalty // update the row to reflect it
-    }
-
     const paid = Number(s.amount_paid) || 0
     const dues = installment + penalty + carryOver
     const unpaid = Math.max(0, Math.round(dues - paid))
@@ -149,7 +144,7 @@ function markPaid(scheduleId: number, periodLabel: string) {
     { preserveScroll: true },
     {
       onSuccess: () => {
-        // ✅ Show toast only after success
+        // Show toast only after success
         toast.success(`Marked as paid on ${periodLabel} successfully!`)
       },
       onError: () => {
@@ -204,12 +199,6 @@ function togglePenalty(scheduleId: number, hasPenalty: boolean, row: Schedule) {
       preserveScroll: true,
       onSuccess: () => {
         toast.success(hasPenalty ? 'Penalty removed.' : 'Penalty added.')
-
-        if (hasPenalty) {
-          row.penalty_amount = 0
-        } else {
-          row.penalty_amount = Number(row.installment) * 0.01
-        }
       },
       onError: () => {
         toast.error('Failed to toggle penalty. Please try again.')
@@ -473,11 +462,11 @@ function downloadPdf() {
                       <Button size="sm" :disabled="row.data.is_paid" @click="row.data.penalty_amount! > 0
                         ? openPenaltyModal(row.data.id)
                         : togglePenalty(row.data.id, false, row.data!)" :class="[
-                            'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
-                            row.data.penalty_amount! > 0
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-orange-500 hover:bg-orange-600 text-white'
-                          ]">
+                          'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
+                          row.data.penalty_amount! > 0
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-orange-500 hover:bg-orange-600 text-white'
+                        ]">
                         <span v-if="row.data.penalty_amount! > 0">✕ Remove</span>
                         <span v-else class="inline-flex items-center gap-1">
                           <Plus class="w-3 h-3" />

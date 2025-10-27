@@ -89,6 +89,16 @@ class CoopProgramChecklistController extends Controller
         } else {
             // Non-DOCX files saved as-is
             $pdfBinary = file_get_contents($file->getRealPath());
+
+            // Ensure proper extension and mime for PDFs
+            if (str_contains($mime, 'pdf')) {
+                $mime = 'application/pdf';
+
+                // Add .pdf extension if missing
+                if (! str_ends_with(strtolower($fileName), '.pdf')) {
+                    $fileName .= '.pdf';
+                }
+            }
         }
 
         // Save or update in DB

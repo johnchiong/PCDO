@@ -52,6 +52,10 @@ function deleteFile(file: any) {
     onSuccess: () => closeFileModal(),
   })
 }
+
+function downloadPdf() {
+  window.location.href = `/cooperatives/${props.cooperative.id}/members/${props.member.id}/biodata/pdf`
+}
 </script>
 
 <template>
@@ -74,8 +78,8 @@ function deleteFile(file: any) {
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                 <SquarePen class="w-4 h-4" /> Edit
               </button>
-              <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/biodata/pdf`" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-                bg-rose-600 text-white hover:bg-rose-700dark:bg-rose-500 dark:hover:bg-rose-60">
+              <a href="#" @click.prevent="downloadPdf" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
+              bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600">
                 <FileDown class="w-4 h-4" />
                 Download Bio-Data
               </a>
