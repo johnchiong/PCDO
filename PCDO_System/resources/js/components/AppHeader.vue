@@ -28,7 +28,7 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from '@/components/ui/tooltip';
-import UserMenuContent from '@/components/UserMenuContent.vue';
+import UserMenuContent from '@/components/AdminMenuContent.vue';
 import { getInitials } from '@/composables/useInitials';
 import { toUrl, urlIsActive } from '@/lib/utils';
 import type { BreadcrumbItem, NavItem } from '@/types';

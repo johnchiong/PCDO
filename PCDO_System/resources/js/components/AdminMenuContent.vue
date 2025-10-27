@@ -10,7 +10,6 @@ import { logout } from '@/routes';
 import type { User } from '@/types';
 import { Link, router } from '@inertiajs/vue3';
 import { LogOut, Settings } from 'lucide-vue-next';
-import { edit } from '@/routes/profile';
 
 interface Props {
     user: User;
@@ -32,7 +31,7 @@ defineProps<Props>();
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="block w-full" :href="edit()" prefetch as="button">
+            <Link class="block w-full" :href="'/admin/settings'" prefetch as="button">
                 <Settings class="mr-2 h-4 w-4" />
                 Settings
             </Link>

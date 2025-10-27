@@ -127,7 +127,7 @@ function goToNotification(id: number) {
                 </div>
 
                 <!-- Notifications Card -->
-                <div class="col-span-4 md:col-span-1 row-span-2 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                <div class="col-span-4 md:col-span-1 row-span-2 order-last md:order-none bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">
                             Recent Notifications

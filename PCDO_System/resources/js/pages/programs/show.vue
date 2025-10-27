@@ -39,131 +39,131 @@ const breadcrumbs: BreadcrumbItem[] = [
 </script>
 
 <template>
-
     <Head :title="program.name" />
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
             <div class="px-4 md:px-4 pt-5">
-                <div class=" p-5 pb-2">
+                <div class="p-5 pb-2">
+                    <div class="relative bg-gray-100 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m mb-6">
+                        <div :class="`absolute top-0 left-0 w-full h-2 rounded-t-xl bg-gradient-to-r ${programGradients[program.id] || 'from-blue-500 to-indigo-500'}`"></div>
 
-                    <!-- Program Header -->
-                    <div
-                        class="relative bg-gray-100 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m mb-6">
+                        <div class="relative px-6 py-5">
+                            <div class="flex items-center justify-between">
+                                <div class="w-full">
+                                    <div class="flex items-center justify-between sm:justify-start gap-3">
+                                        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                            <Pin class="w-8 h-8 text-red-600 dark:text-red-400" />
+                                            {{ program.name }}
+                                        </h1>
 
-                        <!-- Gradient Top Bar -->
-                        <div
-                            :class="`absolute top-0 left-0 w-full h-2 rounded-t-xl bg-gradient-to-r ${programGradients[program.id] || 'from-blue-500 to-indigo-500'}`">
-                        </div>
+                                        <div class="sm:hidden">
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger asChild>
+                                                    <button class="inline-flex items-center justify-between gap-1.5 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm font-medium transition">
+                                                        <Plus class="w-4 h-4" />
+                                                        <span>Add</span>
+                                                        <ChevronDown class="w-4 h-4" />
+                                                    </button>
+                                                </DropdownMenuTrigger>
 
-                        <!-- Header Content -->
-                        <div class="relative px-6 py-5 flex items-center justify-between">
-                            <!-- Left side: title & description -->
-                            <div>
-                                <h1
-                                    class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
-                                    <Pin class="w-8 h-8 text-red-600 dark:text-red-400" />
-                                    {{ program.name }}
-                                </h1>
-                                <p
-                                    class="text-gray-700 dark:text-gray-400 text-lg md:text-m font-medium leading-relaxed max-w-2xl">
-                                    <em>{{ programDescriptions[program.name] }}</em>
-                                </p>
-                            </div>
+                                                <DropdownMenuContent side="bottom" align="end" class="w-52 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                                    <DropdownMenuItem asChild>
+                                                        <Link :href="`/programs/${program.id}/cooperatives/create`" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                                            <Building2 class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                                            Add Cooperative
+                                                        </Link>
+                                                    </DropdownMenuItem>
 
-                            <!-- Right side: Add Dropdown Button -->
-                            <div>
-                                <DropdownMenu>
-                                    <!-- Trigger Button -->
-                                    <DropdownMenuTrigger asChild>
-                                        <button
-                                            class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm font-medium transition w-33">
-                                            <span class="flex items-center gap-2">
-                                                <Plus class="w-4 h-4" /> Add
-                                            </span>
-                                            <ChevronDown class="w-4 h-4" />
-                                        </button>
-                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuItem asChild>
+                                                        <Link :href="`/programs/${program.id}/progress/create`" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                                            <FileText class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                                            Add Progress Report
+                                                        </Link>
+                                                    </DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </div>
+                                    </div>
 
-                                    <!-- Dropdown Content -->
-                                    <DropdownMenuContent side="bottom" align="end"
-                                        class="w-52 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                    <p class="text-gray-700 dark:text-gray-400 text-lg md:text-m font-medium leading-relaxed max-w-2xl mt-3">
+                                        <em>{{ programDescriptions[program.name] }}</em>
+                                    </p>
+                                </div>
 
-                                        <!-- Add Cooperative -->
-                                        <DropdownMenuItem asChild>
-                                            <Link :href="`/programs/${program.id}/cooperatives/create`"
-                                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                            <Building2 class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                            Add Cooperative
-                                            </Link>
-                                        </DropdownMenuItem>
+                                <div class="hidden sm:block">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <button class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-xl bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm font-medium transition w-33">
+                                                <span class="flex items-center gap-2">
+                                                    <Plus class="w-4 h-4" /> Add
+                                                </span>
+                                                <ChevronDown class="w-4 h-4" />
+                                            </button>
+                                        </DropdownMenuTrigger>
 
-                                        <!-- Add Progress Report -->
-                                        <DropdownMenuItem asChild>
-                                            <Link :href="`/programs/${program.id}/progress/create`"
-                                                class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                            <FileText class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
-                                            Add Progress Report
-                                            </Link>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                        <DropdownMenuContent side="bottom" align="end" class="w-52 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                            <DropdownMenuItem asChild>
+                                                <Link :href="`/programs/${program.id}/cooperatives/create`" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                                    <Building2 class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                                    Add Cooperative
+                                                </Link>
+                                            </DropdownMenuItem>
+
+                                            <DropdownMenuItem asChild>
+                                                <Link :href="`/programs/${program.id}/progress/create`" class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                                    <FileText class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                                    Add Progress Report
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Cooperatives List -->
-                <div
-                    class="mr-6 ml-6 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md border-2 border-gray-200 dark:border-gray-700 p-6">
+                <div class="mr-6 ml-6 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md border-2 border-gray-200 dark:border-gray-700 p-6">
                     <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6">
                         Cooperatives under this Program
                     </h2>
 
                     <div class="hidden md:block overflow-x-auto rounded-2xl">
                         <Table class="min-w-full border-separate border-spacing-0 text-sm">
-                            <TableHeader
-                                class="bg-gray-200/90 dark:bg-gray-700/50 border-b border-gray-500 dark:border-gray-500 text-gray-700 dark:text-gray-400">
+                            <TableHeader class="bg-gray-200/90 dark:bg-gray-700/50 border-b border-gray-500 dark:border-gray-500 text-gray-700 dark:text-gray-400">
                                 <TableRow>
-                                    <TableHead class="py-3 pl-6"> # </TableHead>
-                                    <TableHead class="pl-30 py-3"> Cooperative Name </TableHead>
-                                    <TableHead class="pl-30 py-3"> Status </TableHead>
-                                    <TableHead class="pl-30 py-3"> Actions </TableHead>
+                                    <TableHead class="py-3 pl-6">#</TableHead>
+                                    <TableHead class="pl-30 py-3">Cooperative Name</TableHead>
+                                    <TableHead class="pl-30 py-3">Status</TableHead>
+                                    <TableHead class="pl-30 py-3">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
 
                             <TableBody class="bg-white dark:bg-gray-900/50">
-                                <TableRow v-for="(coop, index) in cooperatives" :key="coop.id"
-                                    class="hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors bg-gray-200/ dark:bg-gray-800">
-                                    <TableCell class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ index + 1 }}
-                                    </TableCell>
-                                    <TableCell class="pl-30 py-3 font-medium text-gray-900 dark:text-gray-100">{{
-                                        coop.name
-                                        }}</TableCell>
+                                <TableRow v-for="(coop, index) in cooperatives" :key="coop.id" class="hover:bg-gray-300 dark:hover:bg-gray-700 transition-colors bg-gray-200/ dark:bg-gray-800">
+                                    <TableCell class="px-6 py-4 text-gray-700 dark:text-gray-300">{{ index + 1 }}</TableCell>
+                                    <TableCell class="pl-30 py-3 font-medium text-gray-900 dark:text-gray-100">{{ coop.name }}</TableCell>
                                     <TableCell class="pl-30 py-3">
-                                        <span v-if="coop.program_status === 'Finished'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
-                                        bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                            <CheckCircle class="w-3 h-3" /> <!-- ✅ finished icon -->
+                                        <span v-if="coop.program_status === 'Finished'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                            <CheckCircle class="w-3 h-3" />
                                             {{ coop.program_status }}
                                         </span>
 
-                                        <span v-else-if="coop.program_status === 'Ongoing'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full
-                                        bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
-                                            <CircleDashed class="w-3 h-3 animate-spin" /> <!-- ⭕ ongoing icon -->
+                                        <span v-else-if="coop.program_status === 'Ongoing'" class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                                            <CircleDashed class="w-3 h-3 animate-spin" />
                                             {{ coop.program_status }}
                                         </span>
                                     </TableCell>
                                     <TableCell class="pl-30 py-3">
-                                        <Link :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
-                                            class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md transition">
-                                        <Upload class="w-4 h-4" />
-                                        <span>Upload Checklist</span>
+                                        <Link :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-md transition">
+                                            <Upload class="w-4 h-4" />
+                                            <span>Upload Checklist</span>
                                         </Link>
                                     </TableCell>
                                 </TableRow>
 
                                 <TableRow v-if="cooperatives.length === 0">
-                                    <TableCell colspan="4"
-                                        class="px-6 py-6 text-center text-gray-500 dark:text-gray-400">
+                                    <TableCell colspan="4" class="px-6 py-6 text-center text-gray-500 dark:text-gray-400">
                                         🚫 No cooperatives enrolled in this program yet.
                                     </TableCell>
                                 </TableRow>

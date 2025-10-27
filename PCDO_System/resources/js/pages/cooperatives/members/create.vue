@@ -5,6 +5,7 @@ import { useForm } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
 import SelectSearch from '@/components/SelectSearch.vue';
 import { toast } from "vue-sonner"
+import { useDrafts } from '@/composables/useDrafts'
 
 const props = defineProps<{
     breadcrumbs?: BreadcrumbItem[]
@@ -116,6 +117,8 @@ const positions = [
     { id: 'Member', name: 'Member' },
 ]
 
+const { drafts, useDraft, deleteDraft, clearDrafts } = useDrafts(form, 'members')
+
 const searchPosition = ref('')
 const dropDownPositionOpen = ref(false)
 
@@ -200,7 +203,37 @@ function handleSubmit() {
                     <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3 pb-6">
                         <Plus class="w-10 h-10 text-blue-600 dark:text-blue-400 flex-shrink-0" /> Add Cooperative Member
                     </h1>
+                    <!-- Drafts List -->
+                    <div v-if="drafts.length" class="mt-10 border-t border-gray-200 dark:border-gray-700 pt-2 pb-1">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100">
+                                Saved Drafts
+                            </h2>
+                            <button @click="clearDrafts"
+                                class="px-3 py-1.5 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                                Clear All
+                            </button>
+                        </div>
 
+                        <ul class="space-y-2">
+                            <li v-for="draft in drafts" :key="draft.id"
+                                class="flex justify-between items-center bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-750 transition">
+
+                                <button @click="useDraft(draft)"
+                                    class="text-left flex-1 text-indigo-600 dark:text-indigo-400 hover:underline">
+                                    <p class="font-medium">{{ draft.name }}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                        Saved on {{ draft.savedAt }}
+                                    </p>
+                                </button>
+
+                                <button @click="deleteDraft(draft.id)"
+                                    class="ml-3 px-2 py-1 text-red-500 hover:text-red-700 rounded-md transition">
+                                    ✕
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                     <form @submit.prevent="handleSubmit" class="space-y-6">
                         <div>
                             <label for="position" class="block mb-2">Position</label>
