@@ -9,6 +9,7 @@ use App\Models\Resolved;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Response;
 use setasign\Fpdi\Fpdi;
+use Carbon\Carbon;
 
 class DocumentationController extends Controller
 {
@@ -197,6 +198,14 @@ class DocumentationController extends Controller
         // Fetch the latest resolved record
         $resolved = Resolved::where('coop_program_id', $coopId)->latest()->first();
 
+        if (! $resolved) {
+            abort(404, 'No resolved record found for this cooperative.');
+        }
+
+        if (empty($resolved->file_content)) {
+            abort(404, 'No file attached for this resolved record.');
+        }
+
         $finfo = finfo_open();
         $mimeType = finfo_buffer($finfo, $resolved->file_content, FILEINFO_MIME_TYPE);
         finfo_close($finfo);
@@ -317,20 +326,145 @@ class DocumentationController extends Controller
 
     public function memberFile($coopProgramId)
     {
-        $coopProgram = CoopProgram::with('coopMemberFiles')->findOrFail($coopProgramId);
+        $coopProgram = CoopProgram::with(['cooperative.members', 'coopMemberFiles'])->findOrFail($coopProgramId);
 
         $memberFiles = $coopProgram->cooperative?->members->flatMap(fn ($m) => $m->files) ?? collect();
+        $members = $coopProgram->cooperative?->members ?? collect();
 
-        if ($memberFiles->isEmpty()) {
-            abort(404, 'No member files found for this cooperative.');
+        if ($memberFiles->isEmpty() && $members->isEmpty()) {
+            abort(404, 'No member files or biodata found for this cooperative.');
         }
 
         // Create FPDI instance
-        $pdf = new Fpdi;
+        $pdf = new \setasign\Fpdi\Fpdi;
 
+        // === 1️⃣ Add Biodata for Each Member ===
+        foreach ($members as $member) {
+            $data = [
+                // === PERSONAL INFO ===
+                'position_desired' => $member->position,
+                'active_year' => $member->active_year,
+                'given_name' => $member->first_name,
+                'surname' => $member->last_name,
+                'middle_initial' => $member->middle_name ? substr($member->middle_name, 0, 1).'.' : '',
+                'date' => now()->format('F d, Y'),
+
+                'present_address' => trim(($member->street ? $member->street.', ' : '').($member->city ?? '')),
+                'present_tel' => $member->telephone,
+                'permanent_address' => $member->parent_address,
+                'permanent_tel' => $member->contact,
+
+                'citizenship' => $member->citizenship,
+                'birth_date' => \Carbon\Carbon::parse($member->birthdate)->format('F d, Y'),
+                'birth_place' => $member->birthplace,
+                'religion' => $member->religion,
+                'age' => $member->age,
+                'sex' => $member->sex,
+                'civil_status' => $member->marital_status,
+                'height' => $member->height ? $member->height.' cm' : '',
+                'weight' => $member->weight ? $member->weight.' kg' : '',
+
+                'spouse' => $member->spouse_name,
+                'spouse_occupation' => $member->spouse_occupation,
+                'spouse_age' => $member->spouse_age,
+                'children' => collect([
+                    $member->dependent1_name ? $member->dependent1_name.' ('.$member->dependent1_age.')' : null,
+                    $member->dependent2_name ? $member->dependent2_name.' ('.$member->dependent2_age.')' : null,
+                ])->filter()->join(', '),
+
+                'father' => $member->father_name,
+                'father_occupation' => $member->father_occupation,
+                'father_age' => $member->father_age,
+                'father_address' => $member->parent_address,
+
+                'mother' => $member->mother_name,
+                'mother_occupation' => $member->mother_occupation,
+                'mother_age' => $member->mother_age,
+                'mother_address' => $member->parent_address,
+
+                'emergency_person' => $member->emergency_name,
+                'emergency_tel' => $member->emergency_contact,
+                'emergency_address' => $member->parent_address,
+
+                // === EDUCATION ===
+                'school_elem' => $member->elementary_name,
+                'degree_elem' => $member->elementary_degree,
+                'grad_elem' => $member->elementary_end,
+
+                'school_hs' => $member->hs_name,
+                'degree_hs' => $member->hs_degree,
+                'grad_hs' => $member->hs_end,
+
+                'school_college' => $member->college_name,
+                'degree_college' => $member->college_degree,
+                'grad_college' => $member->college_end,
+
+                'school_voc' => $member->course_name,
+                'degree_voc' => $member->course_degree,
+                'grad_voc' => $member->course_end,
+
+                'school_others' => $member->others_name,
+                'degree_others' => $member->others_degree,
+                'grad_others' => $member->others_end,
+
+                'skills' => $member->course_degree,
+
+                // === EMPLOYMENT RECORDS ===
+                'job_company_1' => $member->company1_name,
+                'job_occupation_1' => $member->company1_position,
+                'job_period_1' => $member->company1_start && $member->company1_end
+                                    ? Carbon::parse($member->company1_start)->format('M Y').' - '.Carbon::parse($member->company1_end)->format('M Y')
+                                    : '',
+                'job_earnings_1' => $member->company1_rfl,
+
+                'job_company_2' => $member->company2_name,
+                'job_occupation_2' => $member->company2_position,
+                'job_period_2' => $member->company2_start && $member->company2_end
+                                    ? Carbon::parse($member->company2_start)->format('M Y').' - '.Carbon::parse($member->company2_end)->format('M Y')
+                                    : '',
+                'job_earnings_2' => $member->company2_rfl,
+
+                'job_company_3' => $member->company3_name,
+                'job_occupation_3' => $member->company3_position,
+                'job_period_3' => $member->company3_start && $member->company3_end
+                                    ? Carbon::parse($member->company3_start)->format('M Y').' - '.Carbon::parse($member->company3_end)->format('M Y')
+                                    : '',
+                'job_earnings_3' => $member->company3_rfl,
+
+                // === CHARACTER REFERENCES ===
+                'ref_name_1' => $member->ref1_name,
+                'ref_occupation_1' => $member->ref1_position,
+                'ref_address_1' => $member->ref1_company,
+                'ref_tel_1' => $member->ref1_contact,
+
+                'ref_name_2' => $member->ref2_name,
+                'ref_occupation_2' => $member->ref2_position,
+                'ref_address_2' => $member->ref2_company,
+                'ref_tel_2' => $member->ref2_contact,
+            ];
+
+            // Generate temporary PDF from biodata view
+            $biodataPdf = Pdf::loadView('bio_data', $data)
+                ->setPaper('legal', 'portrait')
+                ->output();
+
+            $tempPath = storage_path("app/temp_biodata_{$member->id}.pdf");
+            file_put_contents($tempPath, $biodataPdf);
+
+            // Merge biodata into main PDF
+            $pages = $pdf->setSourceFile($tempPath);
+            for ($p = 1; $p <= $pages; $p++) {
+                $tpl = $pdf->importPage($p);
+                $pdf->AddPage();
+                $pdf->useTemplate($tpl);
+            }
+
+            unlink($tempPath);
+        }
+
+        // === 2️⃣ Merge Existing Uploaded Files ===
         foreach ($memberFiles as $file) {
             $filePath = storage_path('app/private/'.$file->file_path);
-
             if (! file_exists($filePath)) {
                 continue;
             }
@@ -338,7 +472,6 @@ class DocumentationController extends Controller
             $mime = mime_content_type($filePath);
 
             if (str_contains($mime, 'pdf')) {
-                // Directly merge PDF
                 $pages = $pdf->setSourceFile($filePath);
                 for ($p = 1; $p <= $pages; $p++) {
                     $tpl = $pdf->importPage($p);
@@ -346,17 +479,14 @@ class DocumentationController extends Controller
                     $pdf->useTemplate($tpl);
                 }
             } elseif (str_contains($mime, 'image')) {
-                // Convert image to PDF page
                 $pdf->AddPage();
                 $pdf->Image($filePath, 15, 25, 180, 230);
-                $pdf->SetFont('Arial', '', 10);
-                $pdf->SetY(-25);
             }
         }
 
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="Member_Files.pdf"');
+            ->header('Content-Disposition', 'inline; filename=\"Member_Files_with_Biodata.pdf\"');
     }
 
     public function delinquentReport($coopProgramId)

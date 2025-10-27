@@ -29,24 +29,124 @@ export interface Details {
 
 export interface Holder { id: number; name: string; }
 
-export type SingleChar = '' | `${string}` & { length: 1 };
-
 export interface FileType {
   id: number;
   file_path: string;
   file_name: string;
   file_type: string;
 }
+
 export interface Member {
   id: number;
   coop_id: string;
-  position: string;
-  active_year: number;
+  position: 'Chairman' | 'Treasurer' | 'Manager' | 'Member';
+  contact: string;
+  email?: string | null;
   first_name: string;
-  middle_initial: SingleChar;
+  middle_name: string;
   last_name: string;
-  suffix?: string;
+  marital_status: string;
+  street?: string | null;
+  city?: string | null;
+  telephone?: string | null;
+  birth_date: string;
+  age: number;
+  sex: 'Male' | 'Female';
+  citizenship: 'Filipino' | 'Others';
+  birthplace: string;
+  height?: number | null;
+  weight?: number | null;
+  religion: string;
+  spouse_name?: string | null;
+  spouse_occupation?: string | null;
+  spouse_age?: number | null;
+  father_name?: string | null;
+  father_occupation?: string | null;
+  father_age?: number | null;
+  mother_name?: string | null;
+  mother_occupation?: string | null;
+  mother_age?: number | null;
+  parent_address?: string | null;
+  emergency_name: string;
+  emergency_contact: string;
+
+  dependent1_name?: string | null;
+  dependent1_relationship?: string | null;
+  dependent1_birthdate?: string | null;
+  dependent1_age?: number | null;
+
+  dependent2_name?: string | null;
+  dependent2_relationship?: string | null;
+  dependent2_birthdate?: string | null;
+  dependent2_age?: number | null;
+
+  elementary_start?: number | null;
+  elementary_end?: number | null;
+  elementary_name?: string | null;
+  elementary_degree?: string | null;
+
+  hs_start?: number | null;
+  hs_end?: number | null;
+  hs_name?: string | null;
+  hs_degree?: string | null;
+
+  college_start?: number | null;
+  college_end?: number | null;
+  college_name?: string | null;
+  college_degree?: string | null;
+
+  course_start?: number | null;
+  course_end?: number | null;
+  course_name?: string | null;
+  course_degree?: string | null;
+
+  others_start?: number | null;
+  others_end?: number | null;
+  others_name?: string | null;
+  others_degree?: string | null;
+
+  company1_start?: string | null;
+  company1_end?: string | null;
+  company1_name?: string | null;
+  company1_position?: string | null;
+  company1_rfl?: string | null;
+
+  company2_start?: string | null;
+  company2_end?: string | null;
+  company2_name?: string | null;
+  company2_position?: string | null;
+  company2_rfl?: string | null;
+
+  company3_start?: string | null;
+  company3_end?: string | null;
+  company3_name?: string | null;
+  company3_position?: string | null;
+  company3_rfl?: string | null;
+
+  company4_start?: string | null;
+  company4_end?: string | null;
+  company4_name?: string | null;
+  company4_position?: string | null;
+  company4_rfl?: string | null;
+
+  company5_start?: string | null;
+  company5_end?: string | null;
+  company5_name?: string | null;
+  company5_position?: string | null;
+  company5_rfl?: string | null;
+
+  ref1_name?: string | null;
+  ref1_company?: string | null;
+  ref1_position?: string | null;
+  ref1_contact?: string | null;
+
+  ref2_name?: string | null;
+  ref2_company?: string | null;
+  ref2_position?: string | null;
+  ref2_contact?: string | null;
+
   is_representative: boolean;
+  active_year: number;
   files: FileType[];
 }
 

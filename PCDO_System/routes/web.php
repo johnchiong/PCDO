@@ -32,7 +32,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('cooperatives/{cooperative}/members/{member}/files/{fileId}/download', [CoopMemberController::class, 'downloadFile'])->name('cooperatives.members.files.download');
     Route::delete('cooperatives/{cooperative}/members/{member}/files/{fileId}', [CoopMemberController::class, 'deleteFile'])->name('cooperatives.members.files.delete');
     Route::get('cooperatives/{cooperative}', [CooperativesController::class, 'show'])->name('cooperatives.show');
-
+    Route::get('/cooperatives/{cooperative}/members/{member}/biodata/pdf',[CoopMemberController::class, 'downloadBiodataPdf'])->where(['cooperative' => '.*', 'member' => '.*'])->name('cooperatives.members.biodata.pdf');
     // Program Routes
     Route::resource('programs', ProgramController::class);
 
@@ -72,9 +72,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/schedules/{schedule}/send-overdue-email', [AmortizationScheduleController::class, 'sendOverdueEmail'])->name('schedules.sendOverdueEmail');
 
     // Amortization Incomplete
-    Route::get('/amortization/{loan}/download', [AmortizationScheduleController::class, 'downloadPdf'])->name('amortization.download');
     Route::post('/amortization/{loan}/incomplete', [AmortizationScheduleController::class, 'markIncomplete'])->name('loan.incomplete');
     Route::post('/amortization/{loan}/resolve', [AmortizationScheduleController::class, 'markResolved'])->name('loan.resolve');
+    Route::get('/amortization/{id}/download', [AmortizationScheduleController::class, 'downloadAmortizationPdf'])->name('amortization.download');
 
     // Notification Routes
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

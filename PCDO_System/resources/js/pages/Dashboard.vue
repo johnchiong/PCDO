@@ -157,7 +157,7 @@ function goToNotification(id: number) {
                                 Program Statistics
                             </h2>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                Overview of active cooperative programs.
+                                Overview of all enrolled cooperative programs.
                             </p>
                         </div>
 
