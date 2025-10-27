@@ -117,6 +117,7 @@ class AmortizationScheduleController extends Controller
     // Add or remove penalty from a schedule
     public function penalty(Request $request, AmortizationSchedules $schedule)
     {
+
         // Automatically add 1% penalty if overdue and unpaid
         if ($request->has('add')) {
             $today = now();
