@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\SyncLogger;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class CoopProgram extends Model
 {
     /** @use HasFactory<\Database\Factories\CoopProgramFactory> */
-    use HasFactory;
+    use HasFactory, SyncLogger;
 
     protected $fillable = [
         'coop_id',

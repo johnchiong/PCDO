@@ -64,14 +64,14 @@ function goToMemberPage(id: string) {
     <div class="max-w-7x7 p-6">
       <div class="bg-gray-50 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-8 gap-4">
           <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
             <Building2 class="w-10 h-10 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
             Cooperative Details
           </h1>
 
           <!-- Right-side Actions -->
-          <div class="flex items-center gap-3 relative">
+          <div class="flex flex-wrap items-center gap-3 md:justify-end w-full md:w-auto">
             <!-- ID Badge -->
             <span class="inline-flex gap-2 px-4 py-2 rounded-full text-sm font-medium
               bg-indigo-200/40 text-lime-700 dark:bg-lime-800 dark:text-fuchsia-200">

@@ -1,26 +1,56 @@
 <?php
 
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AmortizationScheduleController;
 use App\Http\Controllers\CooperativesController;
 use App\Http\Controllers\CoopMemberController;
-// use App\Http\Controllers\CoopHistoryController;
 use App\Http\Controllers\CoopProgramChecklistController;
-use App\Http\Controllers\CoopProgramController;
 use App\Http\Controllers\CoopProgramProgressController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProgramController;
-use App\Http\Controllers\ResolvedController;
-use App\Http\Controllers\SyncController;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Spatie\Permission\Middleware\RoleMiddleware;
+
+app('router')->aliasMiddleware('role', RoleMiddleware::class);
 
 Route::get('/', function () {
-    return redirect()->route('dashboard');
+    $user = Auth::user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    if (in_array($user->role, ['superadmin', 'admin'])) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    if ($user->role === 'officer') {
+        return redirect()->route('dashboard');
+    }
+
+    return redirect()->route('login');
 })->name('home');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+Route::get('/ping', fn () => response()->json(['pong' => true]));
+
+Route::middleware(['auth', 'role:admin|superadmin'])->group(function () {
+    Route::get('/admin', [AdminController::class, 'index'])->name('admin.dashboard');
+    Route::post('/admin/users', [AdminController::class, 'storeUser'])->name('admin.storeUser');
+    Route::delete('/admin/users/{user}', [AdminController::class, 'destroyUser'])->name('admin.users.destroy');
+});
+
+Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
+    Route::get('/dashboard', function () {
+        $user = Auth::user();
+        if (in_array($user->role, ['superadmin', 'admin'])) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        return app(App\Http\Controllers\DashboardController::class)->index();
+    })->name('dashboard');
 
     // Cooperatives Routes
     Route::resource('cooperatives', CooperativesController::class);
@@ -45,7 +75,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/programs/{program}/progress', [CoopProgramProgressController::class, 'store'])->name('programs.progress.store');
     Route::get('/progress/{report}', [CoopProgramProgressController::class, 'show'])->name('programs.progress.show');
     Route::get('/progress/{report}/download', [CoopProgramProgressController::class, 'download'])->name('programs.progress.download');
-    
+
     // Nested routes for checklists under a specific program and cooperative
     Route::prefix('programs/{program}/cooperatives/{cooperative}')->group(function () {
         Route::get('checklist', [CoopProgramChecklistController::class, 'show'])->name('programs.cooperatives.checklist.show');
@@ -101,7 +131,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Route::resource('coopPrograms/{cooperative}/checklists', CoopProgramChecklistController::class);
 
     // Custom Command Routes
-    Route::get('/sync', [SyncController::class, 'sync'])->name('sync');
+    Route::get('/sync', function () {
+        Artisan::call('sync:database');
+
+        return response()->json(['status' => 'synced']);
+    });
 });
 
 require __DIR__.'/settings.php';
