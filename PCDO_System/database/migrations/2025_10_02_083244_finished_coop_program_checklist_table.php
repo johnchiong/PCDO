@@ -35,7 +35,7 @@ return new class extends Migration
 
         // Convert to LONGBLOB in mysql
         if (Schema::getConnection()->getDriverName() === 'mysql') {
-            DB::statement('ALTER TABLE coop_program_checklists MODIFY file_content LONGBLOB NULL');
+            DB::statement('ALTER TABLE finished_coop_program_checklist MODIFY file_content LONGBLOB NULL');
         }
     }
 

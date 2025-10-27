@@ -8,7 +8,15 @@ export function useDrafts(form: any, type: string) {
 
     const saveDraftNow = () => {
         const data = form.data()
-        if ((!(data.id + '').trim()) && (!(data.name + '').trim())) return
+
+        let draftName = ''
+        if (type === 'members') {
+            draftName = [data.first_name, data.middle_name, data.last_name].filter(Boolean).join(' ').trim()
+        } else if (type === 'cooperatives') {
+            draftName = (data.name || '').trim()
+        }
+
+        if (!(data.id || draftName)) return
 
         const allDrafts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
         const draftId = data.id || form.id || form.tempId || Date.now().toString()
@@ -21,7 +29,7 @@ export function useDrafts(form: any, type: string) {
 
         if (JSON.stringify(draft.data) === JSON.stringify(data)) return
         draft.data = { ...data }
-        draft.name = data.name || 'Untitled'
+        draft.name = draftName || 'Untitled'
         draft.savedAt = new Date().toLocaleString()
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(allDrafts))
