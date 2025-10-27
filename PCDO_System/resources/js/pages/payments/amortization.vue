@@ -134,8 +134,17 @@ function getStatus(schedule: Schedule) {
   }
 
   const dueDate = schedule.due_date ? new Date(schedule.due_date) : new Date()
+  const today = new Date()
+
+  const isSameDay =
+    dueDate.getFullYear() === today.getFullYear() &&
+    dueDate.getMonth() === today.getMonth() &&
+    dueDate.getDate() === today.getDate()
+
+  if (isSameDay) return 'Due Today'
   return new Date() > dueDate ? 'Overdue' : 'Pending'
 }
+
 
 // Actions
 function markPaid(scheduleId: number, periodLabel: string) {
