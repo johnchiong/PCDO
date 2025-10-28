@@ -336,9 +336,9 @@ class DocumentationController extends Controller
         }
 
         // Create FPDI instance
-        $pdf = new \setasign\Fpdi\Fpdi;
+        $pdf = new Fpdi;
 
-        // === 1️⃣ Add Biodata for Each Member ===
+        // ===  Add Biodata for Each Member ===
         foreach ($members as $member) {
             $data = [
                 // === PERSONAL INFO ===
@@ -355,7 +355,7 @@ class DocumentationController extends Controller
                 'permanent_tel' => $member->contact,
 
                 'citizenship' => $member->citizenship,
-                'birth_date' => \Carbon\Carbon::parse($member->birthdate)->format('F d, Y'),
+                'birth_date' => Carbon::parse($member->birthdate)->format('F d, Y'),
                 'birth_place' => $member->birthplace,
                 'religion' => $member->religion,
                 'age' => $member->age,
@@ -462,7 +462,7 @@ class DocumentationController extends Controller
             unlink($tempPath);
         }
 
-        // === 2️⃣ Merge Existing Uploaded Files ===
+        // === Merge Existing Uploaded Files ===
         foreach ($memberFiles as $file) {
             $filePath = storage_path('app/private/'.$file->file_path);
             if (! file_exists($filePath)) {

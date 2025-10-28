@@ -18,7 +18,6 @@ interface Schedule {
   date_paid?: string | null
   balance?: number
   amount_paid?: number
-  penalty_removed?: boolean 
 }
 
 interface CoopProgram {
@@ -48,6 +47,16 @@ onMounted(() => {
   if (params.get('flash') === 'amortization_success') {
     toast.success('Amortization generated successfully!')
   }
+})
+
+onMounted(() => {
+  const today = new Date()
+  props.coopProgram.schedules.forEach((s) => {
+  const due = new Date(s.due_date)
+  if (!s.is_paid && due < today && (!s.penalty_amount || s.penalty_amount === 0)) {
+    router.post(`/schedules/${s.id}/penalty`, { add: true }, { preserveScroll: true })
+  }
+})
 })
 
 // Forms
@@ -208,6 +217,8 @@ function togglePenalty(scheduleId: number, hasPenalty: boolean, row: Schedule) {
       preserveScroll: true,
       onSuccess: () => {
         toast.success(hasPenalty ? 'Penalty removed.' : 'Penalty added.')
+        // Refresh the page so the new penalty_amount is loaded
+        router.reload()
       },
       onError: () => {
         toast.error('Failed to toggle penalty. Please try again.')
