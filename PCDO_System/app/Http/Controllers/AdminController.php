@@ -15,6 +15,8 @@ class AdminController extends Controller
     public function index(Request $request)
     {
         $search = $request->query('search', '');
+        $logsPage = $request->query('logs_page', 1);
+        $usersPage = $request->query('users_page', 1);
 
         $users = User::with('roles:id,name')
             ->select('id', 'name', 'email', 'created_at')
@@ -25,7 +27,7 @@ class AdminController extends Controller
                 });
             })
             ->orderBy('created_at', 'desc')
-            ->paginate(20)
+            ->paginate(20, ['*'], 'users_page', $usersPage)
             ->withQueryString()
             ->through(function ($user) {
                 return [
@@ -42,7 +44,8 @@ class AdminController extends Controller
         $recentLogs = DB::table('sync_logs')
             ->select('id', 'table_name', 'user_id', 'operation', 'record_id', 'changes', 'executed_at as created_at')
             ->orderBy('executed_at', 'desc')
-            ->paginate(10);
+            ->paginate(10, ['*'], 'logs_page', $logsPage)
+            ->withQueryString();
 
         return Inertia::render('admin/Dashboard', [
             'users' => $users,

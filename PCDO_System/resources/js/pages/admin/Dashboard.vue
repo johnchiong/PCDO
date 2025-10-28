@@ -26,6 +26,8 @@ const props = defineProps<{
             created_at: string
             changes?: string | null
         }>
+        next_page_url?: string | null
+        prev_page_url?: string | null
     }
     roles?: Array<{ id: number; name: string }>
     filters?: { search?: string }
@@ -76,8 +78,8 @@ const password = ref('')
 const creating = ref(false)
 const errors = ref<Record<string, string>>({})
 
-function refreshPage() {
-    router.visit('/admin', {
+function refreshPage(url?: string) {
+    router.visit(url || '/admin', {
         method: 'get',
         data: { search: search.value },
         preserveScroll: true,
@@ -139,13 +141,33 @@ function formatChanges(changes?: string | null) {
     if (!changes) return '-'
     try {
         const data = JSON.parse(changes)
-        return Object.entries(data)
-            .map(([key, value]) => `${key}: ${JSON.stringify(value)}`)
-            .join(', ')
+        if (typeof data === 'object' && data !== null) {
+            const formattedEntries = Object.entries(data).map(([key, value]) => {
+                let displayValue = value
+                if (key === 'file_content' && typeof value === 'string' && value.length > 100) {
+                    displayValue = value.slice(0, 100) + '... [truncated]'
+                }
+                return `${key}: ${JSON.stringify(displayValue)}`
+            })
+            return formattedEntries.join(', ')
+        }
+        return JSON.stringify(data)
     } catch {
-        return changes
+        return changes.length > 500 ? changes.slice(0, 500) + '... [truncated]' : changes
     }
 }
+
+
+function goToLogsPage(url: string) {
+    if (!url) return
+    router.visit(url, {
+        method: 'get',
+        preserveScroll: true,
+        preserveState: true,
+        replace: true,
+    })
+}
+
 </script>
 
 <template>
@@ -155,26 +177,20 @@ function formatChanges(changes?: string | null) {
             <div class="grid gap-4 md:grid-cols-3">
                 <div class="col-span-3 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                     <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-3">Create User</h3>
-
                     <div v-if="roles.length === 0" class="text-sm text-gray-500 dark:text-gray-400">
                         You are not allowed to create users.
                     </div>
-
                     <div v-else class="space-y-3">
                         <input v-model="name" placeholder="Name" type="text" class="w-full rounded-lg p-2 bg-white dark:bg-gray-700 border" />
                         <p v-if="errors.name" class="text-xs text-red-500 mt-1">{{ errors.name }}</p>
-
                         <input v-model="email" placeholder="Email" type="email" class="w-full rounded-lg p-2 bg-white dark:bg-gray-700 border" />
                         <p v-if="errors.email" class="text-xs text-red-500 mt-1">{{ errors.email }}</p>
-
                         <select v-model="role" class="w-full rounded-lg p-2 bg-white dark:bg-gray-700 border">
                             <option v-for="r in roles" :key="r.id" :value="r.name">{{ r.name }}</option>
                         </select>
                         <p v-if="errors.role" class="text-xs text-red-500 mt-1">{{ errors.role }}</p>
-
                         <input v-model="password" placeholder="Password" type="password" class="w-full rounded-lg p-2 bg-white dark:bg-gray-700 border" />
                         <p v-if="errors.password" class="text-xs text-red-500 mt-1">{{ errors.password }}</p>
-
                         <button
                             @click="createUser"
                             class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium bg-blue-600 text-white shadow-md hover:opacity-95"
@@ -264,6 +280,24 @@ function formatChanges(changes?: string | null) {
                         </li>
                         <li v-if="(recentLogs.data ?? []).length === 0" class="py-4 text-center text-gray-500">No logs yet.</li>
                     </ul>
+
+                    <div class="flex justify-between items-center mt-4" v-if="recentLogs.prev_page_url || recentLogs.next_page_url">
+                        <button
+                            v-if="recentLogs.prev_page_url"
+                            @click="goToLogsPage(recentLogs.prev_page_url)"
+                            class="px-3 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:opacity-90"
+                        >
+                            ← Prev
+                        </button>
+                        <div class="flex-1"></div>
+                        <button
+                            v-if="recentLogs.next_page_url"
+                            @click="goToLogsPage(recentLogs.next_page_url)"
+                            class="px-3 py-1 rounded-md bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:opacity-90"
+                        >
+                            Next →
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
