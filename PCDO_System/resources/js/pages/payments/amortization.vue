@@ -51,12 +51,14 @@ onMounted(() => {
 
 onMounted(() => {
   const today = new Date()
+  today.setHours(0, 0, 0, 0)
   props.coopProgram.schedules.forEach((s) => {
-  const due = new Date(s.due_date)
-  if (!s.is_paid && due < today && (!s.penalty_amount || s.penalty_amount === 0)) {
-    router.post(`/schedules/${s.id}/penalty`, { add: true }, { preserveScroll: true })
-  }
-})
+    const due = new Date(s.due_date)
+    due.setHours(0, 0, 0, 0)
+    if (!s.is_paid && due < today && (!s.penalty_amount || s.penalty_amount === 0)) {
+      router.post(`/schedules/${s.id}/penalty`, { add: true }, { preserveScroll: true })
+    }
+  })
 })
 
 // Forms
