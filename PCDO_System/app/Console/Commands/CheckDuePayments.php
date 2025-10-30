@@ -19,7 +19,7 @@ class CheckDuePayments extends Command
         DB::insert("
             INSERT INTO pending_notifications (schedule_id, coop_id, type, created_at)
             SELECT ps.id, cp.coop_id, 'before_due', ?
-            FROM ammortization_schedules ps
+            FROM amortization_schedules ps
             JOIN coop_programs cp ON cp.id = ps.coop_program_id
             WHERE ps.date_paid IS NULL
               AND DATE(ps.due_date) = DATE_ADD(CURDATE(), INTERVAL 3 DAY)
@@ -34,7 +34,7 @@ class CheckDuePayments extends Command
         DB::insert("
             INSERT INTO pending_notifications (schedule_id, coop_id, type, created_at)
             SELECT ps.id, cp.coop_id, 'due_today', ?
-            FROM ammortization_schedules ps
+            FROM amortization_schedules ps
             JOIN coop_programs cp ON cp.id = ps.coop_program_id
             WHERE ps.date_paid IS NULL
               AND DATE(ps.due_date) = CURDATE()
@@ -49,7 +49,7 @@ class CheckDuePayments extends Command
         DB::insert("
             INSERT INTO pending_notifications (schedule_id, coop_id, type, created_at)
             SELECT ps.id, cp.coop_id, 'overdue', ?
-            FROM ammortization_schedules ps
+            FROM amortization_schedules ps
             JOIN coop_programs cp ON cp.id = ps.coop_program_id
             WHERE ps.date_paid IS NULL
               AND DATE(ps.due_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
