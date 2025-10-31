@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Notifications;
+use App\Models\PendingNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
@@ -14,20 +16,32 @@ class CleanupProcessedNotifications extends Command
     public function handle()
     {
         DB::beginTransaction();
-        try {
-            // Step 1: Move processed rows
-            DB::insert('
-                INSERT INTO notifications (schedule_id, coop_id, type, subject, body, created_at, processed)
-                SELECT schedule_id, coop_id, type, subject, body, created_at, processed
-                FROM pending_notifications
-                WHERE processed = 1
-            ');
 
-            // Step 2: Delete processed rows
-            DB::delete('
-                DELETE FROM pending_notifications
-                WHERE processed = 1
-            ');
+        try {
+            // Fetch all processed pending notifications
+            $processed = PendingNotification::where('processed', 1)->get();
+
+            if ($processed->isEmpty()) {
+                $this->info('No processed notifications found.');
+
+                return;
+            }
+
+            foreach ($processed as $pn) {
+                // Insert into main notifications table (fires 'created' event)
+                Notifications::create([
+                    'schedule_id' => $pn->schedule_id,
+                    'coop_id' => $pn->coop_id,
+                    'type' => $pn->type,
+                    'subject' => $pn->subject,
+                    'body' => $pn->body,
+                    'created_at' => $pn->created_at,
+                    'processed' => $pn->processed,
+                ]);
+
+                // Delete from pending (fires 'deleted' event)
+                $pn->delete();
+            }
 
             DB::commit();
             $this->info('✅ Processed notifications moved and cleaned up successfully.');

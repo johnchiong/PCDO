@@ -2,8 +2,10 @@
 
 namespace App\Console\Commands;
 
+use App\Models\AmortizationSchedules;
+use App\Models\PendingNotification;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 
 class CheckDuePayments extends Command
 {
@@ -13,52 +15,58 @@ class CheckDuePayments extends Command
 
     public function handle()
     {
-        $now = now();
+        $now = Carbon::now();
 
         // --- 3 days before due ---
-        DB::insert("
-            INSERT INTO pending_notifications (schedule_id, coop_id, type, created_at)
-            SELECT ps.id, cp.coop_id, 'before_due', ?
-            FROM amortization_schedules ps
-            JOIN coop_programs cp ON cp.id = ps.coop_program_id
-            WHERE ps.date_paid IS NULL
-              AND DATE(ps.due_date) = DATE_ADD(CURDATE(), INTERVAL 3 DAY)
-              AND NOT EXISTS (
-                  SELECT 1 FROM pending_notifications pn
-                  WHERE pn.schedule_id = ps.id
-                    AND pn.type = 'before_due'
-              )
-        ", [$now]);
+        $beforeDue = AmortizationSchedules::whereNull('date_paid')
+            ->whereDate('due_date', Carbon::now()->addDays(3))
+            ->whereDoesntHave('pendingNotifications', function ($q) {
+                $q->where('type', 'before_due');
+            })
+            ->get();
+
+        foreach ($beforeDue as $schedule) {
+            PendingNotification::create([
+                'schedule_id' => $schedule->id,
+                'coop_id' => $schedule->coopProgram->coop_id ?? null,
+                'type' => 'before_due',
+                'created_at' => $now,
+            ]);
+        }
 
         // --- due today ---
-        DB::insert("
-            INSERT INTO pending_notifications (schedule_id, coop_id, type, created_at)
-            SELECT ps.id, cp.coop_id, 'due_today', ?
-            FROM amortization_schedules ps
-            JOIN coop_programs cp ON cp.id = ps.coop_program_id
-            WHERE ps.date_paid IS NULL
-              AND DATE(ps.due_date) = CURDATE()
-              AND NOT EXISTS (
-                  SELECT 1 FROM pending_notifications pn
-                  WHERE pn.schedule_id = ps.id
-                    AND pn.type = 'due_today'
-              )
-        ", [$now]);
+        $dueToday = AmortizationSchedules::whereNull('date_paid')
+            ->whereDate('due_date', Carbon::today())
+            ->whereDoesntHave('pendingNotifications', function ($q) {
+                $q->where('type', 'due_today');
+            })
+            ->get();
+
+        foreach ($dueToday as $schedule) {
+            PendingNotification::create([
+                'schedule_id' => $schedule->id,
+                'coop_id' => $schedule->coopProgram->coop_id ?? null,
+                'type' => 'due_today',
+                'created_at' => $now,
+            ]);
+        }
 
         // --- 1 day after due (overdue) ---
-        DB::insert("
-            INSERT INTO pending_notifications (schedule_id, coop_id, type, created_at)
-            SELECT ps.id, cp.coop_id, 'overdue', ?
-            FROM amortization_schedules ps
-            JOIN coop_programs cp ON cp.id = ps.coop_program_id
-            WHERE ps.date_paid IS NULL
-              AND DATE(ps.due_date) = DATE_SUB(CURDATE(), INTERVAL 1 DAY)
-              AND NOT EXISTS (
-                  SELECT 1 FROM pending_notifications pn
-                  WHERE pn.schedule_id = ps.id
-                    AND pn.type = 'overdue'
-              )
-        ", [$now]);
+        $overdue = AmortizationSchedules::whereNull('date_paid')
+            ->whereDate('due_date', Carbon::yesterday())
+            ->whereDoesntHave('pendingNotifications', function ($q) {
+                $q->where('type', 'overdue');
+            })
+            ->get();
+
+        foreach ($overdue as $schedule) {
+            PendingNotification::create([
+                'schedule_id' => $schedule->id,
+                'coop_id' => $schedule->coopProgram->coop_id ?? null,
+                'type' => 'overdue',
+                'created_at' => $now,
+            ]);
+        }
 
         $this->info('✅ Pending payment notifications inserted successfully.');
     }

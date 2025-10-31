@@ -117,7 +117,7 @@ const positions = [
     { id: 'Member', name: 'Member' },
 ]
 
-const { drafts, useDraft, deleteDraft, clearDrafts } = useDrafts(form, 'members')
+const { drafts, useDraft, deleteDraft, clearDrafts, post } = useDrafts(form, 'members')
 
 const searchPosition = ref('')
 const dropDownPositionOpen = ref(false)
@@ -179,10 +179,11 @@ function openFileModal() {
 
 function handleSubmit() {
     form.files = file.value.length > 0 ? file.value : [];
-    form.post(`/cooperatives/${props.cooperative.id}/members`, {
+    post(`/cooperatives/${props.cooperative.id}/members`, {
         forceFormData: true,
-        onError: (errors) => {
-            const messages = Object.values(errors);
+        onError: (errors: Record<string, string | string[]>) => {
+            const values = Object.values(errors);
+            const messages = values.flatMap(v => Array.isArray(v) ? v.map(String) : [String(v)]);
             if (messages.length) {
                 toast.error(messages.join('\n'));
             }

@@ -122,11 +122,12 @@ function handleUpload(index: number, item: ChecklistItem) {
       forceFormData: true,
       onSuccess: () => {
         const fileName = uploadedFile?.name
-        const isChecklistRemade = ref(false)
+        const isChecklistRemade = ref(true)
         forms[index].reset()
         router.visit(window.location.href, {
           only: ['checklistItems'],
           preserveScroll: true,
+          preserveState: true,
           replace: true,
         })
         toast.success(`"${fileName}" uploaded successfully!`)
