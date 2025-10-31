@@ -169,14 +169,7 @@ class DocumentationController extends Controller
 
         $content = $amortization->file_content;
 
-        return new Response($amortization->file_content, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$this->generateFileName($coopProgram, 'Amortization_Schedule').'"',
-            'Content-Length' => strlen($content),
-            'Cache-Control' => 'public, max-age=0, must-revalidate',
-            'Accept-Ranges' => 'bytes',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return $this->pdfResponse($content, $coopProgram, 'Amortization_Schedule');
     }
 
     // View the Cooperative Details in PDF
@@ -201,14 +194,7 @@ class DocumentationController extends Controller
 
         $output = $pdf->output();
 
-        return response($output, 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="'.$this->generateFileName($coopProgram, 'Coop_Details').'"',
-            'Content-Length' => strlen($output),
-            'Cache-Control' => 'public, max-age=0, must-revalidate',
-            'Accept-Ranges' => 'bytes',
-            'X-Content-Type-Options' => 'nosniff',
-        ]);
+        return $this->pdfResponse($output, $coopProgram, 'Coop_Details');
     }
 
     // View the Resolved File that sent
@@ -237,14 +223,7 @@ class DocumentationController extends Controller
         if (str_contains($mimeType, 'pdf')) {
             $content = $resolved->file_content;
 
-            return new Response($resolved->file_content, 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="'.$this->generateFileName($coopProgram, 'Resolved').'"',
-                'Content-Length' => strlen($content),
-                'Cache-Control' => 'public, max-age=0, must-revalidate',
-                'Accept-Ranges' => 'bytes',
-                'X-Content-Type-Options' => 'nosniff',
-            ]);
+            return $this->pdfResponse($content, $coopProgram, 'Resolved');
         }
 
         // Determine correct extension
@@ -283,13 +262,7 @@ class DocumentationController extends Controller
 
         $out = $pdf->Output('S');
 
-        return response($pdf->Output('S'), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', values: 'inline; filename="'.$this->generateFileName($coopProgram, 'Resolved').'"')
-            ->header('Content-Length', strlen($out))
-            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
-            ->header('Accept-Ranges', 'bytes')
-            ->header('X-Content-Type-Options', 'nosniff');
+        return $this->pdfResponse($out, $coopProgram, 'Resolved');
     }
 
     // View all the Checklist File that is Uploaded in PDF
@@ -391,13 +364,7 @@ class DocumentationController extends Controller
         $out = $pdf->Output('S');
 
         // Stream final merged PDF
-        return response($pdf->Output('S'), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', values: 'inline; filename="'.$this->generateFileName($coopProgram, 'Checklist').'"')
-            ->header('Content-Length', strlen($out))
-            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
-            ->header('Accept-Ranges', 'bytes')
-            ->header('X-Content-Type-Options', 'nosniff');
+        return $this->pdfResponse($out, $coopProgram, 'Checklist');
     }
 
     public function memberFile($coopProgramId)
@@ -562,13 +529,7 @@ class DocumentationController extends Controller
 
         $out = $pdf->Output('S');
 
-        return response($pdf->Output('S'), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', values: 'inline; filename="'.$this->generateFileName($coopProgram, 'Member_Biodata').'"')
-            ->header('Content-Length', strlen($out))
-            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
-            ->header('Accept-Ranges', 'bytes')
-            ->header('X-Content-Type-Options', 'nosniff');
+        return $this->pdfResponse($out, $coopProgram, 'Members_Biodata');
     }
 
     public function delinquentReport($coopProgramId, $forMerge = false)
@@ -628,13 +589,7 @@ class DocumentationController extends Controller
 
         $output = $pdf->output();
 
-        return response($output, 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, 'Delinquent_Report').'"')
-            ->header('Content-Length', strlen($output))
-            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
-            ->header('Accept-Ranges', 'bytes')
-            ->header('X-Content-Type-Options', 'nosniff');
+        return $this->pdfResponse($output, $coopProgram, 'Delinquent_Report');
     }
 
     public function progressReportFile($coopProgramId)
@@ -676,13 +631,7 @@ class DocumentationController extends Controller
         $output = $pdf->Output('S');
 
         // Output PDF inline to browser/iframe
-        return response($pdf->Output('S'), 200)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, 'Progress_Report').'"')
-            ->header('Content-Length', strlen($output))
-            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
-            ->header('Accept-Ranges', 'bytes')
-            ->header('X-Content-Type-Options', 'nosniff');
+        return $this->pdfResponse($output, $coopProgram, 'Progress_Report');
 
     }
 
@@ -791,10 +740,15 @@ class DocumentationController extends Controller
         $out = $pdf->Output('S');
 
         // Stream final merged PDF
-        return response($pdf->Output('S'), 200)
+        return $this->pdfResponse($out, $coopProgram, 'Full_Report');
+    }
+
+    private function pdfResponse(string $pdfContent, CoopProgram $coopProgram, string $suffix): Response
+    {
+        return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, 'Full_Report').'"')
-            ->header('Content-Length', strlen($out))
+            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, $suffix).'"')
+            ->header('Content-Length', strlen($pdfContent))
             ->header('Cache-Control', 'public, max-age=0, must-revalidate')
             ->header('Accept-Ranges', 'bytes')
             ->header('X-Content-Type-Options', 'nosniff');
