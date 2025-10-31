@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
-import { computed, watch, ref } from 'vue'
+import { computed, watch, ref, nextTick } from 'vue'
 import { toast } from 'vue-sonner'
 
 // Interfaces
@@ -61,6 +61,10 @@ const loanForm = useForm<LoanFormData>({
 const selectedFile = ref<{ id: number; name: string; url: string } | null>(null)
 const isConsented = ref(false);
 const showPreviewModal = ref(false)
+
+const finalizeLoanSection = ref<HTMLElement | null>(null)
+const isChecklistRemade = ref(false)
+
 watch(showPreviewModal, (isOpen) => {
   if (isOpen) {
     const firstUploaded = props.checklistItems.find(item => item.upload)
@@ -89,6 +93,7 @@ function saveConsent() {
         toast.success('Consent recorded successfully!')
         isConsented.value = false
         showPreviewModal.value = false
+        isChecklistRemade.value = false
         router.reload({ only: ['checklistItems', 'cooperative'] })
       },
       onError: () => {
@@ -117,9 +122,13 @@ function handleUpload(index: number, item: ChecklistItem) {
       forceFormData: true,
       onSuccess: () => {
         const fileName = uploadedFile?.name
-
+        const isChecklistRemade = ref(false)
         forms[index].reset()
-        router.reload({ only: ['checklistItems'] })
+        router.visit(window.location.href, {
+          only: ['checklistItems'],
+          preserveScroll: true,
+          replace: true,
+        })
         toast.success(`"${fileName}" uploaded successfully!`)
       },
       onError: () => toast.error('Failed to upload file. Please try again.')
@@ -136,6 +145,14 @@ function submitLoan() {
     {
       onSuccess: () => {
         toast.success('Loan finalized and amortization schedule generated successfully!')
+        router.reload({
+          only: ['cooperative', 'checklistItems'],
+          onFinish: () => {
+            nextTick(() => {
+              finalizeLoanSection.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            })
+          }
+        })
       },
       onError: () => {
         toast.error('Failed to finalize loan. Please try again.')
@@ -192,7 +209,9 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
 
         <!-- Loan Section -->
-        <div v-if="props.cooperative.program"
+        <div 
+          ref="finalizeLoanSection"
+          v-if="props.cooperative.program"
           class="bg-gray-50 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
           <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Finalize Loan
@@ -443,16 +462,40 @@ const breadcrumbs: BreadcrumbItem[] = [
             </div>
           </DialogContent>
         </Dialog>
-
         <div class="flex justify-end mt-6">
-          <button v-if="!allUploadsDone" type="button" @click="handleSaveProgress"
-            class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md">
+          <button
+            v-if="!allUploadsDone"
+            type="button"
+            @click="handleSaveProgress"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md"
+          >
             Save Progress
           </button>
 
-          <button v-else type="button" @click="showPreviewModal = true"
-            class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md">
+          <button
+            v-else-if="isChecklistRemade"
+            type="button"
+            @click="showPreviewModal = true"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg shadow-md"
+          >
+            Remake Checklist
+          </button>
+
+          <button
+            v-else-if="!props.cooperative.consenter"
+            type="button"
+            @click="showPreviewModal = true"
+            class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md"
+          >
             Confirm Checklist
+          </button>
+
+          <button
+            v-else
+            disabled
+            class="bg-gray-400 text-white px-5 py-2 rounded-lg shadow-md cursor-not-allowed"
+          >
+            Checklist Confirmed
           </button>
         </div>
       </div>

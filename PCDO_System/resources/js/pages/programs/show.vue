@@ -2,6 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { BreadcrumbItem } from '@/types'
 import { Head, Link } from '@inertiajs/vue3'
+import { computed } from 'vue'
 import { Pin, Plus, ChevronDown, Building2, FileText, CheckCircle, CircleDashed, Upload } from 'lucide-vue-next'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table'
@@ -39,6 +40,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Programs', href: '/programs' },
     { title: props.program.name, href: '#' },
 ]
+
 </script>
 
 <template>

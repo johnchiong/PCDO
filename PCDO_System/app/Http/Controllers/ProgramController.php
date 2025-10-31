@@ -3,12 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Mail\CoopProgramEnrolled;
+use App\Models\AmortizationSchedules;
 use App\Models\Cooperative;
 use App\Models\CoopProgram;
 use App\Models\CoopProgramChecklist;
 use App\Models\FinishedCoopProgramChecklist;
 use App\Models\Notifications;
-use App\Models\AmortizationSchedules;
 use App\Models\Programs;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -56,7 +56,11 @@ class ProgramController extends Controller
 
     public function createCooperative(Programs $program): Response
     {
-        $cooperatives = Cooperative::all(['id', 'name']);
+        $cooperatives = Cooperative::whereDoesntHave('programs', function ($q) {
+            $q->where('program_status', 'Ongoing');
+        })
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
         return Inertia::render('programs/create', [
             'program' => $program,
@@ -172,7 +176,7 @@ class ProgramController extends Controller
 
                 AmortizationSchedules::create([
                     'coop_program_id' => $coopProgram->id,
-                    'due_date' => $startDate->copy()->addMonths($i - 1),
+                    'due_date' => $startDate->copy()->addMonthsNoOverflow($i),
                     'installment' => $amountDue,
                     'status' => 'Unpaid',
                 ]);

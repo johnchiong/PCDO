@@ -481,7 +481,9 @@ function downloadPdf() {
                       <span class="font-medium text-gray-700 dark:text-gray-300">
                         ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
                       </span>
-                      <Button size="sm" :disabled="row.data.is_paid" @click="row.data.penalty_amount! > 0
+                      <Button size="sm" 
+                        :disabled="row.data.is_paid || getStatus(row.data) !== 'Overdue'"
+                        @click="row.data.penalty_amount! > 0
                         ? openPenaltyModal(row.data.id)
                         : togglePenalty(row.data.id, false, row.data!)" :class="[
                           'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',

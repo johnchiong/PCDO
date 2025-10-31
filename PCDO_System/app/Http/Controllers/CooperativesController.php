@@ -55,6 +55,7 @@ class CooperativesController extends Controller
     public function getDetails($id)
     {
         $coop = Cooperative::with('coopDetail')->findOrFail($id);
+
         return response()->json([
             'number' => optional($coop->coopDetail)->number,
             'email' => optional($coop->coopDetail)->email,
@@ -182,6 +183,7 @@ class CooperativesController extends Controller
             'cooperative' => $cooperative,
             'details' => $details,
             'programs' => $programs,
+            'hasOngoingProgram' => $cooperative->programs()->where('program_status', 'ongoing')->exists(),
             'breadcrumbs' => [
                 ['title' => 'Cooperatives', 'href' => route('cooperatives.index')],
                 ['title' => $cooperative->name, 'href' => route('cooperatives.show', $cooperative)],

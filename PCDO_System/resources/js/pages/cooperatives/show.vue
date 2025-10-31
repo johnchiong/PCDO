@@ -11,6 +11,7 @@ const props = defineProps<{
   cooperative: Cooperative,
   details: Details,
   programs: { id: number; name: string }[]
+  hasOngoingProgram: boolean
 }>()
 
 // Flash messages
@@ -111,7 +112,10 @@ function goToMemberPage(id: string) {
                 </DropdownMenuItem>
 
                 <!-- Click-to-open Programs Dropdown -->
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem 
+                  v-if="!props.hasOngoingProgram"
+                  asChild
+                >
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
