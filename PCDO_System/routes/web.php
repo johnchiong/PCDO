@@ -121,6 +121,7 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     Route::get('/documentation/{id}/member-files/', [DocumentationController::class, 'memberFile'])->name('documentation.member-files');
     Route::get('/documentation/{id}/delinquent', [DocumentationController::class, 'delinquentReport'])->name('documentation.delinquent');
     Route::get('/documentation/{id}/progress', [DocumentationController::class, 'progressReportFile'])->name('documentation.progress.file');
+    Route::get('/documentation/{id}/allfiles', [DocumentationController::class, 'allFile'])->name('documentation.allfiles.file');
 
     // // Resolved Routes
     // Route::get('/resolved/{coopProgram}/upload', [ResolvedController::class, 'create'])->name('resolved.create');

@@ -7,9 +7,9 @@ use App\Models\CoopProgram;
 use App\Models\Delinquent;
 use App\Models\Resolved;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Response;
 use setasign\Fpdi\Fpdi;
-use Carbon\Carbon;
 
 class DocumentationController extends Controller
 {
@@ -489,7 +489,7 @@ class DocumentationController extends Controller
             ->header('Content-Disposition', 'inline; filename=\"Member_Files_with_Biodata.pdf\"');
     }
 
-    public function delinquentReport($coopProgramId)
+    public function delinquentReport($coopProgramId, $forMerge = false)
     {
         $coopProgram = CoopProgram::with(['cooperative'])->findOrFail($coopProgramId);
         $coop = $coopProgram->cooperative;
@@ -540,6 +540,10 @@ class DocumentationController extends Controller
             'delinquents' => $delinquents,
         ]);
 
+        if ($forMerge) {
+            return $pdf->output();
+        }
+
         return $pdf->stream('Delinquency_Report.pdf');
     }
 
@@ -553,7 +557,7 @@ class DocumentationController extends Controller
         }
 
         // Create FPDI instance
-        $pdf = new \setasign\Fpdi\Fpdi;
+        $pdf = new Fpdi;
 
         foreach ($progressReports as $progress) {
             $pdf->AddPage();
@@ -584,5 +588,119 @@ class DocumentationController extends Controller
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
             ->header('Content-Disposition', 'inline; filename="Progress_Reports.pdf"');
+    }
+
+    public function allFile($coopProgramId)
+    {
+        // Fetch all related data
+        $coopProgram = CoopProgram::with([
+            'cooperative.members',
+            'coopMemberFiles',
+            'programProgress',
+            'program.checklists',
+            'finishedChecklist',
+            'delinquents',
+            'coopDetails',
+            'resolvedItems',
+        ])->findOrFail($coopProgramId);
+
+        $pdf = new Fpdi;
+        $tempFiles = [];
+
+        // Cooperative Details
+        $coopDetail = $coopProgram->coopDetails->first();
+        if ($coopDetail) {
+            $detailsPdf = Pdf::loadView('coop_details', compact('coopProgram', 'coopDetail'))
+                ->setPaper('legal', 'portrait')
+                ->output();
+
+            $detailsPath = storage_path('app/temp_details_'.uniqid().'.pdf');
+            file_put_contents($detailsPath, $detailsPdf);
+            $tempFiles[] = $detailsPath;
+        }
+
+        // Amortization File
+        $amortization = AmortizationOld::where('coop_program_id', $coopProgramId)->first();
+        if ($amortization && $amortization->file_content) {
+            $amortPath = storage_path('app/temp_amortization_'.uniqid().'.pdf');
+            file_put_contents($amortPath, $amortization->file_content);
+            $tempFiles[] = $amortPath;
+        }
+
+        // Checklist Files
+        if ($coopProgram->program && $coopProgram->program->checklists->isNotEmpty()) {
+            $checklistResponse = app(self::class)->checklistFile($coopProgramId);
+            $checklistPdf = $checklistResponse->getContent();
+            $checklistPath = storage_path('app/temp_checklist_'.uniqid().'.pdf');
+            file_put_contents($checklistPath, $checklistPdf);
+            $tempFiles[] = $checklistPath;
+        }
+
+        // Member Files
+        if ($coopProgram->cooperative && $coopProgram->cooperative->members->isNotEmpty()) {
+            $memberResponse = app(self::class)->memberFile($coopProgramId);
+            $memberPdf = $memberResponse->getContent();
+            $memberPath = storage_path('app/temp_member_'.uniqid().'.pdf');
+            file_put_contents($memberPath, $memberPdf);
+            $tempFiles[] = $memberPath;
+        }
+
+        // Delinquent Report
+        $delinquentPdf = app(self::class)->delinquentReport($coopProgramId, true);
+        $delinquentPath = storage_path('app/temp_delinquent_'.uniqid().'.pdf');
+        file_put_contents($delinquentPath, $delinquentPdf);
+        $tempFiles[] = $delinquentPath;
+
+        // === Progress Reports ===
+        if ($coopProgram->programProgress->isNotEmpty()) {
+            $progressResponse = app(self::class)->progressReportFile($coopProgramId);
+            $progressPdf = $progressResponse->getContent();
+            $progressPath = storage_path('app/temp_progress_'.uniqid().'.pdf');
+            file_put_contents($progressPath, $progressPdf);
+            $tempFiles[] = $progressPath;
+        }
+
+        // Resolved Files
+        if ($coopProgram->resolvedItems->isNotEmpty()) {
+            foreach ($coopProgram->resolvedItems as $resolved) {
+                if (! empty($resolved->file_content)) {
+                    $resolvedPath = storage_path('app/temp_resolved_'.uniqid().'.pdf');
+                    file_put_contents($resolvedPath, $resolved->file_content);
+                    $tempFiles[] = $resolvedPath;
+                }
+            }
+        }
+
+        // Merge Everything
+        foreach ($tempFiles as $path) {
+            if (! file_exists($path)) {
+                continue;
+            }
+            try {
+                $pageCount = $pdf->setSourceFile($path);
+                for ($i = 1; $i <= $pageCount; $i++) {
+                    $tplIdx = $pdf->importPage($i);
+                    $pdf->AddPage();
+                    $pdf->useTemplate($tplIdx);
+                }
+            } catch (\Exception $e) {
+                continue; // Skip invalid files
+            }
+        }
+
+        // Cleanup temp files
+        foreach ($tempFiles as $f) {
+            @unlink($f);
+        }
+
+        // Filename based on cooperative name
+        $coopName = $coopProgram->cooperative?->name ?? 'Cooperative';
+        $safeCoopName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $coopName); // sanitize filename
+        $fileName = "{$safeCoopName}_Files.pdf";
+
+        // Stream final merged PDF
+        return response($pdf->Output('S'), 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', "inline; filename=\"{$fileName}\"");
     }
 }

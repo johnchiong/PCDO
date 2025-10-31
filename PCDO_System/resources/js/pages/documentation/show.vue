@@ -108,6 +108,7 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                                 class="w-80 bg-white dark:bg-gray-900 shadow-2xl rounded-lg border border-gray-200 dark:border-gray-700 p-1 mt-1">
                                 <!-- Dropdown Items -->
                                 <template v-for="(item, i) in [
+                                    { name: 'All Files', url: `/documentation/${cooperative.program_id}/allfiles` },
                                     { name: 'Amortization Schedule', url: `/documentation/${cooperative.program_id}/amortization` },
                                     { name: 'Cooperative Details', url: `/documentation/${cooperative.program_id}/details` },
                                     { name: 'Resolved File', url: `/documentation/${cooperative.program_id}/resolved` },
