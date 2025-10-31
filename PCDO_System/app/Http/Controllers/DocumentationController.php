@@ -156,15 +156,26 @@ class DocumentationController extends Controller
     // View the Amortization File in PDF
     public function amortizationFile($id)
     {
+        $coopProgram = CoopProgram::find($id);
+        if (! $coopProgram) {
+            abort(404, 'Cooperative program not found.');
+        }
+
         $amortization = AmortizationOld::where('coop_program_id', $id)->first();
 
         if (! $amortization || ! $amortization->file_content) {
             abort(404, 'Amortization schedule not found.');
         }
 
+        $content = $amortization->file_content;
+
         return new Response($amortization->file_content, 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="amortization_schedule.pdf"',
+            'Content-Disposition' => 'inline; filename="'.$this->generateFileName($coopProgram, 'Amortization_Schedule').'"',
+            'Content-Length' => strlen($content),
+            'Cache-Control' => 'public, max-age=0, must-revalidate',
+            'Accept-Ranges' => 'bytes',
+            'X-Content-Type-Options' => 'nosniff',
         ]);
     }
 
@@ -188,15 +199,27 @@ class DocumentationController extends Controller
         $pdf = Pdf::loadView('coop_details', compact('coopProgram', 'coopDetail'))
             ->setPaper('legal', 'portrait'); // 8.5in x 13in
 
-        // Return as inline PDF
-        return $pdf->stream('cooperative_details.pdf');
+        $output = $pdf->output();
+
+        return response($output, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="'.$this->generateFileName($coopProgram, 'Coop_Details').'"',
+            'Content-Length' => strlen($output),
+            'Cache-Control' => 'public, max-age=0, must-revalidate',
+            'Accept-Ranges' => 'bytes',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
     }
 
     // View the Resolved File that sent
-    public function resolvedFile($coopId)
+    public function resolvedFile($id)
     {
+        $coopProgram = CoopProgram::find($id);
+        if (! $coopProgram) {
+            abort(404, 'Cooperative program not found.');
+        }
         // Fetch the latest resolved record
-        $resolved = Resolved::where('coop_program_id', $coopId)->latest()->first();
+        $resolved = Resolved::where('coop_program_id', $id)->latest()->first();
 
         if (! $resolved) {
             abort(404, 'No resolved record found for this cooperative.');
@@ -212,9 +235,15 @@ class DocumentationController extends Controller
 
         // Handle PDF files directly
         if (str_contains($mimeType, 'pdf')) {
+            $content = $resolved->file_content;
+
             return new Response($resolved->file_content, 200, [
                 'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="Resolved_File.pdf"',
+                'Content-Disposition' => 'inline; filename="'.$this->generateFileName($coopProgram, 'Resolved').'"',
+                'Content-Length' => strlen($content),
+                'Cache-Control' => 'public, max-age=0, must-revalidate',
+                'Accept-Ranges' => 'bytes',
+                'X-Content-Type-Options' => 'nosniff',
             ]);
         }
 
@@ -230,15 +259,37 @@ class DocumentationController extends Controller
         $tempPath = storage_path('app/temp_resolved_image_'.uniqid().'.'.$extension);
         file_put_contents($tempPath, $resolved->file_content);
 
+        $mime = mime_content_type($tempPath);
+        if (! in_array($mime, ['image/jpeg', 'image/png'])) {
+            $imgData = @imagecreatefromstring(file_get_contents($tempPath));
+            if ($imgData === false) {
+                @unlink($tempPath);
+                abort(415, 'Invalid or corrupted image data.');
+            }
+
+            $convertedPath = storage_path('app/public/tmp_converted_'.uniqid().'.jpg');
+            imagejpeg($imgData, $convertedPath, 90);
+            imagedestroy($imgData);
+
+            @unlink($tempPath); // delete old one
+            $tempPath = $convertedPath;
+        }
+
         // Convert the image into a PDF
         $pdf = new Fpdi;
         $pdf->AddPage();
         $pdf->Image($tempPath, 15, 25, 180, 230);
-        unlink($tempPath); // Delete after use
+        @unlink($tempPath); // Delete after use
+
+        $out = $pdf->Output('S');
 
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="Resolved_Image.pdf"');
+            ->header('Content-Disposition', values: 'inline; filename="'.$this->generateFileName($coopProgram, 'Resolved').'"')
+            ->header('Content-Length', strlen($out))
+            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
+            ->header('Accept-Ranges', 'bytes')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 
     // View all the Checklist File that is Uploaded in PDF
@@ -296,9 +347,29 @@ class DocumentationController extends Controller
         // Append attachments
         foreach ($checklists as $item) {
             if (! empty($item->file_content)) {
+                $content = $item->file_content;
+
+                if (preg_match('/^data:(.*?);base64,/', $content, $match)) {
+                    $item->mime_type = $match[1];
+                    $content = base64_decode(substr($content, strpos($content, ',') + 1));
+                } elseif (base64_encode(base64_decode($content, true)) === $content) {
+                    $content = base64_decode($content);
+                }
+
                 $extension = str_contains($item->mime_type, 'pdf') ? 'pdf' : 'jpg';
                 $tmpPath = storage_path('app/public/tmp_'.uniqid().'.'.$extension);
                 file_put_contents($tmpPath, $item->file_content);
+
+                if (str_contains($item->mime_type, 'png')) {
+                    $image = @imagecreatefrompng($tmpPath);
+                    if ($image) {
+                        imagejpeg($image, $tmpPath.'.jpg', 90);
+                        imagedestroy($image);
+                        unlink($tmpPath);
+                        $tmpPath = $tmpPath.'.jpg';
+                        $item->mime_type = 'image/jpeg';
+                    }
+                }
 
                 if (str_contains($item->mime_type, 'pdf')) {
                     $pages = $pdf->setSourceFile($tmpPath);
@@ -317,11 +388,16 @@ class DocumentationController extends Controller
         }
 
         @unlink($mainPdfPath);
+        $out = $pdf->Output('S');
 
         // Stream final merged PDF
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="Checklist.pdf"');
+            ->header('Content-Disposition', values: 'inline; filename="'.$this->generateFileName($coopProgram, 'Checklist').'"')
+            ->header('Content-Length', strlen($out))
+            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
+            ->header('Accept-Ranges', 'bytes')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function memberFile($coopProgramId)
@@ -484,9 +560,15 @@ class DocumentationController extends Controller
             }
         }
 
+        $out = $pdf->Output('S');
+
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename=\"Member_Files_with_Biodata.pdf\"');
+            ->header('Content-Disposition', values: 'inline; filename="'.$this->generateFileName($coopProgram, 'Member_Biodata').'"')
+            ->header('Content-Length', strlen($out))
+            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
+            ->header('Accept-Ranges', 'bytes')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function delinquentReport($coopProgramId, $forMerge = false)
@@ -544,7 +626,15 @@ class DocumentationController extends Controller
             return $pdf->output();
         }
 
-        return $pdf->stream('Delinquency_Report.pdf');
+        $output = $pdf->output();
+
+        return response($output, 200)
+            ->header('Content-Type', 'application/pdf')
+            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, 'Delinquent_Report').'"')
+            ->header('Content-Length', strlen($output))
+            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
+            ->header('Accept-Ranges', 'bytes')
+            ->header('X-Content-Type-Options', 'nosniff');
     }
 
     public function progressReportFile($coopProgramId)
@@ -583,11 +673,17 @@ class DocumentationController extends Controller
                 unlink($tmpPath);
             }
         }
+        $output = $pdf->Output('S');
 
         // Output PDF inline to browser/iframe
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="Progress_Reports.pdf"');
+            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, 'Progress_Report').'"')
+            ->header('Content-Length', strlen($output))
+            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
+            ->header('Accept-Ranges', 'bytes')
+            ->header('X-Content-Type-Options', 'nosniff');
+
     }
 
     public function allFile($coopProgramId)
@@ -692,15 +788,29 @@ class DocumentationController extends Controller
         foreach ($tempFiles as $f) {
             @unlink($f);
         }
-
-        // Filename based on cooperative name
-        $coopName = $coopProgram->cooperative?->name ?? 'Cooperative';
-        $safeCoopName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $coopName); // sanitize filename
-        $fileName = "{$safeCoopName}_Files.pdf";
+        $out = $pdf->Output('S');
 
         // Stream final merged PDF
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', "inline; filename=\"{$fileName}\"");
+            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, 'Full_Report').'"')
+            ->header('Content-Length', strlen($out))
+            ->header('Cache-Control', 'public, max-age=0, must-revalidate')
+            ->header('Accept-Ranges', 'bytes')
+            ->header('X-Content-Type-Options', 'nosniff');
+    }
+
+    private function generateFileName(CoopProgram $coopProgram, string $suffix)
+    {
+        $coopName = $coopProgram->cooperative?->name ?? 'Cooperative';
+        $programName = $coopProgram->program?->name ?? 'Program';
+        $createdDate = optional($coopProgram->created_at)->format('Y-m-d') ?? date('Y-m-d');
+
+        // Clean and safe filename
+        $safeCoop = preg_replace('/[^A-Za-z0-9_\-]/', '_', $coopName);
+        $safeProgram = preg_replace('/[^A-Za-z0-9_\-]/', '_', $programName);
+        $safeSuffix = preg_replace('/[^A-Za-z0-9_\-]/', '_', $suffix);
+
+        return "{$safeCoop}_{$safeProgram}_{$createdDate}_{$safeSuffix}.pdf";
     }
 }

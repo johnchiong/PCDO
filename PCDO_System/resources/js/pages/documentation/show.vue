@@ -109,13 +109,13 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                                 <!-- Dropdown Items -->
                                 <template v-for="(item, i) in [
                                     { name: 'All Files', url: `/documentation/${cooperative.program_id}/allfiles` },
-                                    { name: 'Amortization Schedule', url: `/documentation/${cooperative.program_id}/amortization` },
                                     { name: 'Cooperative Details', url: `/documentation/${cooperative.program_id}/details` },
-                                    { name: 'Resolved File', url: `/documentation/${cooperative.program_id}/resolved` },
+                                    { name: 'Amortization Schedule', url: `/documentation/${cooperative.program_id}/amortization` },
                                     { name: 'Checklist of Documents', url: `/documentation/${cooperative.program_id}/checklist` },
                                     { name: 'Cooperative Members Documents', url: `/documentation/${cooperative.program_id}/member-files` },
                                     { name: 'Delinquent Reports', url: `/documentation/${cooperative.program_id}/delinquent` },
                                     { name: 'Progress Reports', url: `/documentation/${cooperative.program_id}/progress` },
+                                    { name: 'Resolved File', url: `/documentation/${cooperative.program_id}/resolved` },    
                                 ]" :key="i">
                                     <DropdownMenuItem asChild>
                                         <button @click="selectedFile = { name: item.name, url: item.url }"
@@ -138,9 +138,14 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                                 <FileText class="w-5 h-5 text-indigo-500" />
                                 {{ selectedFile.name }} Preview
                             </h3>
-                            <iframe :src="selectedFile.url"
+                            <iframe 
+                                :src="selectedFile.url"
                                 class="w-full h-[600px] rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"
-                                frameborder="0"></iframe>
+                                frameborder="0"
+                                style="border: none;"
+                                allow="fullscreen"
+                            >
+                            </iframe>
                         </template>
 
                         <p v-else
