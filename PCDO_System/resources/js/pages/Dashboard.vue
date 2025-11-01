@@ -95,46 +95,61 @@ function goToNotification(id: number) {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
             <div class="grid gap-4 md:grid-cols-4 mt-6 px-4 pb-6">
-
                 <!-- Total Cooperatives -->
                 <div
-                    class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 overflow-hidden">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 break-words truncate">Total
-                        Cooperatives</h3>
-                    <p class="text-2xl font-extrabold text-blue-600 mt-3 break-words truncate max-w-full">{{ totalCoops
-                        }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words truncate">Registered
-                        cooperatives</p>
+                    class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-2">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 break-words truncate">
+                        Total Cooperatives
+                    </h3>
+                    <p class="text-3xl font-extrabold text-blue-600 break-words truncate">
+                        {{ totalCoops }}
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 break-words truncate">
+                        Registered cooperatives
+                    </p>
                 </div>
 
                 <!-- Upcoming Monthly Dues -->
-                <div class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">Upcoming Monthly Dues</h3>
-                    <p class="text-2xl font-extrabold text-red-600 mt-3">{{ formatCurrencyShort(upcomingMonthlyDues) }}
+                <div
+                    class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-2">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200">
+                        Upcoming Monthly Dues
+                    </h3>
+                    <p class="text-3xl font-extrabold text-red-600">
+                        {{ formatCurrencyShort(upcomingMonthlyDues) }}
                     </p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Due next month</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Due next month
+                    </p>
                 </div>
 
                 <!-- Cash Flow -->
-                <div class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-xl shadow-lg p-6">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-4">Cash Flow</h3>
-                    <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 xs:grid-cols-1">
-                        <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 text-center break-words min-w-0">
-                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Release</p>
-                            <p class="text-2xl font-bold text-blue-600 break-words">{{
-                                formatCurrencyShort(totalReleases) }}</p>
+                <div
+                    class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col items-center justify-center text-center space-y-4">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 mb-2">
+                        Cash Flow
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4 w-full">
+                        <div
+                            class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 text-center flex flex-col justify-center items-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Release</p>
+                            <p class="text-2xl font-bold text-blue-600 break-words">
+                                {{ formatCurrencyShort(totalReleases) }}
+                            </p>
                         </div>
-                        <div class="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 text-center break-words min-w-0">
-                            <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Received</p>
-                            <p class="text-2xl font-bold text-green-600 break-words">{{
-                                formatCurrencyShort(totalReceived) }}</p>
+                        <div
+                            class="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 text-center flex flex-col justify-center items-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Received</p>
+                            <p class="text-2xl font-bold text-green-600 break-words">
+                                {{ formatCurrencyShort(totalReceived) }}
+                            </p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Notifications Card -->
                 <div
-                    class="col-span-4 md:col-span-1 row-span-2 order-last md:order-none bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                    class="col-span-4 md:col-span-1 row-span-2 order-last md:order-none bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 flex flex-col">
                     <div class="flex flex-wrap justify-between items-center mb-4 w-full">
                         <h2
                             class="text-xl font-semibold text-gray-800 dark:text-gray-100 truncate max-w-full sm:max-w-[70%]">
@@ -145,11 +160,10 @@ function goToNotification(id: number) {
                             See All
                         </a>
                     </div>
-
-                    <ul class="space-y-3 max-h-[450px] overflow-y-auto pr-2">
-                        <li v-for="notification in notifications" :key="notification.id"
-                            class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition break-words"
-                            @click="goToNotification(notification.id)">
+                    <ul class="flex-1 space-y-3 overflow-y-auto flex flex-col items-center text-center pt-3 pb-12
+           [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+                        <li v-for="notification in notifications" :key="notification.id" class="bg-gray-100 dark:bg-gray-700 w-full p-3 rounded-lg text-sm cursor-pointer 
+             hover:bg-gray-300 dark:hover:bg-gray-600 transition break-words">
                             {{ notification.subject }}
                             <p
                                 class="text-xs text-gray-500 dark:text-gray-300 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">

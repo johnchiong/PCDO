@@ -46,6 +46,7 @@ class CoopProgramChecklistController extends Controller
                 'consenter' => $coopProgram->consenter,
                 'cooperative' => $coopProgram->cooperative,
                 'program' => $coopProgram->program,
+                'has_amortization' => $coopProgram->amortizationSchedules()->exists(),
             ],
             'checklistItems' => $checklistWithUploads,
         ]);

@@ -5,19 +5,19 @@ import { BreadcrumbItem } from '@/types'
 import { ref } from 'vue'
 
 const props = defineProps<{
-    years: Array<{
-        year: string
-        cooperatives: Array<{
-            id: number
-            name: string
-            program_name: string
-            completed_at: string
-        }>
+  years: Array<{
+    year: string
+    cooperatives: Array<{
+      id: number
+      name: string
+      program_name: string
+      completed_at: string
     }>
+  }>
 }>()
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Documentation', href: '#' },
+  { title: 'Documentation', href: '#' },
 ]
 
 const openYear = ref<string | null>(null)
@@ -27,6 +27,7 @@ const toggleYear = (year: string) => {
 </script>
 
 <template>
+
   <Head title="Documentation" />
   <AppLayout :breadcrumbs="breadcrumbs">
     <div class="bg-gray-50 dark:bg-gray-900 min-h-screen px-4 sm:px-6 py-8">
@@ -46,16 +47,14 @@ const toggleYear = (year: string) => {
       </div>
 
       <div v-else class="max-w-6xl mx-auto space-y-4">
-        <div v-for="yearGroup in props.years" :key="yearGroup.year" class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
+        <div v-for="yearGroup in props.years" :key="yearGroup.year"
+          class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-sm">
           <button
             class="w-full flex items-center justify-between px-5 sm:px-6 py-3 bg-indigo-600 text-white font-semibold hover:bg-indigo-700 active:bg-indigo-800 transition text-base sm:text-lg"
-            @click="toggleYear(yearGroup.year)"
-          >
+            @click="toggleYear(yearGroup.year)">
             <span>{{ yearGroup.year }}</span>
-            <ChevronDown
-              class="w-5 h-5 transform transition-transform duration-200"
-              :class="{ 'rotate-180': openYear === yearGroup.year }"
-            />
+            <ChevronDown class="w-5 h-5 transform transition-transform duration-200"
+              :class="{ 'rotate-180': openYear === yearGroup.year }" />
           </button>
 
           <div v-show="openYear === yearGroup.year" class="transition-all duration-300">
@@ -77,12 +76,9 @@ const toggleYear = (year: string) => {
                   </TableHeader>
 
                   <TableBody>
-                    <TableRow
-                      v-for="coop in yearGroup.cooperatives"
-                      :key="coop.id"
+                    <TableRow v-for="coop in yearGroup.cooperatives" :key="coop.id"
                       @click="$inertia.get(`/documentation/cooperative/${coop.id}`)"
-                      class="cursor-pointer hover:bg-indigo-50 dark:hover:bg-gray-700 transition"
-                    >
+                      class="cursor-pointer hover:bg-indigo-50 dark:hover:bg-gray-700 transition">
                       <TableCell class="font-medium text-gray-800 dark:text-gray-100">{{ coop.name }}</TableCell>
                       <TableCell class="text-gray-700 dark:text-gray-300">{{ coop.program_name }}</TableCell>
                       <TableCell class="text-gray-600 dark:text-gray-400">{{ coop.completed_at }}</TableCell>
@@ -92,12 +88,9 @@ const toggleYear = (year: string) => {
               </div>
 
               <div class="sm:hidden divide-y divide-gray-200 dark:divide-gray-700">
-                <div
-                  v-for="coop in yearGroup.cooperatives"
-                  :key="coop.id"
+                <div v-for="coop in yearGroup.cooperatives" :key="coop.id"
                   @click="$inertia.get(`/documentation/cooperative/${coop.id}`)"
-                  class="p-4 flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-3 active:bg-indigo-50 dark:active:bg-gray-700 transition"
-                >
+                  class="p-4 flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-3 active:bg-indigo-50 dark:active:bg-gray-700 transition">
                   <span class="font-semibold text-gray-900 dark:text-gray-100">{{ coop.name }}</span>
                   <span class="text-sm text-gray-600 dark:text-gray-400">{{ coop.program_name }}</span>
                   <span class="text-xs text-gray-500 dark:text-gray-500 mt-1">{{ coop.completed_at }}</span>

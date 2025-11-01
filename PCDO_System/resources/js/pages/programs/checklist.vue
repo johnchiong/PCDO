@@ -19,6 +19,7 @@ interface CoopProgram {
   loan_amount?: number | null
   with_grace?: number | null
   consenter?: string | null
+  has_amortization?: boolean
 }
 
 // Loan form
@@ -211,7 +212,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
 
         <!-- Loan Section -->
-        <div ref="finalizeLoanSection" v-if="props.cooperative.program"
+        <div ref="finalizeLoanSection" v-if="props.cooperative.program && !props.cooperative.has_amortization"
           class="bg-gray-50 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
           <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Finalize Loan

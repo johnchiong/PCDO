@@ -727,7 +727,7 @@ function canPayPeriod(index: number) {
               </h3>
 
               <div class="flex flex-col gap-3">
-                <input type="file" accept="image/*,application/pdf" @change="onFileChange"
+                <input type="file" accept="image/jpeg,image/jpg,application/pdf" @change="onFileChange"
                   class="border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm bg-gray-50 dark:bg-gray-700" />
                 <p class="text-xs text-gray-500 dark:text-gray-400">
                   Please upload the official receipt (image or PDF) before marking this loan as resolved.

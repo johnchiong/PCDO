@@ -46,6 +46,8 @@ class ProgramController extends Controller
                 'id' => $cp->cooperative->id,
                 'name' => $cp->cooperative->name,
                 'program_status' => $cp->program_status,
+                'has_checklist' => $cp->checklist()->exists(),
+                'has_amortization' => $cp->amortizationSchedules()->exists(),
             ]);
 
         return inertia('programs/show', [

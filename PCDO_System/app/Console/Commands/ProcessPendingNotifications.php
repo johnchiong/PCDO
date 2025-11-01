@@ -34,7 +34,7 @@ class ProcessPendingNotifications extends Command
             }
 
             $coopProgram = $schedule->coopProgram;
-            $email = $coopProgram?->coopDetails->email;
+            $email = $coopProgram?->coopDetail->email;
             $coopName = $coopProgram?->cooperative->name ?? 'Unknown Coop Program';
 
             if ($email) {

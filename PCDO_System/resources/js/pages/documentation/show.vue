@@ -115,7 +115,7 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                                     { name: 'Cooperative Members Documents', url: `/documentation/${cooperative.program_id}/member-files` },
                                     { name: 'Delinquent Reports', url: `/documentation/${cooperative.program_id}/delinquent` },
                                     { name: 'Progress Reports', url: `/documentation/${cooperative.program_id}/progress` },
-                                    { name: 'Resolved File', url: `/documentation/${cooperative.program_id}/resolved` },    
+                                    { name: 'Resolved File', url: `/documentation/${cooperative.program_id}/resolved` },
                                 ]" :key="i">
                                     <DropdownMenuItem asChild>
                                         <button @click="selectedFile = { name: item.name, url: item.url }"
@@ -138,13 +138,9 @@ const selectedFile = ref<{ name: string; url: string } | null>(null)
                                 <FileText class="w-5 h-5 text-indigo-500" />
                                 {{ selectedFile.name }} Preview
                             </h3>
-                            <iframe 
-                                :src="selectedFile.url"
+                            <iframe :src="selectedFile.url"
                                 class="w-full h-[600px] rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"
-                                frameborder="0"
-                                style="border: none;"
-                                allow="fullscreen"
-                            >
+                                frameborder="0" style="border: none;" allow="fullscreen">
                             </iframe>
                         </template>
 
