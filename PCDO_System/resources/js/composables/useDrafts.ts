@@ -23,19 +23,34 @@ export function useDrafts(form: any, type: string) {
             draftName = (data.name || '').trim()
         }
         if (!data.id && !draftName) return
+
         const allDrafts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-        const draftId = data.id || sessionDraftId.value || ensureSessionDraftId()
-        let draft = allDrafts.find((d: any) => d.id === draftId)
+        const currentDraftId = data.id || sessionDraftId.value || ensureSessionDraftId()
+
+        let draft = allDrafts.find((d: any) => d.id === currentDraftId)
+
+        if (!draft && data.id) {
+            const unsavedDraftIndex = allDrafts.findIndex((d: any) => d.id === sessionDraftId.value)
+            if (unsavedDraftIndex !== -1) {
+                draft = allDrafts[unsavedDraftIndex]
+                draft.id = data.id
+            }
+        }
+
         if (!draft) {
-            draft = { id: draftId, type, data: {}, name: '', savedAt: '' }
+            draft = { id: currentDraftId, type, data: {}, name: '', savedAt: '' }
             allDrafts.push(draft)
         }
+
         if (JSON.stringify(draft.data) === JSON.stringify(data)) return
+
         draft.data = { ...data }
         draft.name = draftName || 'Untitled'
         draft.savedAt = new Date().toLocaleString()
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(allDrafts))
-        drafts.value = allDrafts
+
+        const updated = allDrafts.map((d: any) => (d.id === draft.id ? draft : d))
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+        drafts.value = updated
     }
 
     const saveDraft = debounce(saveDraftNow, 5000)
