@@ -89,12 +89,18 @@ export function useDrafts(form: any, type: string) {
 
     const wrapSubmit = (method: 'post' | 'put' | 'patch' | 'delete') => {
         return (url: string, options: any = {}) => {
+            (saveDraft as any).cancel?.()
             const draftId = form.data().id || sessionDraftId.value
             const originalOnSuccess = options.onSuccess
+
             options.onSuccess = (...args: any[]) => {
-                if (draftId) deleteDraft(draftId)
+                setTimeout(() => {
+                    if (draftId) deleteDraft(draftId)
+                    sessionDraftId.value = ''
+                }, 300)
                 if (originalOnSuccess) originalOnSuccess(...args)
             }
+
             return form[method](url, options)
         }
     }

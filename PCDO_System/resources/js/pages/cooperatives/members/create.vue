@@ -190,6 +190,7 @@ function handleSubmit() {
         },
         onSuccess: () => {
             toast.success(`${form.first_name} ${form.last_name} has been added successfully!`)
+            if (typeof form.reset === 'function') form.reset()
         }
     });
 }
