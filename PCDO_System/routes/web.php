@@ -59,10 +59,15 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
 
     // Cooperatives Nested Routes
     Route::resource('cooperatives.members', CoopMemberController::class);
-    Route::get('cooperatives/{cooperative}/members/{member}/files/{fileId}/download', [CoopMemberController::class, 'downloadFile'])->name('cooperatives.members.files.download');
+    Route::get('/cooperatives/{cooperative}/members/{member}/files/{fileId}/view', [CoopMemberController::class, 'viewFile'])
+        ->name('cooperatives.members.files.view');
+
+    Route::get('/cooperatives/{cooperative}/members/{member}/files/{fileId}/download', [CoopMemberController::class, 'downloadFile'])
+        ->name('cooperatives.members.files.download');
+
     Route::delete('cooperatives/{cooperative}/members/{member}/files/{fileId}', [CoopMemberController::class, 'deleteFile'])->name('cooperatives.members.files.delete');
     Route::get('cooperatives/{cooperative}', [CooperativesController::class, 'show'])->name('cooperatives.show');
-    Route::get('/cooperatives/{cooperative}/members/{member}/biodata/pdf',[CoopMemberController::class, 'downloadBiodataPdf'])->where(['cooperative' => '.*', 'member' => '.*'])->name('cooperatives.members.biodata.pdf');
+    Route::get('/cooperatives/{cooperative}/members/{member}/biodata/pdf', [CoopMemberController::class, 'downloadBiodataPdf'])->where(['cooperative' => '.*', 'member' => '.*'])->name('cooperatives.members.biodata.pdf');
     // Program Routes
     Route::resource('programs', ProgramController::class);
 

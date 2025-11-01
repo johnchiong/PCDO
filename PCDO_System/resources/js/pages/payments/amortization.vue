@@ -334,6 +334,15 @@ function downloadPdf() {
   window.location.href = `/amortization/${props.coopProgram.id}/download`
 }
 
+function canPayPeriod(index: number) {
+  const current = props.coopProgram.schedules[index]
+  if (!current) return false
+  if (index === 0) return true
+  const previous = props.coopProgram.schedules[index - 1]
+  const previousStatus = getStatus(previous)
+  return previous.is_paid || previousStatus === 'Overdue'
+}
+
 </script>
 
 <template>
@@ -420,203 +429,288 @@ function downloadPdf() {
               Download PDF
             </button>
           </div>
-          <Table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700 shadow-lg">
-            <!-- Header -->
-            <TableHeader class="bg-gray-100 dark:bg-gray-700/50">
-              <TableRow>
-                <TableHead class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Period
-                </TableHead>
-                <TableHead class="px-4 py-3">Due Date</TableHead>
-                <TableHead class="px-4 py-3">Amount</TableHead>
-                <TableHead class="px-4 py-3">Penalty</TableHead>
-                <TableHead class="px-4 py-3">Dues</TableHead>
-                <TableHead class="px-4 py-3">Status</TableHead>
-                <TableHead class="px-4 py-3">Actions</TableHead>
-                <TableHead class="px-4 py-3">Reminder</TableHead>
-              </TableRow>
-            </TableHeader>
+          <div class="hidden md:block">
+            <Table class="min-w-full text-sm divide-y divide-gray-200 dark:divide-gray-700 shadow-lg">
+              <!-- Header -->
+              <TableHeader class="bg-gray-100 dark:bg-gray-700/50">
+                <TableRow>
+                  <TableHead class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-200">Period
+                  </TableHead>
+                  <TableHead class="px-4 py-3">Due Date</TableHead>
+                  <TableHead class="px-4 py-3">Amount</TableHead>
+                  <TableHead class="px-4 py-3">Penalty</TableHead>
+                  <TableHead class="px-4 py-3">Dues</TableHead>
+                  <TableHead class="px-4 py-3">Status</TableHead>
+                  <TableHead class="px-4 py-3">Actions</TableHead>
+                  <TableHead class="px-4 py-3">Reminder</TableHead>
+                </TableRow>
+              </TableHeader>
 
-            <!-- Body -->
-            <TableBody>
-              <TableRow v-for="(row, index) in allPeriods" :key="index" :class="[
-                'transition-colors',
-                row.data?.is_paid ? 'bg-green-50 dark:bg-green-900/20' : '',
-                index % 2 === 0 ? 'bg-gray-200 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'
-              ]">
+              <!-- Body -->
+              <TableBody>
+                <TableRow v-for="(row, index) in allPeriods" :key="index" :class="[
+                  'transition-colors',
+                  row.data?.is_paid ? 'bg-green-50 dark:bg-green-900/20' : '',
+                  index % 2 === 0 ? 'bg-gray-200 dark:bg-gray-800/50' : 'bg-white dark:bg-gray-900'
+                ]">
 
-                <!-- Grace Period Row -->
-                <template v-if="row.type === 'grace'">
-                  <TableCell class="px-4 py-3 font-medium text-indigo-400">
-                    {{ row.label }}
-                  </TableCell>
+                  <!-- Grace Period Row -->
+                  <template v-if="row.type === 'grace'">
+                    <TableCell class="px-4 py-3 font-medium text-indigo-400">
+                      {{ row.label }}
+                    </TableCell>
 
-                  <TableCell colspan="7" class="text-center font-semibold text-yellow-500">
-                    <span class="inline-flex items-center gap-2 justify-center">
-                      <Leaf class="w-4 h-4 text-green-400" />
-                      <span>No payment due (Grace Period)</span>
-                    </span>
-                  </TableCell>
-                </template>
-
-                <!-- Regular Payment Row -->
-                <template v-else>
-                  <!-- Period -->
-                  <TableCell class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200">
-                    {{ row.label }}
-                  </TableCell>
-
-                  <!-- Due Date -->
-                  <TableCell class="px-4 py-3">
-                    {{ formatDate(row.data?.due_date) }}
-                  </TableCell>
-
-                  <!-- Amount -->
-                  <TableCell class="px-4 py-3 font-medium">
-                    ₱{{ Math.round(row.data?.installment || 0).toLocaleString() }}
-                  </TableCell>
-
-                  <!-- Penalty -->
-                  <TableCell class="px-4 py-3">
-                    <div v-if="row.data" class="flex items-center gap-2">
-                      <span class="font-medium text-gray-700 dark:text-gray-300">
-                        ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
+                    <TableCell colspan="7" class="text-center font-semibold text-yellow-500">
+                      <span class="inline-flex items-center gap-2 justify-center">
+                        <Leaf class="w-4 h-4 text-green-400" />
+                        <span>No payment due (Grace Period)</span>
                       </span>
-                      <Button size="sm" 
-                        :disabled="row.data.is_paid || getStatus(row.data) !== 'Overdue'"
-                        @click="row.data.penalty_amount! > 0
-                        ? openPenaltyModal(row.data.id)
-                        : togglePenalty(row.data.id, false, row.data!)" :class="[
-                          'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
-                          row.data.penalty_amount! > 0
-                            ? 'bg-red-600 hover:bg-red-700 text-white'
-                            : 'bg-orange-500 hover:bg-orange-600 text-white'
-                        ]">
-                        <span v-if="row.data.penalty_amount! > 0">✕ Remove</span>
-                        <span v-else class="inline-flex items-center gap-1">
-                          <Plus class="w-3 h-3" />
-                          <span>Add</span>
-                        </span>
-                      </Button>
-                    </div>
-                  </TableCell>
+                    </TableCell>
+                  </template>
 
-                  <!-- Dues -->
-                  <TableCell class="font-semibold text-indigo-700 dark:text-indigo-300">
-                    ₱{{ Number(row.data?.installment || 0).toLocaleString('en-PH', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    }) }}
-                    <span v-if="row.data?.penalty_amount && row.data.penalty_amount > 0">
-                      + ₱{{ Number(row.data.penalty_amount || 0).toLocaleString('en-PH', {
+                  <!-- Regular Payment Row -->
+                  <template v-else>
+                    <!-- Period -->
+                    <TableCell class="px-4 py-3 font-semibold text-gray-700 dark:text-gray-200">
+                      {{ row.label }}
+                    </TableCell>
+
+                    <!-- Due Date -->
+                    <TableCell class="px-4 py-3">
+                      {{ formatDate(row.data?.due_date) }}
+                    </TableCell>
+
+                    <!-- Amount -->
+                    <TableCell class="px-4 py-3 font-medium">
+                      ₱{{ Math.round(row.data?.installment || 0).toLocaleString() }}
+                    </TableCell>
+
+                    <!-- Penalty -->
+                    <TableCell class="px-4 py-3">
+                      <div v-if="row.data" class="flex items-center gap-2">
+                        <span class="font-medium text-gray-700 dark:text-gray-300">
+                          ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
+                        </span>
+                        <Button size="sm" :disabled="row.data.is_paid || getStatus(row.data) !== 'Overdue'" @click="row.data.penalty_amount! > 0
+                          ? openPenaltyModal(row.data.id)
+                          : togglePenalty(row.data.id, false, row.data!)" :class="[
+                            'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
+                            row.data.penalty_amount! > 0
+                              ? 'bg-red-600 hover:bg-red-700 text-white'
+                              : 'bg-orange-500 hover:bg-orange-600 text-white'
+                          ]">
+                          <span v-if="row.data.penalty_amount! > 0">✕ Remove</span>
+                          <span v-else class="inline-flex items-center gap-1">
+                            <Plus class="w-3 h-3" />
+                            <span>Add</span>
+                          </span>
+                        </Button>
+                      </div>
+                    </TableCell>
+
+                    <!-- Dues -->
+                    <TableCell class="font-semibold text-indigo-700 dark:text-indigo-300">
+                      ₱{{ Number(row.data?.installment || 0).toLocaleString('en-PH', {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2
                       }) }}
-                    </span>
-                    = <strong>
-                      ₱{{ row.totalDue !== undefined
-                        ? Number(row.totalDue).toLocaleString('en-PH', {
+                      <span v-if="row.data?.penalty_amount && row.data.penalty_amount > 0">
+                        + ₱{{ Number(row.data.penalty_amount || 0).toLocaleString('en-PH', {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2
-                        })
-                        : '0.00'
-                      }}
-                    </strong>
-                  </TableCell>
-
-                  <!-- Status -->
-                  <TableCell class="px-4 py-3">
-                    <template v-if="isResolved">
-                      <span
-                        class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200">
-                        <Check class="w-4 h-4" />
-                        <span>Resolved</span>
+                        }) }}
                       </span>
-                    </template>
+                      = <strong>
+                        ₱{{ row.totalDue !== undefined
+                          ? Number(row.totalDue).toLocaleString('en-PH', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                          })
+                          : '0.00'
+                        }}
+                      </strong>
+                    </TableCell>
 
-                    <template v-else>
-                      <span :class="[
-                        'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold',
-                        row.data?.is_paid
-                          ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200'
-                          : getStatus(row.data!) === 'Overdue'
-                            ? 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200'
-                            : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200'
-                      ]">
-                        {{ getStatus(row.data!) }}
-                      </span>
-                    </template>
-                  </TableCell>
+                    <!-- Status -->
+                    <TableCell class="px-4 py-3">
+                      <template v-if="isResolved">
+                        <span
+                          class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200">
+                          <Check class="w-4 h-4" />
+                          <span>Resolved</span>
+                        </span>
+                      </template>
 
-                  <!-- Actions -->
-                  <TableCell class="px-4 py-3">
-                    <template v-if="isResolved">
-                      <div class="inline-flex items-center gap-1 text-green-600 italic font-semibold">
-                        <Check class="w-4 h-4" />
-                        <span>Resolved</span>
-                      </div>
-                    </template>
+                      <template v-else>
+                        <span :class="[
+                          'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold',
+                          row.data?.is_paid
+                            ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200'
+                            : getStatus(row.data!) === 'Overdue'
+                              ? 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200'
+                              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200'
+                        ]">
+                          {{ getStatus(row.data!) }}
+                        </span>
+                      </template>
+                    </TableCell>
 
-                    <template v-else>
-                      <div
-                        v-if="row.data && !row.data.is_paid && !(row.data.amount_paid && (row.data.balance || 0) > 0)"
-                        class="flex flex-col gap-2">
+                    <!-- Actions -->
+                    <TableCell class="px-4 py-3">
+                      <template v-if="isResolved">
+                        <div class="inline-flex items-center gap-1 text-green-600 italic font-semibold">
+                          <Check class="w-4 h-4" />
+                          <span>Resolved</span>
+                        </div>
+                      </template>
 
-                        <Button size="sm" class="w-36 bg-green-600 hover:bg-green-700 text-white rounded-full"
-                          @click="markPaid(row.data!.id, row.label)">
-                          <ReceiptText class="w-3 h-3" /> Mark Paid
+                      <template v-else>
+                        <div
+                          v-if="row.data && !row.data.is_paid && !(row.data.amount_paid && (row.data.balance || 0) > 0)"
+                          class="flex flex-col gap-2">
+
+                          <Button size="sm"
+                            class="w-36 bg-green-600 hover:bg-green-700 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                            @click="markPaid(row.data!.id, row.label)" :disabled="!canPayPeriod(index)">
+                            <ReceiptText class="w-3 h-3" /> Mark Paid
+                          </Button>
+
+                          <input type="number" v-model.number="scheduleForms[getFormIndex(index)].amount_paid"
+                            placeholder="Enter amount"
+                            class="w-36 px-3 py-2 border rounded-xl border-gray-400 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
+
+                          <Button size="sm"
+                            class="w-36 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                            @click="notePayment(row.data!.id, index)" :disabled="!canPayPeriod(index)">
+                            <CircleDollarSign class="w-3 h-3 text-yellow-300" /> Pay
+                          </Button>
+                        </div>
+
+                        <div v-else-if="row.data?.amount_paid && (row.data.balance || 0) > 0"
+                          class="inline-flex items-center gap-1 text-yellow-600 font-semibold">
+                          <TriangleAlert class="w-4 h-4" />
+                          <span>Partially Paid</span>
+                        </div>
+
+                        <div v-else-if="row.data?.is_paid"
+                          class="inline-flex items-center gap-1 text-emerald-400 italic font-semibold">
+                          <Check class="w-5 h-5" />
+                          <span>Paid</span>
+                        </div>
+                      </template>
+                    </TableCell>
+
+                    <!-- Reminder -->
+                    <TableCell class="px-4 py-3">
+                      <template v-if="isResolved">
+                        <span class="inline-flex items-center gap-1 text-green-600 italic font-semibold">
+                          <Check class="w-5 h-5" />
+                          <span>Resolved</span>
+                        </span>
+                      </template>
+
+                      <template v-else-if="row.data?.is_paid">
+                        <span class="inline-flex items-center gap-1 text-emerald-400 italic font-semibold">
+                          <Check class="w-5 h-5" />
+                          <span>Paid</span>
+                        </span>
+                      </template>
+
+                      <template v-else>
+                        <Button size="sm"
+                          class="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-700 hover:bg-red-800 text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          @click="sendNotification(row.data!.id)" :disabled="!canPayPeriod(index)">
+                          🔔 Send Reminder
                         </Button>
-                        <input type="number" v-model.number="scheduleForms[getFormIndex(index)].amount_paid"
-                          placeholder="Enter amount"
-                          class="w-36 px-3 py-2 border rounded-xl border-gray-400 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
+                      </template>
+                    </TableCell>
+                  </template>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </div>
 
-                        <Button size="sm" class="w-36 bg-blue-600 hover:bg-blue-700 text-white rounded-full"
-                          @click="notePayment(row.data!.id, index)">
-                          <CircleDollarSign class="w-3 h-3 text-yellow-300" /> Pay
-                        </Button>
-                      </div>
+          <!-- Mobile Card View -->
+          <div class="space-y-4 md:hidden">
+            <div v-for="(row, index) in allPeriods" :key="index"
+              class="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+              <template v-if="row.type === 'grace'">
+                <p class="font-semibold text-indigo-500 mb-2">{{ row.label }}</p>
+                <div class="flex items-center justify-center text-yellow-600 dark:text-yellow-300 font-medium">
+                  <Leaf class="w-4 h-4 mr-2" /> No payment due (Grace Period)
+                </div>
+              </template>
 
-                      <div v-else-if="row.data?.amount_paid && (row.data.balance || 0) > 0"
-                        class="inline-flex items-center gap-1 text-yellow-600 font-semibold">
-                        <TriangleAlert class="w-4 h-4" />
-                        <span>Partially Paid</span>
-                      </div>
+              <template v-else>
+                <!-- Header -->
+                <div class="flex justify-between items-center mb-2">
+                  <p class="font-semibold text-gray-900 dark:text-gray-100">{{ row.label }}</p>
+                  <span :class="[
+                    'text-xs px-3 py-1 rounded-full font-semibold',
+                    row.data?.is_paid
+                      ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200'
+                      : getStatus(row.data!) === 'Overdue'
+                        ? 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200'
+                        : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200'
+                  ]">
+                    {{ getStatus(row.data!) }}
+                  </span>
+                </div>
 
-                      <div v-else-if="row.data?.is_paid"
-                        class="inline-flex items-center gap-1 text-emerald-400 italic font-semibold">
-                        <Check class="w-5 h-5" />
-                        <span>Paid</span>
-                      </div>
-                    </template>
-                  </TableCell>
+                <!-- Payment Details -->
+                <div class="space-y-1 text-sm text-gray-600 dark:text-gray-300 mb-3">
+                  <p><strong>Due Date:</strong> {{ formatDate(row.data?.due_date) }}</p>
+                  <p><strong>Amount:</strong> ₱{{ Math.round(row.data?.installment || 0).toLocaleString() }}</p>
+                  <p><strong>Penalty:</strong> ₱{{ Math.round(row.data?.penalty_amount || 0).toLocaleString() }}</p>
+                  <p><strong>Dues:</strong>
+                    ₱{{ row.totalDue !== undefined
+                      ? Number(row.totalDue).toLocaleString('en-PH', {
+                        minimumFractionDigits: 2, maximumFractionDigits: 2
+                      })
+                      : '0.00'
+                    }}
+                  </p>
+                </div>
 
-                  <!-- Reminder -->
-                  <TableCell class="px-4 py-3">
-                    <template v-if="isResolved">
-                      <span class="inline-flex items-center gap-1 text-green-600 italic font-semibold">
-                        <Check class="w-5 h-5" />
-                        <span>Resolved</span>
-                      </span>
-                    </template>
+                <!-- Actions -->
+                <div class="flex flex-wrap gap-2 justify-between">
+                  <template v-if="isResolved">
+                    <div class="inline-flex items-center gap-1 text-green-600 italic font-semibold">
+                      <Check class="w-4 h-4" />
+                      <span>Resolved</span>
+                    </div>
+                  </template>
 
-                    <template v-else-if="row.data?.is_paid">
-                      <span class="inline-flex items-center gap-1 text-emerald-400 italic font-semibold">
-                        <Check class="w-5 h-5" />
-                        <span>Paid</span>
-                      </span>
-                    </template>
-
-                    <template v-else>
+                  <template v-else>
+                    <!-- Payment buttons -->
+                    <div v-if="row.data && !row.data.is_paid" class="flex flex-col gap-2 w-full">
+                      <input type="number" v-model.number="scheduleForms[getFormIndex(index)].amount_paid"
+                        placeholder="Enter amount"
+                        class="w-full px-3 py-2 border rounded-lg border-gray-300 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
                       <Button size="sm"
-                        class="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-700 hover:bg-red-800 text-white shadow-sm"
-                        @click="sendNotification(row.data!.id)">
-                        🔔 Send Reminder
+                        class="bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="markPaid(row.data!.id, row.label)" :disabled="!canPayPeriod(index)">
+                        <ReceiptText class="w-4 h-4 mr-1" /> Mark Paid
                       </Button>
-                    </template>
-                  </TableCell>
-                </template>
-              </TableRow>
-            </TableBody>
-          </Table>
+                      <Button size="sm"
+                        class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        @click="notePayment(row.data!.id, index)" :disabled="!canPayPeriod(index)">
+                        <CircleDollarSign class="w-4 h-4 mr-1" /> Pay
+                      </Button>
+                    </div>
+
+                    <!-- Reminder -->
+                    <Button size="sm"
+                      class="w-full bg-red-700 hover:bg-red-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      @click="sendNotification(row.data!.id)" :disabled="!canPayPeriod(index)">
+                      🔔 Send Reminder
+                    </Button>
+                  </template>
+                </div>
+              </template>
+            </div>
+          </div>
+
           <div class="flex justify-end mt-6 p-4">
             <button v-if="!isResolved" type="button" @click="openReceiptModal"
               class="bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg shadow-md transition">

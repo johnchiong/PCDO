@@ -4,7 +4,6 @@ import { BreadcrumbItem } from '@/types'
 import type { Member } from '@/types/cooperatives'
 import { router, usePage } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import Button from '@/components/ui/button/Button.vue'
 
 const page = usePage()
 const flash = computed(() => page.props.flash as { success?: string; error?: string; info?: string })
@@ -40,22 +39,18 @@ function closeFileModal() {
   showFileModal.value = false
 }
 
-function downloadFile(file: any) {
-  window.open(`/cooperatives/${props.cooperative.id}/members/${props.member.id}/files/${file.id}/download`, '_blank')
-  closeFileModal()
-}
-
 function deleteFile(file: any) {
-  if (!confirm(`Are you sure you want to delete "${file.file_name}"?`)) return
   router.delete(`/cooperatives/${props.cooperative.id}/members/${props.member.id}/files/${file.id}`, {
     preserveScroll: true,
-    onSuccess: () => closeFileModal(),
+    onSuccess: closeFileModal,
   })
 }
 
 function downloadPdf() {
   window.location.href = `/cooperatives/${props.cooperative.id}/members/${props.member.id}/biodata/pdf`
 }
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 </script>
 
 <template>
@@ -78,10 +73,10 @@ function downloadPdf() {
                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600">
                 <SquarePen class="w-4 h-4" /> Edit
               </button>
-              <a href="#" @click.prevent="downloadPdf" class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg
-              bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600">
+              <a href="#" @click.prevent="downloadPdf" class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg
+         bg-rose-600 text-white hover:bg-rose-700 dark:bg-rose-500 dark:hover:bg-rose-600 whitespace-nowrap">
                 <FileDown class="w-4 h-4" />
-                Download Bio-Data
+                Download
               </a>
             </div>
           </div>
@@ -122,7 +117,7 @@ function downloadPdf() {
             </div>
             <div>
               <p class="label">Birthdate</p>
-              <p class="value">{{ display(member.birth_date) }}</p>
+              <p class="value">{{ display(member.birthdate) }}</p>
             </div>
             <div>
               <p class="label">Age</p>
@@ -334,24 +329,94 @@ function downloadPdf() {
           </div>
 
           <h2 class="text-xl font-semibold mt-10 mb-3 border-b border-gray-600 pb-1">Uploaded Files</h2>
-          <div>
-            <ul v-if="member.files?.length" class="space-y-2">
-              <li v-for="file in member.files" :key="file.id"
-                class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg shadow-sm">
+          <!-- Uploaded Files -->
+          <Section title="Uploaded Files">
+            <div v-if="member.files?.length" class="space-y-2">
+              <div v-for="file in member.files" :key="file.id"
+                class="flex justify-between items-center p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                @click="openFileModal(file)">
                 <div>
-                  <p class="font-medium">{{ file.file_name }}</p>
-                  <p class="text-xs text-gray-500">{{ file.file_type }}</p>
+                  <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ file.file_name }}</p>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">{{ file.file_type }}</p>
                 </div>
-                <Button type="button" @click="openFileModal(file)"
-                  class="bg-blue-600 hover:bg-blue-700 text-white text-sm px-3 py-1.5 rounded-lg">
-                  View
-                </Button>
-              </li>
-            </ul>
+
+                <div class="flex gap-4" @click.stop>
+                  <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${file.id}/download`"
+                    class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Download</a>
+
+                  <AlertDialog>
+                    <AlertDialogTrigger as-child>
+                      <button class="text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Upload?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will permanently remove <strong>{{ file.file_name }}</strong>. This action cannot be
+                          undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction @click="deleteFile(file)">Confirm Delete</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </div>
+            </div>
             <p v-else class="text-sm text-gray-500 italic">No files uploaded</p>
-          </div>
+          </Section>
         </div>
       </div>
     </div>
+    <!-- File Modal -->
+    <Transition name="fade">
+      <div v-if="showFileModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 sm:p-0"
+        @click.self="closeFileModal">
+        <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden
+             sm:rounded-xl sm:m-0 m-auto">
+          <header class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">
+              {{ selectedFile?.file_name }}
+            </h2>
+            <button @click="closeFileModal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+              ✕
+            </button>
+          </header>
+
+          <div class="p-4 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-800 rounded-b-2xl sm:rounded-b-xl">
+            <template v-if="selectedFile?.file_type === 'application/pdf'">
+              <iframe v-if="!isMobile"
+                :src="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                class="w-full h-[70vh]"></iframe>
+
+              <!-- Mobile PDF fallback -->
+              <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                <p class="mb-2">PDF preview not supported on mobile.</p>
+                <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                  target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline" @click="closeFileModal">
+                  Open PDF
+                </a>
+              </div>
+            </template>
+
+            <!-- Image -->
+            <img v-else-if="selectedFile?.file_type?.startsWith('image/')"
+              :src="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+              alt="Preview" class="max-h-[70vh] mx-auto rounded-lg shadow" />
+
+            <!-- Other Files -->
+            <div v-else class="text-center text-gray-600 dark:text-gray-400">
+              <p>Preview not available for this file type.</p>
+              <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/download`"
+                class="text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block">
+                Download File
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </AppLayout>
 </template>

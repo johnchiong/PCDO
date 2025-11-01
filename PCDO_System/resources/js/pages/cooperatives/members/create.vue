@@ -129,7 +129,6 @@ const allowedFileTypes = [
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'image/jpeg',
-    'image/png',
     'image/jpg',
 ];
 
@@ -194,6 +193,8 @@ function handleSubmit() {
         }
     });
 }
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 </script>
 
 <template>
@@ -259,10 +260,8 @@ function handleSubmit() {
 
                         <div>
                             <label for="middle_name" class="block mb-2">Middle Name</label>
-                            <input
-                                v-model="form.middle_name" id="middle_name" type="text"
-                                class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            />
+                            <input v-model="form.middle_name" id="middle_name" type="text"
+                                class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                         </div>
 
                         <div>
@@ -661,8 +660,7 @@ function handleSubmit() {
                             </div>
                         </div>
 
-                        <div
-                            class="flex items-center gap-2">
+                        <div class="flex items-center gap-2">
                             <input type="checkbox" id="is_representative" v-model="form.is_representative" />
                             <label for="is_representative">
                                 Is Representative?
@@ -674,7 +672,7 @@ function handleSubmit() {
                             <div class="border-2 border-dashed bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition"
                                 @dragover.prevent @drop="onDrop" @click="openFileModal">
                                 <input id="fileInput" type="file" multiple @change="onFileChange" class="hidden"
-                                    accept=".pdf,.doc,.docx,.jpg, .jpeg,.png" />
+                                    accept=".pdf,.doc,.docx,.jpg, .jpeg" />
                                 <div v-if="file.length" class="mb-2 space-y-2">
                                     <div v-for="(f, index) in file" :key="index"
                                         class="flex items-center justify-between bg-gray-100 p-2 rounded">
@@ -688,7 +686,7 @@ function handleSubmit() {
                                 <div v-else class="mb-2">
                                     <p class="text-gray-500">Drag & drop files here, or click to select</p>
                                 </div>
-                                <div class="text-xs text-gray-400">Accepted formats: PDF, DOC, DOCX, JPG, PNG</div>
+                                <div class="text-xs text-gray-400">Accepted formats: PDF, DOC, DOCX, JPG</div>
                             </div>
                         </div>
                         <div class="pt-6 md:col-span-2 flex justify-center md:justify-end">

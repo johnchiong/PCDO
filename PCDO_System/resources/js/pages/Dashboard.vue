@@ -97,10 +97,14 @@ function goToNotification(id: number) {
             <div class="grid gap-4 md:grid-cols-4 mt-6 px-4 pb-6">
 
                 <!-- Total Cooperatives -->
-                <div class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 overflow-hidden">
-                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 break-words truncate">Total Cooperatives</h3>
-                    <p class="text-2xl font-extrabold text-blue-600 mt-3 break-words truncate max-w-full">{{ totalCoops }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words truncate">Registered cooperatives</p>
+                <div
+                    class="col-span-4 md:col-span-1 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 overflow-hidden">
+                    <h3 class="text-lg font-semibold text-gray-700 dark:text-gray-200 break-words truncate">Total
+                        Cooperatives</h3>
+                    <p class="text-2xl font-extrabold text-blue-600 mt-3 break-words truncate max-w-full">{{ totalCoops
+                        }}</p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 break-words truncate">Registered
+                        cooperatives</p>
                 </div>
 
                 <!-- Upcoming Monthly Dues -->
@@ -117,19 +121,23 @@ function goToNotification(id: number) {
                     <div class="grid grid-cols-2 gap-4 sm:grid-cols-2 xs:grid-cols-1">
                         <div class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 text-center break-words min-w-0">
                             <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Release</p>
-                            <p class="text-2xl font-bold text-blue-600 break-words">{{ formatCurrencyShort(totalReleases) }}</p>
+                            <p class="text-2xl font-bold text-blue-600 break-words">{{
+                                formatCurrencyShort(totalReleases) }}</p>
                         </div>
                         <div class="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 text-center break-words min-w-0">
                             <p class="text-sm text-gray-500 dark:text-gray-400 truncate">Received</p>
-                            <p class="text-2xl font-bold text-green-600 break-words">{{ formatCurrencyShort(totalReceived) }}</p>
+                            <p class="text-2xl font-bold text-green-600 break-words">{{
+                                formatCurrencyShort(totalReceived) }}</p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Notifications Card -->
-                <div class="col-span-4 md:col-span-1 row-span-2 order-last md:order-none bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
+                <div
+                    class="col-span-4 md:col-span-1 row-span-2 order-last md:order-none bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6">
                     <div class="flex flex-wrap justify-between items-center mb-4 w-full">
-                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 truncate max-w-full sm:max-w-[70%]">
+                        <h2
+                            class="text-xl font-semibold text-gray-800 dark:text-gray-100 truncate max-w-full sm:max-w-[70%]">
                             Recent Notifications
                         </h2>
                         <a href="/notifications"
@@ -143,7 +151,8 @@ function goToNotification(id: number) {
                             class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg text-sm cursor-pointer hover:bg-gray-300 dark:hover:bg-gray-600 transition break-words"
                             @click="goToNotification(notification.id)">
                             {{ notification.subject }}
-                            <p class="text-xs text-gray-500 dark:text-gray-300 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
+                            <p
+                                class="text-xs text-gray-500 dark:text-gray-300 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
                                 {{ new Date(notification.created_at).toLocaleString() }}
                             </p>
                         </li>

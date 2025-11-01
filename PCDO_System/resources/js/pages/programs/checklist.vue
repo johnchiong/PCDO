@@ -120,6 +120,7 @@ function handleUpload(index: number, item: ChecklistItem) {
     `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/upload`,
     {
       forceFormData: true,
+      preserveScroll: true,
       onSuccess: () => {
         const fileName = uploadedFile?.name
         const isChecklistRemade = ref(true)
@@ -210,9 +211,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
 
         <!-- Loan Section -->
-        <div 
-          ref="finalizeLoanSection"
-          v-if="props.cooperative.program"
+        <div ref="finalizeLoanSection" v-if="props.cooperative.program"
           class="bg-gray-50 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
           <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Finalize Loan
@@ -464,38 +463,22 @@ const breadcrumbs: BreadcrumbItem[] = [
           </DialogContent>
         </Dialog>
         <div class="flex justify-end mt-6">
-          <button
-            v-if="!allUploadsDone"
-            type="button"
-            @click="handleSaveProgress"
-            class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md"
-          >
+          <button v-if="!allUploadsDone" type="button" @click="handleSaveProgress"
+            class="bg-indigo-500 hover:bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md">
             Save Progress
           </button>
 
-          <button
-            v-else-if="isChecklistRemade"
-            type="button"
-            @click="showPreviewModal = true"
-            class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg shadow-md"
-          >
+          <button v-else-if="isChecklistRemade" type="button" @click="showPreviewModal = true"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg shadow-md">
             Remake Checklist
           </button>
 
-          <button
-            v-else-if="!props.cooperative.consenter"
-            type="button"
-            @click="showPreviewModal = true"
-            class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md"
-          >
+          <button v-else-if="!props.cooperative.consenter" type="button" @click="showPreviewModal = true"
+            class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md">
             Confirm Checklist
           </button>
 
-          <button
-            v-else
-            disabled
-            class="bg-gray-400 text-white px-5 py-2 rounded-lg shadow-md cursor-not-allowed"
-          >
+          <button v-else disabled class="bg-gray-400 text-white px-5 py-2 rounded-lg shadow-md cursor-not-allowed">
             Checklist Confirmed
           </button>
         </div>

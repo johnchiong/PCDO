@@ -49,7 +49,7 @@ export interface Member {
   street?: string | null;
   city?: string | null;
   telephone?: string | null;
-  birth_date: string;
+  birthdate: string;
   age: number;
   sex: 'Male' | 'Female';
   citizenship: 'Filipino' | 'Others';

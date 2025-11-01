@@ -42,7 +42,7 @@ class AdminController extends Controller
         $roles = Role::select('id', 'name')->orderBy('name')->get();
 
         $recentLogs = DB::table('sync_logs')
-            ->select('id', 'table_name', 'user_id', 'operation', 'record_id', 'changes', 'executed_at as created_at')
+            ->selectRaw("id, table_name, user_id, operation, record_id, changes, CONVERT_TZ(executed_at, '+00:00', '+08:00') as executed_at")
             ->orderBy('executed_at', 'desc')
             ->paginate(10, ['*'], 'logs_page', $logsPage)
             ->withQueryString();
@@ -50,7 +50,14 @@ class AdminController extends Controller
         return Inertia::render('admin/Dashboard', [
             'users' => $users,
             'roles' => $roles,
-            'recentLogs' => $recentLogs,
+            'recentLogs' => [
+                'data' => $recentLogs->items(),
+                'current_page' => $recentLogs->currentPage(),
+                'last_page' => $recentLogs->lastPage(),
+                'prev_page_url' => $recentLogs->previousPageUrl(),
+                'next_page_url' => $recentLogs->nextPageUrl(),
+                'links' => $recentLogs->linkCollection(),
+            ],
             'filters' => ['search' => $search],
         ]);
     }

@@ -25,7 +25,7 @@ class CoopProgram extends Model
         'loan_amount',
         'with_grace',
         'exported',
-        'consenter'
+        'consenter',
     ];
 
     protected $casts = [
@@ -66,7 +66,7 @@ class CoopProgram extends Model
 
     public function coopDetails()
     {
-        return $this->hasMany(CoopDetail::class, 'coop_id', 'coop_id');
+        return $this->hasOne(CoopDetail::class, 'coop_id', 'coop_id');
     }
 
     public function coopMemberFiles()

@@ -15,6 +15,9 @@ const props = defineProps<{
 
 const searchQuery = ref('')
 const page = usePage();
+const showFileModal = ref(false)
+const selectedFile = ref<any>(null)
+const selectedMember = ref<Member | null>(null)
 
 const years = computed(() => props.years.map(y => y.active_year));
 const activeYear = ref(
@@ -100,6 +103,19 @@ function confirmDelete(id: number, first_name: string, last_name: string) {
     })
 }
 
+function openFileModal(member: Member, file: any) {
+    selectedMember.value = member
+    selectedFile.value = file
+    showFileModal.value = true
+}
+
+function closeFileModal() {
+    showFileModal.value = false
+    selectedFile.value = null
+    selectedMember.value = null
+}
+
+const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
 </script>
 
 <template>
@@ -173,10 +189,10 @@ function confirmDelete(id: number, first_name: string, last_name: string) {
                                         <TableCell class="pl-16 text-gray-600 dark:text-gray-300">
                                             <ul v-if="mem.files && mem.files.length" class="list-disc list-inside">
                                                 <li v-for="file in mem.files" :key="file.id">
-                                                    <a :href="file.file_path" target="_blank"
+                                                    <button @click="openFileModal(mem, file)"
                                                         class="text-blue-600 hover:underline">
                                                         {{ file.file_name }}
-                                                    </a>
+                                                    </button>
                                                 </li>
                                             </ul>
                                             <span v-else class="text-gray-500">No files</span>
@@ -206,7 +222,8 @@ function confirmDelete(id: number, first_name: string, last_name: string) {
                                                         </AlertDialogHeader>
                                                         <AlertDialogFooter class="flex justify-end gap-2">
                                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                                            <AlertDialogAction @click="confirmDelete(mem.id, mem.first_name, mem.last_name)">
+                                                            <AlertDialogAction
+                                                                @click="confirmDelete(mem.id, mem.first_name, mem.last_name)">
                                                                 Yes, Delete
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
@@ -227,34 +244,117 @@ function confirmDelete(id: number, first_name: string, last_name: string) {
                         </div>
 
                         <!-- Mobile Cards -->
-                        <div class="md:hidden divide-y divide-gray-200">
-                            <div v-for="mem in members" :key="mem.id" class="p-4 flex flex-col gap-2">
-                                <h3 class="font-semibold text-lg">{{ mem.first_name }} {{ mem.last_name }}</h3>
-                                <p><span class="font-medium">Representative:</span> {{ mem.is_representative ? 'Yes'
-                                    : 'No' }}</p>
-                                <div v-if="mem.files && mem.files.length">
-                                    <span class="font-medium">Files:</span>
-                                    <ul>
+                        <div class="md:hidden space-y-4">
+                            <div v-for="mem in members" :key="mem.id"
+                                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm p-4 transition-all duration-200 hover:shadow-md">
+
+                                <!-- Header -->
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h3 class="text-base font-semibold text-gray-900 dark:text-gray-100">
+                                            {{ mem.first_name }} {{ mem.middle_name ? mem.middle_name : '' }} {{
+                                                mem.last_name }}
+                                        </h3>
+                                        <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                                            {{ mem.position || 'Member' }}
+                                        </p>
+                                    </div>
+
+                                    <span class="text-xs font-medium px-2 py-1 rounded-full" :class="mem.is_representative
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                                        : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'">
+                                        {{ mem.is_representative ? 'Representative' : 'Not Representative' }}
+                                    </span>
+                                </div>
+
+                                <!-- Files -->
+                                <div class="mt-3 border-t border-gray-200 dark:border-gray-700 pt-3">
+                                    <p class="text-sm font-medium text-gray-800 dark:text-gray-200 mb-1">Files</p>
+
+                                    <ul v-if="mem.files && mem.files.length" class="space-y-1">
                                         <li v-for="file in mem.files" :key="file.id">
-                                            <a :href="file.file_path" target="_blank"
-                                                class="text-blue-600 hover:underline">
+                                            <button @click="openFileModal(mem, file)"
+                                                class="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                                                <FileText class="w-4 h-4" />
                                                 {{ file.file_name }}
-                                            </a>
+                                            </button>
                                         </li>
                                     </ul>
+                                    <p v-else class="text-sm text-gray-500 dark:text-gray-400">No files uploaded</p>
                                 </div>
-                                <p v-else class="text-gray-500">No files</p>
-                                <div class="flex gap-2 mt-2 space-x-2">
+
+                                <!-- Actions -->
+                                <div class="mt-4 flex gap-2">
                                     <Button @click="goToViewPage(mem.id)"
-                                        class="flex-1 bg-blue-500 text-white">View</Button>
+                                        class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition">
+                                        View
+                                    </Button>
                                     <Button @click="goToDeletePage(mem.id)"
-                                        class="flex-1 bg-red-500 text-white">Delete</Button>
+                                        class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-medium transition">
+                                        Delete
+                                    </Button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+            <Transition name="fade">
+                <div v-if="showFileModal"
+                    class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 sm:p-0"
+                    @click.self="closeFileModal">
+
+                    <div
+                        class="bg-white dark:bg-gray-900 rounded-2xl shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden sm:m-0 m-auto">
+
+                        <!-- Header -->
+                        <header
+                            class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 p-4">
+                            <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">
+                                {{ selectedFile?.file_name }}
+                            </h2>
+                            <button @click="closeFileModal"
+                                class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                                ✕
+                            </button>
+                        </header>
+
+                        <!-- Content -->
+                        <div class="p-4 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-800 rounded-b-2xl">
+
+                            <!-- PDF -->
+                            <template v-if="selectedFile?.file_type === 'application/pdf'">
+                                <iframe v-if="!isMobile"
+                                    :src="`/cooperatives/${props.cooperative.id}/members/${selectedMember?.id}/files/${selectedFile.id}/view`"
+                                    class="w-full h-[70vh] rounded"></iframe>
+
+                                <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                                    <p class="mb-2">PDF preview not supported on mobile.</p>
+                                    <a :href="`/cooperatives/${props.cooperative.id}/members/${selectedMember?.id}/files/${selectedFile.id}/view`"
+                                        target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline"
+                                        @click="closeFileModal">
+                                        Open PDF
+                                    </a>
+                                </div>
+                            </template>
+
+                            <!-- Images -->
+                            <img v-else-if="selectedFile?.file_type?.startsWith('image/')"
+                                :src="`/cooperatives/${props.cooperative.id}/members/${selectedMember?.id}/files/${selectedFile.id}/view`"
+                                alt="Preview" class="max-h-[70vh] mx-auto rounded-lg shadow" />
+
+                            <!-- Others -->
+                            <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                                <p>Preview not available for this file type.</p>
+                                <a :href="`/cooperatives/${props.cooperative.id}/members/${selectedMember?.id}/files/${selectedFile.id}/download`"
+                                    class="text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block">
+                                    Download File
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </Transition>
         </div>
     </AppLayout>
 </template>
