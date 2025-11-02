@@ -133,14 +133,14 @@ function goToNotification(id: number) {
                         <div
                             class="bg-blue-100 dark:bg-blue-900/30 rounded-lg p-3 text-center flex flex-col justify-center items-center">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Release</p>
-                            <p class="text-2xl font-bold text-blue-600 break-words">
+                            <p class="text-2xl font-bold text-blue-600 break-all max-w-full">
                                 {{ formatCurrencyShort(totalReleases) }}
                             </p>
                         </div>
                         <div
                             class="bg-green-100 dark:bg-green-900/30 rounded-lg p-3 text-center flex flex-col justify-center items-center">
                             <p class="text-sm text-gray-500 dark:text-gray-400">Received</p>
-                            <p class="text-2xl font-bold text-green-600 break-words">
+                            <p class="text-2xl font-bold text-green-600 break-all max-w-full">
                                 {{ formatCurrencyShort(totalReceived) }}
                             </p>
                         </div>
@@ -163,7 +163,8 @@ function goToNotification(id: number) {
                     <ul class="flex-1 space-y-3 overflow-y-auto flex flex-col items-center text-center pt-3 pb-12
            [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
                         <li v-for="notification in notifications" :key="notification.id" class="bg-gray-100 dark:bg-gray-700 w-full p-3 rounded-lg text-sm cursor-pointer 
-             hover:bg-gray-300 dark:hover:bg-gray-600 transition break-words">
+             hover:bg-gray-300 dark:hover:bg-gray-600 transition break-words"
+                            @click="goToNotification(notification.id)">
                             {{ notification.subject }}
                             <p
                                 class="text-xs text-gray-500 dark:text-gray-300 mt-1 whitespace-nowrap overflow-hidden text-ellipsis">
@@ -185,21 +186,33 @@ function goToNotification(id: number) {
                             </p>
                         </div>
 
-                        <div class="flex gap-3">
-                            <button class="px-4 py-2 rounded-lg font-medium transition"
-                                :class="view === 'monthly' ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'"
-                                @click="view = 'monthly'">
+                        <div class="hidden md:flex gap-3">
+                            <button class="px-4 py-2 rounded-lg font-medium transition" :class="view === 'monthly'
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-blue-100 text-blue-700 hover:bg-blue-200'" @click="view = 'monthly'">
                                 Monthly
                             </button>
-                            <button class="px-4 py-2 rounded-lg font-medium transition"
-                                :class="view === 'yearly' ? 'bg-green-600 text-white shadow-md' : 'bg-green-100 text-green-700 hover:bg-green-200'"
-                                @click="view = 'yearly'">
+                            <button class="px-4 py-2 rounded-lg font-medium transition" :class="view === 'yearly'
+                                ? 'bg-green-600 text-white shadow-md'
+                                : 'bg-green-100 text-green-700 hover:bg-green-200'" @click="view = 'yearly'">
                                 Yearly
                             </button>
                         </div>
                     </div>
 
                     <VueApexCharts type="bar" height="320" :options="chartOptions" :series="series" />
+                    <div class="flex md:hidden justify-center gap-3 mt-4">
+                        <button class="px-4 py-2 rounded-lg font-medium transition w-1/2" :class="view === 'monthly'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-blue-100 text-blue-700 hover:bg-blue-200'" @click="view = 'monthly'">
+                            Monthly
+                        </button>
+                        <button class="px-4 py-2 rounded-lg font-medium transition w-1/2" :class="view === 'yearly'
+                            ? 'bg-green-600 text-white shadow-md'
+                            : 'bg-green-100 text-green-700 hover:bg-green-200'" @click="view = 'yearly'">
+                            Yearly
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

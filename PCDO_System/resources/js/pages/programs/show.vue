@@ -15,6 +15,7 @@ const props = defineProps<{
     cooperatives: Array<{
         id: number
         name: string
+        start_date: string
         program_status: string
         has_checklist: boolean
         has_amortization: boolean
@@ -154,6 +155,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <TableRow>
                                     <TableHead class="py-3 pl-6">#</TableHead>
                                     <TableHead class="pl-30 py-3">Cooperative Name</TableHead>
+                                    <TableHead class="pl-30 py-3">Start Date</TableHead>
                                     <TableHead class="pl-30 py-3">Status</TableHead>
                                     <TableHead class="pl-30 py-3">Actions</TableHead>
                                 </TableRow>
@@ -165,9 +167,21 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     </TableCell>
                                     <TableCell class="pl-30 py-3 font-medium text-gray-900 dark:text-gray-100">{{
                                         coop.name }}</TableCell>
+                                    <TableCell class="pl-30 py-3 text-gray-700 dark:text-gray-300">
+                                        {{ new Date(coop.start_date).toLocaleDateString('ph-PH', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        }) }}
+                                    </TableCell>
                                     <TableCell class="pl-30 py-3">
                                         <span v-if="coop.program_status === 'Finished'"
                                             class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                            <CheckCircle class="w-3 h-3" />
+                                            {{ coop.program_status }}
+                                        </span>
+                                        <span v-else-if="coop.program_status === 'Resolved'"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
                                             <CheckCircle class="w-3 h-3" />
                                             {{ coop.program_status }}
                                         </span>
@@ -179,7 +193,8 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     </TableCell>
 
                                     <TableCell class="pl-30 py-3">
-                                        <template v-if="coop.program_status !== 'Finished'">
+                                        <template
+                                            v-if="coop.program_status !== 'Finished' && coop.program_status !== 'Resolved'">
                                             <!-- Upload Checklist -->
                                             <Link v-if="!coop.has_checklist"
                                                 :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
@@ -235,21 +250,36 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     </p>
                                     <p class="text-sm text-gray-600 dark:text-gray-400">#{{ index + 1 }}</p>
                                 </div>
-                                <div>
-                                    <span v-if="coop.program_status === 'Finished'"
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                        <CheckCircle class="w-3 h-3" />
-                                        {{ coop.program_status }}
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                                        {{ new Date(coop.start_date).toLocaleDateString('ph-PH', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        }) }}
                                     </span>
-                                    <span v-else
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
-                                        <CircleDashed class="w-3 h-3 animate-spin" />
-                                        {{ coop.program_status }}
-                                    </span>
+                                    <div>
+                                        <span v-if="coop.program_status === 'Finished'"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                                            <CheckCircle class="w-3 h-3" />
+                                            {{ coop.program_status }}
+                                        </span>
+                                        <span v-else-if="coop.program_status === 'Resolved'"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
+                                            <CheckCircle class="w-3 h-3" />
+                                            {{ coop.program_status }}
+                                        </span>
+                                        <span v-else
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                                            <CircleDashed class="w-3 h-3 animate-spin" />
+                                            {{ coop.program_status }}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div v-if="coop.program_status !== 'Finished'" class="mt-4 space-y-2">
+                            <div v-if="coop.program_status !== 'Finished' && coop.program_status !== 'Resolved'"
+                                class="mt-4 space-y-2">
                                 <!-- Upload Checklist -->
                                 <Link v-if="!coop.has_checklist"
                                     :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
@@ -260,7 +290,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
                                 <!-- Re-upload only -->
                                 <Link v-else-if="coop.has_checklist && !coop.has_amortization"
-                                    :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist/reupload`"
+                                    :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
                                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg shadow-md transition w-full justify-center">
                                 <Upload class="w-4 h-4" />
                                 <span>Re-upload Checklist</span>
@@ -268,7 +298,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
                                 <!-- Re-upload + View Amortization -->
                                 <template v-else-if="coop.has_checklist && coop.has_amortization">
-                                    <Link :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist/reupload`"
+                                    <Link :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
                                         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg shadow-md transition w-full justify-center">
                                     <Upload class="w-4 h-4" />
                                     <span>Re-upload</span>
@@ -286,6 +316,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                             🚫 No cooperatives enrolled in this program yet.
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>

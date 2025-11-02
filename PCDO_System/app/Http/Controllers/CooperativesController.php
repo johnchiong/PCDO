@@ -168,7 +168,22 @@ class CooperativesController extends Controller
         $programs = Programs::select('id', 'name')->get();
 
         // Provide default empty details if none exist
-        $details = $cooperative->details ?? (object) [
+        $details = $cooperative->details ? [
+            'coop_type' => $cooperative->details->coop_type,
+            'status_category' => $cooperative->details->status_category,
+            'bond_of_membership' => $cooperative->details->bond_of_membership,
+            'area_of_operation' => $cooperative->details->area_of_operation,
+            'citizenship' => $cooperative->details->citizenship,
+            'members_count' => $cooperative->details->members_count,
+            'total_asset' => $cooperative->details->total_asset,
+            'net_surplus' => $cooperative->details->net_surplus,
+            'region' => $cooperative->details->region->name ?? '',
+            'province' => $cooperative->details->province->name ?? '',
+            'city' => $cooperative->details->city->name ?? '',
+            'barangay' => $cooperative->details->barangay->name ?? '',
+            'email' => $cooperative->details->email ?? '',
+            'number' => $cooperative->details->number ?? '',
+        ] : (object) [
             'coop_type' => '',
             'status_category' => '',
             'bond_of_membership' => '',
@@ -177,6 +192,12 @@ class CooperativesController extends Controller
             'members_count' => 0,
             'total_asset' => 0,
             'net_surplus' => 0,
+            'region' => '',
+            'province' => '',
+            'city' => '',
+            'barangay' => '',
+            'email' => '',
+            'number' => '',
         ];
 
         return inertia('cooperatives/show', [

@@ -158,7 +158,9 @@ function confirmDelete(id: string, name: string) {
     deletingId.value = id
     router.delete(`/cooperatives/${id}`, {
         onFinish: () => {
-            deletingId.value = id
+            deletingId.value = null
+        },
+        onSuccess: () => {
             toast.success(`${name} has been deleted successfully!`)
         },
         onError: () => {
@@ -204,38 +206,31 @@ usePolling(["cooperatives"], 15000);
                 <!-- Top Actions Card -->
                 <div
                     class="bg-gray-200 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
-                    <div
-                        class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-4">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-4">
 
                         <!-- Left Side: Search + Filter -->
                         <div class="flex flex-col md:flex-row items-stretch gap-3 md:gap-4 flex-1 md:w-auto">
                             <!-- Search Bar -->
                             <div class="relative flex-1 md:w-80">
-                            <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
-                            <InputField
-                                v-model="searchQuery"
-                                placeholder="Search cooperatives..."
-                                class="pl-9 pr-3 w-full rounded-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200"
-                            />
+                                <Search class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-4 w-4" />
+                                <InputField v-model="searchQuery" placeholder="Search cooperatives..."
+                                    class="pl-9 pr-3 w-full rounded-sm border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-800 dark:text-gray-200" />
                             </div>
 
                             <!-- Status Filter (Desktop only) -->
                             <div class="hidden md:block">
-                            <select
-                                v-model="statusFilter"
-                                class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-indigo-500">
-                                <option value="">All Status</option>
-                                <option value="ongoing">Ongoing</option>
-                                <option value="inactive">Inactive</option>
-                            </select>
+                                <select v-model="statusFilter"
+                                    class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm focus:ring-2 focus:ring-indigo-500">
+                                    <option value="">All Status</option>
+                                    <option value="ongoing">Ongoing</option>
+                                    <option value="inactive">Inactive</option>
+                                </select>
                             </div>
                         </div>
 
                         <!-- Right Side: Filter (Mobile) + Actions -->
                         <div class="flex items-center justify-between md:justify-end gap-3 w-full md:w-auto">
-                            <button
-                            @click="showFilterModal = true"
-                            class="md:hidden flex items-center justify-center
+                            <button @click="showFilterModal = true" class="md:hidden flex items-center justify-center
                                     w-36 h-10
                                     px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600
                                     bg-white dark:bg-gray-800
@@ -243,64 +238,62 @@ usePolling(["cooperatives"], 15000);
                                     shadow-sm hover:bg-gray-100 dark:hover:bg-gray-700
                                     transition-colors duration-150 ease-in-out">
 
-                            <div class="flex items-center justify-center gap-2">
-                                <template v-if="statusFilter === 'ongoing'">
-                                <CircleDashed class="w-4 h-4 text-green-600 animate-spin" />
-                                <span>Ongoing</span>
-                                </template>
+                                <div class="flex items-center justify-center gap-2">
+                                    <template v-if="statusFilter === 'ongoing'">
+                                        <CircleDashed class="w-4 h-4 text-green-600 animate-spin" />
+                                        <span>Ongoing</span>
+                                    </template>
 
-                                <template v-else-if="statusFilter === 'inactive'">
-                                <XCircle class="w-4 h-4 text-red-600" />
-                                <span>Inactive</span>
-                                </template>
+                                    <template v-else-if="statusFilter === 'inactive'">
+                                        <XCircle class="w-4 h-4 text-red-600" />
+                                        <span>Inactive</span>
+                                    </template>
 
-                                <template v-else>
-                                <span>All</span>
-                                </template>
-                            </div>
+                                    <template v-else>
+                                        <span>All</span>
+                                    </template>
+                                </div>
                             </button>
 
                             <!-- Actions Dropdown -->
                             <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                                <button
-                                class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
-                                <span class="flex items-center gap-2">
-                                    <Plus class="w-4 h-4" /> Actions
-                                </span>
-                                <ChevronDown class="w-4 h-4" />
-                                </button>
-                            </DropdownMenuTrigger>
+                                <DropdownMenuTrigger asChild>
+                                    <button
+                                        class="inline-flex items-center justify-between gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm font-medium transition w-36">
+                                        <span class="flex items-center gap-2">
+                                            <Plus class="w-4 h-4" /> Actions
+                                        </span>
+                                        <ChevronDown class="w-4 h-4" />
+                                    </button>
+                                </DropdownMenuTrigger>
 
-                            <DropdownMenuContent
-                                side="bottom"
-                                align="end"
-                                class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
-                                <DropdownMenuItem asChild>
-                                <button @click="goToCreatePage()"
-                                    class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                    <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
-                                    Create
-                                </button>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                <button @click="openImportModal()"
-                                    class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                    <FileUp class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
-                                    Import Data
-                                </button>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem asChild>
-                                <button @click="openExportModal()"
-                                    class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-                                    <FileDown class="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
-                                    Export Data
-                                </button>
-                                </DropdownMenuItem>
-                            </DropdownMenuContent>
+                                <DropdownMenuContent side="bottom" align="end"
+                                    class="w-48 bg-white dark:bg-gray-900 shadow-xl rounded-lg border border-gray-200 dark:border-gray-700 p-1">
+                                    <DropdownMenuItem asChild>
+                                        <button @click="goToCreatePage()"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <Plus class="w-4 h-4 text-green-600 dark:text-green-400 shrink-0" />
+                                            Create
+                                        </button>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <button @click="openImportModal()"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <FileUp class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                            Import Data
+                                        </button>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <button @click="openExportModal()"
+                                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
+                                            <FileDown class="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
+                                            Export Data
+                                        </button>
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
                             </DropdownMenu>
                         </div>
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -393,7 +386,7 @@ usePolling(["cooperatives"], 15000);
                                                     <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         Are you sure you want to delete <strong>{{ coop.name
-                                                            }}</strong>?
+                                                        }}</strong>?
                                                         This action cannot be undone.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
@@ -443,15 +436,13 @@ usePolling(["cooperatives"], 15000);
                                 Members: {{ coop.member_count }}
                             </p>
                             <div class="flex justify-end gap-4 mt-4">
-                                <Button
-                                    @click="goToViewPage(coop.id)"
+                                <Button @click="goToViewPage(coop.id)"
                                     class="w-24 h-9 text-sm rounded-lg bg-blue-500 text-white font-medium
                                         hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600 transition-all duration-150">
                                     View
                                 </Button>
 
-                                <Button
-                                    @click="goToDeletePage(coop.id)"
+                                <Button @click="goToDeletePage(coop.id)"
                                     class="w-24 h-9 text-sm rounded-lg bg-red-500 text-white font-medium
                                         hover:bg-red-600 dark:bg-red-700 dark:hover:bg-red-600 transition-all duration-150">
                                     Delete
@@ -556,36 +547,30 @@ usePolling(["cooperatives"], 15000);
                         </label>
 
                         <div class="grid grid-cols-1 gap-3">
-                            <button
-                                @click="statusFilter = ''; showFilterModal = false"
-                                :class="[
-                                    'w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all',
-                                    statusFilter === ''
-                                        ? 'bg-indigo-600 text-white border-indigo-600'
-                                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                ]">
+                            <button @click="statusFilter = ''; showFilterModal = false" :class="[
+                                'w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all',
+                                statusFilter === ''
+                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ]">
                                 All Status
                             </button>
 
-                            <button
-                                @click="statusFilter = 'ongoing'; showFilterModal = false"
-                                :class="[
-                                    'w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all',
-                                    statusFilter === 'ongoing'
-                                        ? 'bg-green-600 text-white border-green-600'
-                                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                ]">
+                            <button @click="statusFilter = 'ongoing'; showFilterModal = false" :class="[
+                                'w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all',
+                                statusFilter === 'ongoing'
+                                    ? 'bg-green-600 text-white border-green-600'
+                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ]">
                                 Ongoing
                             </button>
 
-                            <button
-                                @click="statusFilter = 'inactive'; showFilterModal = false"
-                                :class="[
-                                    'w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all',
-                                    statusFilter === 'inactive'
-                                        ? 'bg-red-600 text-white border-red-600'
-                                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                ]">
+                            <button @click="statusFilter = 'inactive'; showFilterModal = false" :class="[
+                                'w-full px-4 py-2 rounded-lg text-sm font-medium border transition-all',
+                                statusFilter === 'inactive'
+                                    ? 'bg-red-600 text-white border-red-600'
+                                    : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'
+                            ]">
                                 Inactive
                             </button>
                         </div>

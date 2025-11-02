@@ -17,6 +17,7 @@ class CoopProgramChecklistController extends Controller
         $coopProgram = CoopProgram::with(['program.checklists', 'cooperative'])
             ->where('program_id', $programId)
             ->where('coop_id', $cooperativeId)
+            ->orderby('id', 'desc')
             ->firstOrFail();
 
         $checklistItems = $coopProgram->program->checklists;
@@ -55,6 +56,7 @@ class CoopProgramChecklistController extends Controller
     // Upload a file
     public function upload(Request $request, $programId, $cooperativeId)
     {
+        ini_set('max_execution_time', 120);
         $request->validate([
             'program_checklist_id' => 'required|exists:program_checklists,id',
             'file' => 'required|file|max:5120',
@@ -62,6 +64,7 @@ class CoopProgramChecklistController extends Controller
 
         $coopProgram = CoopProgram::where('program_id', $programId)
             ->where('coop_id', $cooperativeId)
+            ->orderby('id', 'desc')
             ->firstOrFail();
 
         $file = $request->file('file');
@@ -142,6 +145,7 @@ class CoopProgramChecklistController extends Controller
     {
         $coopProgram = CoopProgram::where('program_id', $programId)
             ->where('coop_id', $cooperativeId)
+            ->orderby('id', 'desc')
             ->firstOrFail();
 
         $coopProgram->consenter = auth()->user()->id;

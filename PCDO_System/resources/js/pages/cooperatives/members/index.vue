@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { BreadcrumbItem } from '@/types'
 import { router, usePage } from '@inertiajs/vue3';
 import type { Member } from '@/types/cooperatives';
@@ -115,7 +115,13 @@ function closeFileModal() {
     selectedMember.value = null
 }
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const isMobile = ref(false)
+
+onMounted(() => {
+    const uaCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const sizeCheck = window.matchMedia('(max-width: 768px)').matches
+    isMobile.value = uaCheck || sizeCheck
+})
 </script>
 
 <template>
@@ -191,7 +197,10 @@ const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
                                                 <li v-for="file in mem.files" :key="file.id">
                                                     <button @click="openFileModal(mem, file)"
                                                         class="text-blue-600 hover:underline">
-                                                        {{ file.file_name }}
+                                                        <span class="truncate block max-w-[50px] md:max-w-[120px]"
+                                                            title="{{ file.file_name }}">
+                                                            {{ file.file_name }}
+                                                        </span>
                                                     </button>
                                                 </li>
                                             </ul>
@@ -276,7 +285,10 @@ const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
                                             <button @click="openFileModal(mem, file)"
                                                 class="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
                                                 <FileText class="w-4 h-4" />
-                                                {{ file.file_name }}
+                                                <span class="truncate block max-w-[200px] md:max-w-[300px]"
+                                                    title="{{ file.file_name }}">
+                                                    {{ file.file_name }}
+                                                </span>
                                             </button>
                                         </li>
                                     </ul>

@@ -745,9 +745,13 @@ class DocumentationController extends Controller
 
     private function pdfResponse(string $pdfContent, CoopProgram $coopProgram, string $suffix): Response
     {
+        $disposition = request()->boolean('download')
+            ? 'attachment'
+            : 'inline';
+
         return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'inline; filename="'.$this->generateFileName($coopProgram, $suffix).'"')
+            ->header('Content-Disposition', $disposition.'; filename="'.$this->generateFileName($coopProgram, $suffix).'"')
             ->header('Content-Length', strlen($pdfContent))
             ->header('Cache-Control', 'public, max-age=0, must-revalidate')
             ->header('Accept-Ranges', 'bytes')

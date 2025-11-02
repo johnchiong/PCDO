@@ -645,8 +645,11 @@ const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
                                     class="flex justify-between items-center p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition"
                                     @click="openFileModal(file)">
                                     <div>
-                                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{
-                                            file.file_name }}</p>
+                                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200"> <span
+                                                class="truncate block max-w-[140px] md:max-w-[140px]"
+                                                title="{{ file.file_name }}">
+                                                {{ file.file_name }}
+                                            </span></p>
                                         <p class="text-xs text-gray-500 dark:text-gray-400">{{ file.file_type }}</p>
                                     </div>
 

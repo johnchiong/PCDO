@@ -41,10 +41,12 @@ class ProgramController extends Controller
 
         $cooperatives = CoopProgram::with('cooperative')
             ->where('program_id', $id)
+            ->orderBy('start_date', 'desc')
             ->get()
             ->map(fn ($cp) => [
                 'id' => $cp->cooperative->id,
                 'name' => $cp->cooperative->name,
+                'start_date' => $cp->start_date,
                 'program_status' => $cp->program_status,
                 'has_checklist' => $cp->checklist()->exists(),
                 'has_amortization' => $cp->amortizationSchedules()->exists(),
@@ -143,6 +145,7 @@ class ProgramController extends Controller
 
         $coopProgram = CoopProgram::where('program_id', $program->id)
             ->where('coop_id', $cooperative->id)
+            ->orderby('id', 'desc')
             ->first();
 
         if (! $coopProgram) {
