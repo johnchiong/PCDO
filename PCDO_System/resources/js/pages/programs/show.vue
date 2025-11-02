@@ -19,6 +19,7 @@ const props = defineProps<{
         program_status: string
         has_checklist: boolean
         has_amortization: boolean
+        coopProgramId: number
     }>
 }>()
 
@@ -220,7 +221,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                                 <Upload class="w-4 h-4" />
                                                 <span>Re-upload</span>
                                                 </Link>
-                                                <Link :href="`/amortizations/${program.id}`"
+                                                <Link :href="`/amortizations/${coop.coopProgramId}`"
                                                     class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-md transition">
                                                 <FileText class="w-4 h-4" />
                                                 <span>View Schedule</span>
@@ -303,7 +304,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     <Upload class="w-4 h-4" />
                                     <span>Re-upload</span>
                                     </Link>
-                                    <Link :href="`/programs/${program.id}/cooperatives/${coop.id}/amortization`"
+                                    <Link :href="`/amortizations/${coop.coopProgramId}`"
                                         class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg shadow-md transition w-full justify-center">
                                     <FileText class="w-4 h-4" />
                                     <span>View Schedule</span>
