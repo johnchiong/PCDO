@@ -3,12 +3,14 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { BreadcrumbItem } from '@/types'
 import type { Member } from '@/types/cooperatives'
 import { router, usePage } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import PdfViewer from '@/components/PdfViewer.vue'
 
 const page = usePage()
 const flash = computed(() => page.props.flash as { success?: string; error?: string; info?: string })
 const showFileModal = ref(false)
 const selectedFile = ref<any | null>(null)
+const pdfFailed = ref(false)
 
 const props = defineProps<{
   breadcrumbs?: BreadcrumbItem[]
@@ -50,7 +52,13 @@ function downloadPdf() {
   window.location.href = `/cooperatives/${props.cooperative.id}/members/${props.member.id}/biodata/pdf`
 }
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const isMobile = ref(false)
+
+onMounted(() => {
+  const uaCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  const sizeCheck = window.matchMedia('(max-width: 768px)').matches
+  isMobile.value = uaCheck || sizeCheck
+})
 </script>
 
 <template>
@@ -395,19 +403,28 @@ const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
                 class="w-full h-[70vh]"></iframe>
 
               <!-- Mobile PDF fallback -->
-              <div v-else class="text-center text-gray-600 dark:text-gray-400">
-                <p class="mb-2">PDF preview not supported on mobile.</p>
-                <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
-                  target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline" @click="closeFileModal">
-                  Open PDF
-                </a>
-              </div>
+              <template v-else>
+                <!-- Show PdfViewer first, fallback if it errors -->
+                <PdfViewer v-if="!pdfFailed" type="member" :cooperative-id="props.cooperative.id"
+                  :member-id="member?.id" :file-id="selectedFile.id"
+                  :url="`/cooperatives/${props.cooperative.id}/members/${member?.id}/files/${selectedFile.id}/view`"
+                  @error="pdfFailed = true" />
+
+                <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                  <p class="mb-2">PDF preview not supported on mobile.</p>
+                  <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                    target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline" @click="closeFileModal">
+                    Open PDF
+                  </a>
+                </div>
+              </template>
             </template>
 
             <!-- Image -->
             <img v-else-if="selectedFile?.file_type?.startsWith('image/')"
               :src="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
               alt="Preview" class="max-h-[70vh] mx-auto rounded-lg shadow" />
+
 
             <!-- Other Files -->
             <div v-else class="text-center text-gray-600 dark:text-gray-400">

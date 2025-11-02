@@ -4,6 +4,7 @@ import { useForm, router } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
 import { computed, watch, ref, nextTick, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
+import PdfViewer from '@/components/PdfViewer.vue'
 
 // Interfaces
 interface ChecklistItem {
@@ -65,6 +66,7 @@ const showPreviewModal = ref(false)
 
 const finalizeLoanSection = ref<HTMLElement | null>(null)
 const isChecklistRemade = ref(false)
+const pdfFailed = ref(false)
 
 watch(showPreviewModal, (isOpen) => {
   if (isOpen) {
@@ -123,7 +125,7 @@ function handleUpload(index: number, item: ChecklistItem) {
       forceFormData: true,
       preserveScroll: true,
       onSuccess: () => {
-        const fileName = uploadedFile?.name
+        const fileName = uploadedFile?.name || 'File'
         const isChecklistRemade = ref(true)
         forms[index].reset()
         router.visit(window.location.href, {
@@ -132,7 +134,9 @@ function handleUpload(index: number, item: ChecklistItem) {
           preserveState: true,
           replace: true,
         })
-        toast.success(`"${fileName}" uploaded successfully!`)
+        const displayName = fileName.length > 20 ? fileName.slice(0, 17) + '...' : fileName
+        toast.success(`"${displayName}" uploaded successfully!`)
+
       },
       onError: () => toast.error('Failed to upload file. Please try again.')
     }
@@ -444,17 +448,20 @@ onMounted(() => {
                   </p>
 
                   <div v-if="isMobile">
-                    <template v-if="selectedFile.url && selectedFile.name.toLowerCase().endsWith('.pdf')">
-                      <div
-                        class="flex flex-col items-center justify-center w-full h-[40vh] bg-gray-200 dark:bg-gray-800 rounded-lg mb-4 text-center text-gray-700 dark:text-gray-300 text-sm md:text-base">
-                        <p class="mb-3">Mobile devices don’t support PDF preview.</p>
+                    <template v-if="selectedFile.name.toLowerCase().endsWith('.pdf')">
+                      <PdfViewer v-if="!pdfFailed" type="checklist" :url="selectedFile.url"
+                        :cooperative-id="props.cooperative.cooperative.id" :program-id="props.cooperative.program?.id"
+                        :file-id="selectedFile.id" @error="pdfFailed = true" />
+
+                      <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                        <p class="mb-2">PDF preview not supported on this device.</p>
                         <a :href="selectedFile.url" target="_blank"
-                          class="px-4 py-2 rounded-lg bg-indigo-600 text-white hover:bg-indigo-700">
+                          class="text-blue-600 dark:text-blue-400 hover:underline">
                           Open PDF in New Tab
                         </a>
                       </div>
                     </template>
-                    <template v-else>
+                    <template v-else -if="selectedFile.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)">
                       <img :src="selectedFile.url" alt="Preview"
                         class="w-full h-auto max-h-[40vh] object-contain rounded-lg border border-gray-300 dark:border-gray-700 mb-4" />
                     </template>

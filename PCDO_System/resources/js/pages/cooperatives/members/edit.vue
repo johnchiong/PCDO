@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
 import SelectSearch from '@/components/SelectSearch.vue'
 import { Member } from '@/types/cooperatives'
 import { toast } from "vue-sonner"
+import PdfViewer from '@/components/PdfViewer.vue'
 
 const props = defineProps<{
     breadcrumbs?: BreadcrumbItem[]
@@ -123,6 +124,7 @@ const dropDownPositionOpen = ref(false)
 const file = ref<File[]>([])
 const selectedFile = ref<any>(null)
 const showFileModal = ref(false)
+const pdfFailed = ref(false)
 
 const allowedFileTypes = [
     'application/pdf',
@@ -197,7 +199,13 @@ function handleSubmit() {
     })
 }
 
-const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+const isMobile = ref(false)
+
+onMounted(() => {
+    const uaCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const sizeCheck = window.matchMedia('(max-width: 768px)').matches
+    isMobile.value = uaCheck || sizeCheck
+})
 </script>
 
 <template>
@@ -667,7 +675,7 @@ const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
                                                     <AlertDialogTitle>Delete Upload?</AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         This will permanently remove <strong>{{ file.file_name
-                                                            }}</strong>. This action cannot be
+                                                        }}</strong>. This action cannot be
                                                         undone.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
@@ -739,14 +747,22 @@ const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
                                 class="w-full h-[70vh]"></iframe>
 
                             <!-- Mobile PDF fallback -->
-                            <div v-else class="text-center text-gray-600 dark:text-gray-400">
-                                <p class="mb-2">PDF preview not supported on mobile.</p>
-                                <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
-                                    target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline"
-                                    @click="closeFileModal">
-                                    Open PDF
-                                </a>
-                            </div>
+                            <template v-else>
+                                <!-- Show PdfViewer first, fallback if it errors -->
+                                <PdfViewer v-if="!pdfFailed" type="member" :cooperative-id="props.cooperative.id"
+                                    :member-id="member?.id" :file-id="selectedFile.id"
+                                    :url="`/cooperatives/${props.cooperative.id}/members/${member?.id}/files/${selectedFile.id}/view`"
+                                    @error="pdfFailed = true" />
+
+                                <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                                    <p class="mb-2">PDF preview not supported on mobile.</p>
+                                    <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                                        target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline"
+                                        @click="closeFileModal">
+                                        Open PDF
+                                    </a>
+                                </div>
+                            </template>
                         </template>
 
                         <!-- Image -->

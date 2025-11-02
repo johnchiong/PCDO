@@ -146,7 +146,7 @@ onMounted(() => {
                                 {{ selectedFile.name }} Preview
                             </h3>
 
-                            <PdfViewer v-if="isMobile" :url="selectedFile.url" />
+                            <PdfViewer v-if="isMobile" type="documentation" :url="selectedFile.url" />
 
                             <iframe v-else :src="selectedFile.url"
                                 class="w-full h-[80vh] rounded-lg border border-gray-300 dark:border-gray-700 shadow-sm"></iframe>

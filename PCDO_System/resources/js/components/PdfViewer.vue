@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -7,15 +7,24 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
     import.meta.url
 ).toString()
 
+const emit = defineEmits<{
+    (e: 'error', err: any): void
+}>()
+
 const props = defineProps<{
     url: string
+    type?: 'member' | 'documentation' | 'checklist'
+    programId?: number | string
+    cooperativeId?: number | string
+    memberId?: number | string
+    fileId?: number | string
 }>()
 
 const container = ref<HTMLDivElement | null>(null)
 
 const loadPdf = async (url: string) => {
     if (!url) return
-    if (container.value) container.value.innerHTML = '' // clear old pages
+    if (container.value) container.value.innerHTML = ''
 
     try {
         const pdf = await pdfjsLib.getDocument(url).promise
@@ -40,14 +49,26 @@ const loadPdf = async (url: string) => {
         }
     } catch (err) {
         console.error('Failed to load PDF:', err)
+        emit('error', err)
     }
 }
 
 onMounted(() => loadPdf(props.url))
 watch(() => props.url, (newUrl) => loadPdf(newUrl))
 
+// Dynamic download URL
+const downloadUrl = computed(() => {
+    if (props.type === 'member' && props.cooperativeId && props.memberId && props.fileId) {
+        return `/cooperatives/${props.cooperativeId}/members/${props.memberId}/files/${props.fileId}/download`
+    }
+    if (props.type === 'checklist' && props.programId && props.cooperativeId && props.fileId) {
+        return `/programs/${props.programId}/cooperatives/${props.cooperativeId}/checklist/${props.fileId}/download`
+    }
+    return `${props.url}?download=1`
+})
+
 const downloadPdf = () => {
-    window.location.href = `${props.url}?download=1`
+    window.location.href = downloadUrl.value
 }
 </script>
 
