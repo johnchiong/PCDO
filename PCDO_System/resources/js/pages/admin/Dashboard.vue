@@ -143,35 +143,6 @@ function formatDate(dt?: string) {
     return new Date(dt).toLocaleString()
 }
 
-function formatChanges(changes?: string | null): { key: string; value: string }[] {
-    if (!changes) return []
-    try {
-        const data = JSON.parse(changes)
-        if (typeof data === 'object' && data !== null) {
-            return Object.entries(data).map(([key, value]) => {
-                let displayValue: string
-
-                if (value === null) displayValue = 'null'
-                else if (Array.isArray(value) || typeof value === 'object') {
-                    displayValue = JSON.stringify(value, null, 0)
-                } else {
-                    displayValue = String(value)
-                }
-
-                if (key === 'file_content' && displayValue.length > 100) {
-                    displayValue = displayValue.slice(0, 100) + '... [truncated]'
-                }
-
-                return { key, value: displayValue }
-            })
-        }
-
-        return [{ key: 'value', value: JSON.stringify(data) }]
-    } catch {
-        return [{ key: 'raw', value: changes.slice(0, 500) }]
-    }
-}
-
 function goToLogsPage(url: string) {
     if (!url) return
     router.visit(url, {
@@ -195,11 +166,50 @@ window.addEventListener('resize', () => {
 })
 
 const showValueModal = ref(false)
-const valueModalData = ref<{ key: string; value: string }>({ key: '', value: '' })
+const valueModalData = ref<{ key: string; value: string }[]>([])
+const modalTitle = ref('')
+const loadingChanges = ref(false)
 
-function openValueModal(change: { key: string; value: string }) {
-    valueModalData.value = change
+async function openChangesModal(logId: number) {
     showValueModal.value = true
+    valueModalData.value = []
+    loadingChanges.value = true
+    modalTitle.value = `Log #${logId}`
+
+    try {
+        const res = await fetch(`/admin/logs/${logId}/changes`)
+        if (!res.ok) throw new Error('Failed to fetch changes')
+        const data = await res.json()
+        const changes = data.changes ? JSON.parse(data.changes) : {}
+
+        if (typeof changes === 'object' && changes !== null) {
+            valueModalData.value = Object.entries(changes).map(([key, value]) => {
+                let displayValue: string
+
+                if (value === null) displayValue = 'null'
+                else if (Array.isArray(value) || typeof value === 'object') {
+                    displayValue = JSON.stringify(value, null, 2)
+                } else {
+                    displayValue = String(value)
+                }
+                if (
+                    key === 'file_content' ||
+                    displayValue.length > 500
+                ) {
+                    displayValue =
+                        displayValue.slice(0, 500) + '... [truncated]'
+                }
+
+                return { key, value: displayValue }
+            })
+        } else {
+            valueModalData.value = [{ key: 'raw', value: data.changes }]
+        }
+    } catch (e) {
+        valueModalData.value = [{ key: 'Error', value: 'Could not load changes.' }]
+    } finally {
+        loadingChanges.value = false
+    }
 }
 
 </script>
@@ -239,56 +249,68 @@ function openValueModal(change: { key: string; value: string }) {
                 </div>
 
                 <div
-                    class="col-span-3 md:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-6 overflow-x-auto">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
-                        <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100">All Users</h2>
+                    class="col-span-3 md:col-span-2 bg-gray-50 dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 overflow-hidden">
+
+                    <!-- Header & Search -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                        <h2 class="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100">All Users</h2>
                         <input v-model="search" placeholder="Search users..."
-                            class="rounded-lg px-3 py-2 bg-white dark:bg-gray-700 border w-full sm:w-64" />
+                            class="rounded-lg px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm sm:text-base w-full sm:w-64 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                     </div>
 
-                    <table class="hidden sm:table min-w-full text-sm">
-                        <thead>
-                            <tr class="text-left text-gray-500 dark:text-gray-300">
-                                <th class="py-2">Name</th>
-                                <th class="py-2">Email</th>
-                                <th class="py-2">Roles</th>
-                                <th class="py-2">Created</th>
-                                <th class="py-2 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-for="user in filteredUsers" :key="user.id"
-                                class="border-b border-gray-200 dark:border-gray-700">
-                                <td class="font-medium text-gray-900 dark:text-gray-100">{{ user.name }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>{{user.roles.map(r => r.name).join(', ')}}</td>
-                                <td>{{ formatDate(user.created_at) }}</td>
-                                <td class="text-right">
-                                    <button @click="deleteUser(user.id)"
-                                        class="text-red-500 hover:underline">Delete</button>
-                                </td>
-                            </tr>
-                            <tr v-if="filteredUsers.length === 0">
-                                <td colspan="5" class="py-6 text-center text-gray-500">No users found.</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <!-- Desktop Table -->
+                    <div class="hidden sm:block overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead>
+                                <tr
+                                    class="text-left text-gray-500 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+                                    <th class="py-2 px-2">Name</th>
+                                    <th class="py-2 px-2">Email</th>
+                                    <th class="py-2 px-2">Roles</th>
+                                    <th class="py-2 px-2">Created</th>
+                                    <th class="py-2 px-2 text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="user in filteredUsers" :key="user.id"
+                                    class="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors">
+                                    <td class="py-2 px-2 font-medium text-gray-900 dark:text-gray-100">{{ user.name }}
+                                    </td>
+                                    <td class="py-2 px-2">{{ user.email }}</td>
+                                    <td class="py-2 px-2">{{user.roles.map(r => r.name).join(', ')}}</td>
+                                    <td class="py-2 px-2">{{ formatDate(user.created_at) }}</td>
+                                    <td class="py-2 px-2 text-right">
+                                        <button @click="deleteUser(user.id)"
+                                            class="text-red-500 hover:underline text-sm font-medium">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr v-if="filteredUsers.length === 0">
+                                    <td colspan="5" class="py-6 text-center text-gray-500">No users found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
+                    <!-- Mobile Cards -->
                     <div class="sm:hidden space-y-4">
                         <div v-for="user in filteredUsers" :key="user.id"
-                            class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex justify-between items-start w-full">
-                            <div class="w-[85%] break-words">
+                            class="border border-gray-200 dark:border-gray-700 rounded-xl p-4 flex flex-col space-y-2 bg-white dark:bg-gray-800 shadow-sm">
+                            <div>
                                 <p class="font-semibold text-gray-800 dark:text-gray-100 text-base">{{ user.name }}</p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ user.email }}</p>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">Roles: {{user.roles.map(r =>
-                                    r.name).join(', ') || '-'}}</p>
-                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ formatDate(user.created_at)
-                                }}</p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400 break-all">{{ user.email }}</p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    Roles: {{user.roles.map(r => r.name).join(', ') || '-'}}
+                                </p>
+                                <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                    {{ formatDate(user.created_at) }}
+                                </p>
                             </div>
                             <button @click="deleteUser(user.id)"
-                                class="text-red-500 text-sm font-medium self-center">Delete</button>
+                                class="text-red-500 text-sm font-medium self-start mt-2">Delete</button>
                         </div>
-                        <div v-if="filteredUsers.length === 0" class="py-4 text-center text-gray-500">No users found.
+
+                        <div v-if="filteredUsers.length === 0" class="py-4 text-center text-gray-500">
+                            No users found.
                         </div>
                     </div>
                 </div>
@@ -329,21 +351,10 @@ function openValueModal(change: { key: string; value: string }) {
 
                             <div class="mt-3">
                                 <div class="text-xs mt-1 flex flex-wrap items-center gap-1 !pl-0 !ml-0">
-                                    <template v-if="formatChanges(log.changes).length > 0">
-                                        <span v-for="change in formatChanges(log.changes)" :key="change.key"
-                                            @click="openValueModal(change)"
-                                            class="px-2 py-[2px] rounded-lg border select-none
-                                            bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100
-                                            border-gray-300 dark:border-gray-600
-                                            hover:bg-blue-100 dark:hover:bg-blue-800
-                                            transition cursor-pointer text-ellipsis overflow-hidden whitespace-nowrap max-w-[220px]"
-                                            :title="`${change.key}: ${change.value}`">
-                                            <span class="font-medium text-blue-700 dark:text-blue-400">{{ change.key
-                                                }}</span>:
-                                            <span>{{ change.value }}</span>
-                                        </span>
-                                    </template>
-                                    <span v-else class="text-gray-500 dark:text-gray-400">-</span>
+                                    <button @click="openChangesModal(log.id)"
+                                        class="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline">
+                                        View Changes
+                                    </button>
                                 </div>
                             </div>
                         </li>
@@ -467,14 +478,30 @@ function openValueModal(change: { key: string; value: string }) {
             <div v-if="showValueModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-[1000]"
                 @click.self="showValueModal = false">
                 <div
-                    class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl w-[90%] sm:w-[400px] max-w-[95%] max-h-[80vh] overflow-auto">
+                    class="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-xl w-[90%] sm:w-[500px] max-h-[80vh] overflow-auto">
                     <h3 class="text-lg font-semibold mb-2 text-gray-800 dark:text-gray-100">
-                        {{ valueModalData.key }}
+                        {{ modalTitle }}
                     </h3>
-                    <div
-                        class="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded-lg p-2 whitespace-pre-wrap break-words font-mono">
-                        {{ valueModalData.value }}
+
+                    <div v-if="loadingChanges" class="text-center text-gray-500 py-6">
+                        Loading changes...
                     </div>
+
+                    <div v-else-if="valueModalData.length"
+                        class="space-y-2 text-sm text-gray-700 dark:text-gray-300 font-mono">
+                        <div v-for="change in valueModalData" :key="change.key"
+                            class="border-b border-gray-200 dark:border-gray-700 pb-2">
+                            <p class="font-semibold text-blue-600 dark:text-blue-400">
+                                {{ change.key }}
+                            </p>
+                            <p class="whitespace-pre-wrap break-words">
+                                {{ change.value }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div v-else class="text-gray-500 text-center py-4">No changes data available.</div>
+
                     <div class="mt-3 text-center">
                         <button @click="showValueModal = false"
                             class="px-4 py-1 rounded-md bg-blue-600 text-white hover:opacity-90">

@@ -42,8 +42,15 @@ class AdminController extends Controller
         $roles = Role::select('id', 'name')->orderBy('name')->get();
 
         $recentLogs = DB::table('sync_logs')
-            ->selectRaw("id, table_name, user_id, operation, record_id, changes, CONVERT_TZ(executed_at, '+00:00', '+08:00') as executed_at")
-            ->orderBy('executed_at', 'desc')
+            ->select(
+                'id',
+                'table_name',
+                'user_id',
+                'operation',
+                'record_id',
+                DB::raw("CONVERT_TZ(executed_at, '+00:00', '+08:00') as executed_at")
+            )
+            ->orderByDesc('executed_at')
             ->paginate(10, ['*'], 'logs_page', $logsPage)
             ->withQueryString();
 
@@ -59,6 +66,19 @@ class AdminController extends Controller
                 'links' => $recentLogs->linkCollection(),
             ],
             'filters' => ['search' => $search],
+        ]);
+    }
+
+    public function getLogChanges($id)
+    {
+        $log = DB::table('sync_logs')->select('changes')->where('id', $id)->first();
+
+        if (! $log) {
+            return response()->json(['error' => 'Log not found'], 404);
+        }
+
+        return response()->json([
+            'changes' => $log->changes,
         ]);
     }
 

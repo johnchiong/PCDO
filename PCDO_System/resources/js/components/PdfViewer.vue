@@ -2,10 +2,7 @@
 import { onMounted, ref, watch, computed } from 'vue'
 import * as pdfjsLib from 'pdfjs-dist'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-    'pdfjs-dist/build/pdf.worker.mjs',
-    import.meta.url
-).toString()
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs'
 
 const emit = defineEmits<{
     (e: 'error', err: any): void
