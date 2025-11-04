@@ -148,26 +148,19 @@ function getStatus(schedule: Schedule) {
   return new Date() > dueDate ? 'Overdue' : 'Pending'
 }
 
-// Actions
-function markPaid(scheduleId: number, periodLabel: string) {
-  router.post(
-    `/schedules/${scheduleId}/mark-paid`,
-    { preserveScroll: true },
-    {
-      onSuccess: () => {
-        // Show toast only after success
-        toast.success(`Marked as paid on ${periodLabel} successfully!`)
-      },
-      onError: () => {
-        toast.error('Failed to mark as paid. Please try again.')
-      }
-    }
-  )
-}
-
 const showPenaltyModal = ref(false)
 const penaltyRemarks = ref('')
 const selectedScheduleId = ref<number | null>(null)
+
+const showPaymentReceiptModal = ref(false)
+const selectedPaymentScheduleId = ref<number | null>(null)
+const paymentReceiptFile = ref<File | null>(null)
+const isUploadingPaymentReceipt = ref(false)
+
+const showNotePaymentReceiptModal = ref(false)
+const selectedNotePaymentScheduleId = ref<number | null>(null)
+const notePaymentReceiptFile = ref<File | null>(null)
+const isUploadingNotePaymentReceipt = ref(false)
 
 function openPenaltyModal(scheduleId: number) {
   selectedScheduleId.value = scheduleId
@@ -201,6 +194,111 @@ function submitPenaltyRemoval() {
   )
 }
 
+function openPaymentReceiptModal(scheduleId: number) {
+  selectedPaymentScheduleId.value = scheduleId
+  showPaymentReceiptModal.value = true
+}
+
+function closePaymentReceiptModal() {
+  showPaymentReceiptModal.value = false
+  paymentReceiptFile.value = null
+  selectedPaymentScheduleId.value = null
+}
+
+function onPaymentReceiptChange(e: Event) {
+  const target = e.target as HTMLInputElement | null
+  const file = target?.files?.[0] || null
+  paymentReceiptFile.value = file
+}
+
+async function submitPaymentReceipt() {
+  if (!paymentReceiptFile.value || !selectedPaymentScheduleId.value) {
+    toast.error('Please select a receipt before submitting.')
+    return
+  }
+
+  isUploadingPaymentReceipt.value = true
+  const formData = new FormData()
+  formData.append('receipt_image', paymentReceiptFile.value)
+
+  router.post(`/schedules/${selectedPaymentScheduleId.value}/upload-receipt`, formData, {
+    preserveScroll: true,
+    onSuccess: () => {
+      toast.success('Receipt uploaded successfully. Payment marked as paid!')
+      closePaymentReceiptModal()
+      router.reload()
+    },
+    onError: () => {
+      toast.error('Failed to upload receipt. Please try again.')
+    },
+    onFinish: () => {
+      isUploadingPaymentReceipt.value = false
+    }
+  })
+}
+
+function openNotePaymentReceiptModal(scheduleId: number) {
+  selectedNotePaymentScheduleId.value = scheduleId
+  showNotePaymentReceiptModal.value = true
+}
+
+function closeNotePaymentReceiptModal() {
+  showNotePaymentReceiptModal.value = false
+  selectedNotePaymentScheduleId.value = null
+  notePaymentReceiptFile.value = null
+}
+
+function onNotePaymentReceiptChange(e: Event) {
+  const target = e.target as HTMLInputElement | null
+  const file = target?.files?.[0] || null
+  notePaymentReceiptFile.value = file
+}
+
+async function submitNotePaymentReceipt() {
+  if (!notePaymentReceiptFile.value || !selectedNotePaymentScheduleId.value) {
+    toast.error('Please select a receipt before submitting.')
+    return
+  }
+
+  // Get the amount for this schedule
+  const scheduleIndex = props.coopProgram.schedules.findIndex(
+    s => s.id === selectedNotePaymentScheduleId.value
+  )
+
+  // Ensure the amount is treated as a number
+  const amount = Number(scheduleForms[getFormIndex(scheduleIndex)].amount_paid)
+
+  if (isNaN(amount) || amount <= 0) {
+    toast.error('Please enter a valid amount before submitting.')
+    return
+  }
+
+  isUploadingNotePaymentReceipt.value = true
+
+  const formData = new FormData()
+  formData.append('receipt_image', notePaymentReceiptFile.value)
+  formData.append('amount_paid', amount.toString()) // append as string for FormData
+
+  router.post(
+    `/schedules/${selectedNotePaymentScheduleId.value}/upload-note-receipt`,
+    formData,
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success('Receipt uploaded successfully for noted payment!')
+        closeNotePaymentReceiptModal()
+        router.reload()
+      },
+      onError: () => {
+        toast.error('Failed to upload receipt. Please try again.')
+      },
+      onFinish: () => {
+        isUploadingNotePaymentReceipt.value = false
+      },
+    }
+  )
+}
+
 //Toggle Penalty
 function togglePenalty(scheduleId: number, hasPenalty: boolean, row: Schedule) {
   router.post(
@@ -215,31 +313,6 @@ function togglePenalty(scheduleId: number, hasPenalty: boolean, row: Schedule) {
       },
       onError: () => {
         toast.error('Failed to toggle penalty. Please try again.')
-      }
-    }
-  )
-}
-
-//Note Payments
-function notePayment(scheduleId: number, rowIndex: number, isPartial = false, paidPeriods: string[] = []) {
-  const form = scheduleForms[getFormIndex(rowIndex)]
-  if (!form) return
-
-  form.post(
-    `/schedules/${scheduleId}/note-payment`,
-    {
-      preserveScroll: true,
-      onSuccess: () => {
-        if (isPartial) {
-          toast.success(`Partial payment noted on ${paidPeriods.join(', ')} successfully!`)
-        } else if (paidPeriods.length > 1) {
-          toast.success(`Payments noted on ${paidPeriods.join(', ')} successfully!`)
-        } else {
-          toast.success(`Payment noted on period ${rowIndex + 1} successfully!`)
-        }
-      },
-      onError: () => {
-        toast.error('Failed to note payment. Please try again.')
       }
     }
   )
@@ -551,7 +624,7 @@ function downloadPdf() {
                         class="flex flex-col gap-2">
 
                         <Button size="sm" class="w-36 bg-green-600 hover:bg-green-700 text-white rounded-full"
-                          @click="markPaid(row.data!.id, row.label)">
+                          @click="openPaymentReceiptModal(row.data!.id)">
                           <ReceiptText class="w-3 h-3" /> Mark Paid
                         </Button>
                         <input type="number" v-model.number="scheduleForms[getFormIndex(index)].amount_paid"
@@ -559,7 +632,7 @@ function downloadPdf() {
                           class="w-36 px-3 py-2 border rounded-xl border-gray-400 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
 
                         <Button size="sm" class="w-36 bg-blue-600 hover:bg-blue-700 text-white rounded-full"
-                          @click="notePayment(row.data!.id, index)">
+                          @click="openNotePaymentReceiptModal(row.data!.id)">
                           <CircleDollarSign class="w-3 h-3 text-yellow-300" /> Pay
                         </Button>
                       </div>
@@ -668,6 +741,68 @@ function downloadPdf() {
                 <button @click="submitPenaltyRemoval"
                   class="px-5 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white">
                   Confirm Remove
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Receipt Upload Modal -->
+          <div v-if="showPaymentReceiptModal"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[90%] max-w-md p-6 relative">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Upload Receipt for Payment
+              </h3>
+
+              <div class="flex flex-col gap-3">
+                <input type="file" accept="image/*,application/pdf" @change="onPaymentReceiptChange"
+                  class="border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm bg-gray-50 dark:bg-gray-700" />
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Please upload the official receipt (image) to confirm this payment.
+                </p>
+              </div>
+
+              <div class="mt-6 flex justify-end gap-3">
+                <button @click="closePaymentReceiptModal"
+                  class="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100">
+                  Cancel
+                </button>
+
+                <button @click="submitPaymentReceipt" :disabled="isUploadingPaymentReceipt"
+                  class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
+                  <span v-if="isUploadingPaymentReceipt">Uploading...</span>
+                  <span v-else>Submit Receipt</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Note Payment Receipt Upload Modal -->
+          <div v-if="showNotePaymentReceiptModal"
+            class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
+            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-[90%] max-w-md p-6 relative">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                Upload Receipt for Noted Payment
+              </h3>
+
+              <div class="flex flex-col gap-3">
+                <input type="file" accept="image/*,application/pdf" @change="onNotePaymentReceiptChange"
+                  class="border border-gray-300 dark:border-gray-700 rounded-lg p-2 text-sm bg-gray-50 dark:bg-gray-700" />
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  Please upload the official receipt (image) to confirm this noted payment.
+                </p>
+              </div>
+
+              <div class="mt-6 flex justify-end gap-3">
+                <button @click="closeNotePaymentReceiptModal"
+                  class="px-4 py-2 rounded-lg bg-gray-300 hover:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100">
+                  Cancel
+                </button>
+
+                <button @click="submitNotePaymentReceipt" :disabled="isUploadingNotePaymentReceipt"
+                  class="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50">
+                  <span v-if="isUploadingNotePaymentReceipt">Uploading...</span>
+                  <span v-else>Submit Receipt</span>
                 </button>
               </div>
             </div>

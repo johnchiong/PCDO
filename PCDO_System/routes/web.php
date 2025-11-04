@@ -75,6 +75,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/amortization/{loan}/incomplete', [AmortizationScheduleController::class, 'markIncomplete'])->name('loan.incomplete');
     Route::post('/amortization/{loan}/resolve', [AmortizationScheduleController::class, 'markResolved'])->name('loan.resolve');
     Route::get('/amortization/{id}/download', [AmortizationScheduleController::class, 'downloadAmortizationPdf'])->name('amortization.download');
+    Route::post('/schedules/{schedule}/upload-receipt', [AmortizationScheduleController::class, 'markPaid'])->name('schedules.upload-receipt');
+    Route::post('/schedules/{schedule}/upload-note-receipt', [AmortizationScheduleController::class, 'notePayment'])->name('schedules.upload-note-receipt');
 
     // Notification Routes
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

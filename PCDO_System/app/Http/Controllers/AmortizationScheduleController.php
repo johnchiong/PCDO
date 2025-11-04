@@ -81,15 +81,24 @@ class AmortizationScheduleController extends Controller
     }
 
     // Marks Paid
-    public function markPaid(AmortizationSchedules $schedule)
+    public function markPaid(Request $request, AmortizationSchedules $schedule )
     {
+        
+        $request->validate([
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+        ]);
+
+        $binaryImage = file_get_contents($request->file('receipt_image')->getRealPath());
+
         $schedule->update([
             'status' => 'Paid',
             'date_paid' => now(),
             'balance' => 0,
             'amount_paid' => $schedule->installment + $schedule->penalty_amount,
+            'receipt_image' => $binaryImage,
         ]);
 
+        
         return back()->with('success', 'Payment marked as paid.');
     }
 
@@ -156,7 +165,11 @@ class AmortizationScheduleController extends Controller
 
         $request->validate([
             'amount_paid' => 'required|numeric|min:0',
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+
         ]);
+
+        $binaryImage = file_get_contents($request->file('receipt_image')->getRealPath());
 
         $payment = $request->amount_paid;
         $remaining = $payment;
@@ -189,6 +202,7 @@ class AmortizationScheduleController extends Controller
                     $sch->status = 'Partial Paid';
                 }
 
+                $sch->receipt_image = $binaryImage;
                 $sch->save();
             } else {
                 $sch->status = 'Paid';

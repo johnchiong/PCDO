@@ -10,6 +10,7 @@ const props = withDefaults(defineProps<ToasterProps>(), {
   pauseOnHover: true,                    
 })
 
+
 </script>
 
 <template>
