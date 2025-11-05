@@ -19,7 +19,10 @@ class AmortizationSchedules extends Model
         'penalty_amount',
         'balance',
         'notes',
+        'receipt_image',
     ];
+
+    protected $hidden = ['receipt_image'];
 
     protected $casts = [
         'due_date' => 'date',
@@ -28,7 +31,7 @@ class AmortizationSchedules extends Model
 
     public function markPaid()
     {
-        $this->status = 'Paid'; // ✅ make it consistent
+        $this->status = 'Paid'; // make it consistent
         $this->save();
     }
 

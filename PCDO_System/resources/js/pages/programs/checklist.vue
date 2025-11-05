@@ -35,20 +35,25 @@ const props = defineProps<{
   checklistItems: ChecklistItem[]
 }>()
 
+const filteredChecklist = computed(() =>
+  props.checklistItems.filter(item => item.name.toLowerCase() !== 'bio data')
+)
 
 // All uploads must be completed before finalizing loan
 const allUploadsDone = computed(() =>
-  props.checklistItems.every(item => item.upload)
+  props.checklistItems
+  .filter(item => item.name.toLowerCase() !== 'bio data')
+  .every(item => item.upload)
 )
 
 const canFinalizeLoan = computed(() => allUploadsDone.value && !!props.cooperative.consenter)
 
 // Disable upload if previous checklist not uploaded
 const isDisabled = (index: number) =>
-  index > 0 && !props.checklistItems[index - 1].upload
+  index > 0 && !filteredChecklist.value[index - 1].upload
 
 // Forms
-const forms = props.checklistItems.map(item =>
+const forms = filteredChecklist.value.map(item =>
   useForm({
     file: null as File | null,
     program_checklist_id: item.id,
@@ -346,7 +351,7 @@ onMounted(() => {
         </div>
 
         <!-- Checklist Items -->
-        <div v-for="(item, index) in props.checklistItems" :key="item.id"
+        <div v-for="(item, index) in filteredChecklist" :key="item.id"
           class="bg-gray-50 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
           <h5 class="font-semibold text-lg mb-3 text-gray-900 dark:text-gray-100">
             {{ item.name }}

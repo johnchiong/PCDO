@@ -224,10 +224,12 @@
 
 /* Messsage */
 [data-sonner-toast] .sonner-description {
-    order: 1;
-    font-size: 0.95rem;
-    color: var(--muted-foreground);
-    margin: 0;
+    display: block;
+    max-width: 260px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
 }
 
 /* Close button styling */

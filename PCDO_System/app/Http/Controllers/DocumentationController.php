@@ -269,14 +269,14 @@ class DocumentationController extends Controller
     public function checklistFile($coopProgramId)
     {
         $coopProgram = CoopProgram::with([
-            'cooperative',
+            'cooperative.members',
             'program.checklists',
             'finishedChecklist',
         ])->findOrFail($coopProgramId);
 
         $finishedChecklists = $coopProgram->finishedChecklist->keyBy('checklist_id');
 
-        $checklists = $coopProgram->program->checklists->map(function ($item) use ($finishedChecklists) {
+        $checklists = $coopProgram->program->checklists->map(function ($item) use ($finishedChecklists, $coopProgram) {
             $finished = $finishedChecklists->get($item->id);
 
             $status = 'Incomplete';
@@ -287,6 +287,13 @@ class DocumentationController extends Controller
                 $status = 'Complete';
                 $fileContent = $finished->file_content;
                 $mimeType = $finished->mime_type ?? 'application/pdf';
+            }
+
+            if (strtolower($item->name) === 'bio data') {
+                $hasMembers = $coopProgram->cooperative?->members?->isNotEmpty();
+                if ($hasMembers) {
+                    $status = 'Complete';
+                }
             }
 
             return (object) [
