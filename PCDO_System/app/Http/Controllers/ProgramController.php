@@ -10,6 +10,8 @@ use App\Models\CoopProgramChecklist;
 use App\Models\FinishedCoopProgramChecklist;
 use App\Models\Notifications;
 use App\Models\Programs;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -257,5 +259,104 @@ class ProgramController extends Controller
         });
 
         return redirect()->route('programs.index')->with('success', 'Program archived successfully!');
+    }
+
+    public function monthlyReport(Request $request)
+    {
+        $selectedMonth = $request->input('month')
+            ? Carbon::parse($request->input('month'))
+            : Carbon::now();
+
+        $monthStart = $selectedMonth->copy()->startOfMonth();
+        $monthEnd = $selectedMonth->copy()->endOfMonth();
+
+        // 1️⃣ Registered Cooperatives this month
+        $registeredCoops = Cooperative::whereBetween('created_at', [$monthStart, $monthEnd])
+            ->select('id', 'name', 'created_at')
+            ->get();
+
+        // 2️⃣ Programs with cooperative activities (Ongoing + Finished)
+        $programs = Programs::with(['coopProgram.cooperative', 'coopProgram.amortizationSchedules'])
+            ->get()
+            ->map(function ($program) use ($monthStart, $monthEnd) {
+                $coopPrograms = $program->coopProgram;
+                $ongoing = $coopPrograms->whereIn('program_status', ['Ongoing', 'Finished', 'Resolved']);
+
+                $programSummary = [
+                    'program_name' => $program->name,
+                    'cooperatives' => [],
+                    'has_amortization' => [],
+                    'checklist_only' => [],
+                ];
+
+                foreach ($ongoing as $cp) {
+                    $coop = $cp->cooperative;
+                    if (! $coop) {
+                        continue;
+                    }
+
+                    $hasAmortization = $cp->amortizationSchedules->count() > 0;
+
+                    // 🧾 Gather amortization payments in selected month
+                    $payments = $cp->amortizationSchedules
+                        ->filter(function ($a) use ($monthStart, $monthEnd) {
+                            // include both paid and partially paid in the selected month
+                            return $a->status !== 'Unpaid'
+                                && $a->updated_at->between($monthStart, $monthEnd);
+                        })
+                        ->map(function ($a, $index) {
+                            return [
+                                'term' => $index + 1,
+                                'due_date' => $a->due_date->format('M d, Y'),
+                                'date_paid' => $a->date_paid ? Carbon::parse($a->date_paid)->format('M d, Y') : null,
+                                'status' => $a->status,
+                                'installment' => number_format($a->installment, 2),
+                                'amount_paid' => $a->amount_paid ? number_format($a->amount_paid, 2) : null,
+                                'penalty' => $a->penalty_amount ? number_format($a->penalty_amount, 2) : '0.00',
+                            ];
+                        })
+                        ->values();
+
+                    // 🧮 Determine summary stats
+                    $paidThisMonth = $payments->where('status', 'Paid')->count();
+                    $partialThisMonth = $payments->where('status', 'Partial Paid')->count();
+
+                    $coopSummary = [
+                        'cooperative_name' => $coop->name,
+                        'program_status' => $cp->program_status,
+                        'has_amortization' => $hasAmortization,
+                        'loan_amount' => $cp->loan_amount ? number_format($cp->loan_amount, 2) : '—',
+                        'with_grace' => $cp->with_grace,
+                        'payments' => $payments,
+                        'stats' => [
+                            'paid_this_month' => $paidThisMonth,
+                            'partial_this_month' => $partialThisMonth,
+                        ],
+                    ];
+
+                    if ($hasAmortization) {
+                        $programSummary['has_amortization'][] = $coopSummary;
+                    } else {
+                        $programSummary['checklist_only'][] = [
+                            'cooperative_name' => $coop->name,
+                            'program_status' => $cp->program_status,
+                            'has_checklist' => $cp->checklist()->exists(),
+                        ];
+                    }
+
+                    $programSummary['cooperatives'][] = $coopSummary;
+                }
+
+                return $programSummary;
+            });
+
+        // 3️⃣ Generate PDF report
+        $pdf = Pdf::loadView('monthly', [
+            'date' => $selectedMonth->format('F Y'),
+            'registeredCoops' => $registeredCoops,
+            'programs' => $programs,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream('Monthly_Report_'.$selectedMonth->format('F_Y').'.pdf');
     }
 }

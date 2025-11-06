@@ -59,6 +59,11 @@ class CoopProgram extends Model
         return $this->hasMany(AmortizationOld::class, 'coop_program_id');
     }
 
+    public function old()
+    {
+        return $this->hasOne(AmortizationOld::class, 'coop_program_id');
+    }
+
     public function programProgress()
     {
         return $this->hasMany(CoopProgramProgress::class, 'coop_program_id');

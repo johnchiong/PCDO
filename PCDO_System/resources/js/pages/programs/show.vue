@@ -186,10 +186,15 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             <CheckCircle class="w-3 h-3" />
                                             {{ coop.program_status }}
                                         </span>
+                                        <span v-else-if="coop.program_status === 'Ongoing' && !coop.has_amortization"
+                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                                            <CircleDashed class="w-3 h-3 animate-spin" />
+                                            {{ coop.program_status + ' - Checklist' }}
+                                        </span>
                                         <span v-else
                                             class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
                                             <CircleDashed class="w-3 h-3 animate-spin" />
-                                            {{ coop.program_status }}
+                                            {{ coop.program_status + ' - Program' }}
                                         </span>
                                     </TableCell>
 
@@ -204,12 +209,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             <span>Upload Checklist</span>
                                             </Link>
 
-                                            <!-- Re-upload only -->
+                                            <!-- Continue only -->
                                             <Link v-else-if="coop.has_checklist && !coop.has_amortization"
                                                 :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
-                                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg shadow-md transition">
+                                                class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg shadow-md transition">
                                             <Upload class="w-4 h-4" />
-                                            <span>Re-upload Checklist</span>
+                                            <span>Continue Checklist</span>
                                             </Link>
 
                                             <!-- Re-upload + View Amortization -->
@@ -259,21 +264,30 @@ const breadcrumbs: BreadcrumbItem[] = [
                                             day: 'numeric'
                                         }) }}
                                     </span>
-                                    <div>
-                                        <span v-if="coop.program_status === 'Finished'"
-                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                                            <CheckCircle class="w-3 h-3" />
-                                            {{ coop.program_status }}
-                                        </span>
-                                        <span v-else-if="coop.program_status === 'Resolved'"
-                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                                            <CheckCircle class="w-3 h-3" />
-                                            {{ coop.program_status }}
-                                        </span>
-                                        <span v-else
-                                            class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
-                                            <CircleDashed class="w-3 h-3 animate-spin" />
-                                            {{ coop.program_status }}
+                                    <div class="flex items-center">
+                                        <span
+                                            class="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-medium rounded-full"
+                                            :class="{
+                                                'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300': coop.program_status === 'Finished',
+                                                'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': coop.program_status === 'Resolved',
+                                                'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300': coop.program_status === 'Ongoing' && !coop.has_amortization,
+                                                'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300': coop.program_status === 'Ongoing' && coop.has_amortization,
+                                                'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300': !coop.program_status
+                                            }">
+                                            <component
+                                                :is="coop.program_status === 'Finished' || coop.program_status === 'Resolved' ? CheckCircle : CircleDashed"
+                                                class="w-3 h-3" :class="{
+                                                    'animate-spin': coop.program_status?.includes('Ongoing')
+                                                }" />
+                                            <span class="truncate">
+                                                {{
+                                                    coop.program_status === 'Ongoing'
+                                                        ? coop.has_amortization
+                                                            ? 'Ongoing Program'
+                                                            : 'Ongoing Checklist'
+                                                        : coop.program_status || 'N/A'
+                                                }}
+                                            </span>
                                         </span>
                                     </div>
                                 </div>
@@ -289,12 +303,12 @@ const breadcrumbs: BreadcrumbItem[] = [
                                 <span>Upload Checklist</span>
                                 </Link>
 
-                                <!-- Re-upload only -->
+                                <!-- Continue only -->
                                 <Link v-else-if="coop.has_checklist && !coop.has_amortization"
                                     :href="`/programs/${program.id}/cooperatives/${coop.id}/checklist`"
-                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-yellow-600 hover:bg-yellow-700 rounded-lg shadow-md transition w-full justify-center">
+                                    class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-700 hover:bg-blue-800 rounded-lg shadow-md transition w-full justify-center">
                                 <Upload class="w-4 h-4" />
-                                <span>Re-upload Checklist</span>
+                                <span>Continue Checklist</span>
                                 </Link>
 
                                 <!-- Re-upload + View Amortization -->

@@ -75,6 +75,7 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     // Nested routes for adding cooperatives to a program
     Route::get('/programs/{program}/cooperatives/create', [ProgramController::class, 'createCooperative'])->name('programs.cooperatives.create');
     Route::post('/programs/{program}/cooperatives', [ProgramController::class, 'storeCooperative'])->name('programs.cooperatives.store');
+    Route::get('/programs/reports/monthly', [ProgramController::class, 'monthlyReport'])->name('programs.reports.monthly');
 
     // Progress Report
     Route::get('/programs/{program}/progress/create', [CoopProgramProgressController::class, 'create'])->name('programs.progress.create');
@@ -111,6 +112,7 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     Route::post('/amortization/{loan}/incomplete', [AmortizationScheduleController::class, 'markIncomplete'])->name('loan.incomplete');
     Route::post('/amortization/{loan}/resolve', [AmortizationScheduleController::class, 'markResolved'])->name('loan.resolve');
     Route::get('/amortization/{id}/download', [AmortizationScheduleController::class, 'downloadAmortizationPdf'])->name('amortization.download');
+    Route::get('/amortization/{id}/view', [AmortizationScheduleController::class, 'amortizationFile'])->name('amortization.view');
     Route::post('/schedules/{schedule}/upload-receipt', [AmortizationScheduleController::class, 'markPaid'])->name('schedules.upload-receipt');
     Route::post('/schedules/{schedule}/upload-note-receipt', [AmortizationScheduleController::class, 'notePayment'])->name('schedules.upload-note-receipt');
 

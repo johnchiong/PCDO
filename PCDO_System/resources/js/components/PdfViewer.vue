@@ -10,7 +10,7 @@ const emit = defineEmits<{
 
 const props = defineProps<{
     url: string
-    type?: 'member' | 'documentation' | 'checklist'
+    type?: 'member' | 'documentation' | 'checklist' | 'report'
     programId?: number | string
     cooperativeId?: number | string
     memberId?: number | string
@@ -61,6 +61,10 @@ const downloadUrl = computed(() => {
     if (props.type === 'checklist' && props.programId && props.cooperativeId && props.fileId) {
         return `/programs/${props.programId}/cooperatives/${props.cooperativeId}/checklist/${props.fileId}/download`
     }
+    if (props.type === 'report') {
+        return `${props.url.includes('?') ? props.url + '&' : props.url + '?'}download=1`
+    }
+
     return `${props.url}?download=1`
 })
 

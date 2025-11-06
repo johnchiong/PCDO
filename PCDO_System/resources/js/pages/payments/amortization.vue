@@ -134,26 +134,33 @@ const isDelinquent = computed(() => {
 
 // Status display
 function getStatus(schedule: Schedule) {
-  if (schedule.is_paid || (schedule.balance ?? 0) === 0) {
-    return schedule.date_paid
-      ? `Paid on ${formatDate(schedule.date_paid)}`
-      : 'Paid'
-  }
-
-  if ((schedule.balance || 0) > 0 && (schedule.amount_paid || 0) > 0) {
-    return `Partially Paid (Balance: ₱${Math.round(schedule.balance || 0).toLocaleString()})`
-  }
-
   const dueDate = schedule.due_date ? new Date(schedule.due_date) : new Date()
   const today = new Date()
 
-  const isSameDay =
+  let type = 'Pending'
+  let label = 'Pending'
+
+  if (schedule.is_paid || (schedule.balance ?? 0) === 0) {
+    type = 'Paid'
+    label = schedule.date_paid
+      ? `Paid on ${formatDate(schedule.date_paid)}`
+      : 'Paid'
+  } else if ((schedule.balance || 0) > 0 && (schedule.amount_paid || 0) > 0) {
+    type = 'Partial Paid'
+    label = `Partially Paid (Balance: ₱${Math.round(schedule.balance || 0).toLocaleString()})`
+  } else if (
     dueDate.getFullYear() === today.getFullYear() &&
     dueDate.getMonth() === today.getMonth() &&
     dueDate.getDate() === today.getDate()
+  ) {
+    type = 'Due Today'
+    label = 'Due Today'
+  } else if (today > dueDate) {
+    type = 'Overdue'
+    label = 'Overdue'
+  }
 
-  if (isSameDay) return 'Due Today'
-  return new Date() > dueDate ? 'Overdue' : 'Pending'
+  return { type, label }
 }
 
 const showPenaltyModal = ref(false)
@@ -407,13 +414,35 @@ function downloadPdf() {
 }
 
 function canPayPeriod(index: number) {
-  const current = props.coopProgram.schedules[index]
+  const schedules = props.coopProgram.schedules
+  const current = schedules[index]
   if (!current) return false
-  if (index === 0) return true
-  const previous = props.coopProgram.schedules[index - 1]
-  const previousStatus = getStatus(previous)
-  return previous.is_paid || previousStatus === 'Overdue'
+
+  const status = getStatus(current).type
+
+  if (status === 'Paid' || status === 'Partial Paid') return false
+
+  const lastFinishedIndex = schedules.findLastIndex((s) => {
+    const sStatus = getStatus(s).type
+    return ['Paid', 'Partial Paid', 'Overdue'].includes(sStatus)
+  })
+
+  if (lastFinishedIndex === -1) {
+    const firstUnpaidIndex = schedules.findIndex(
+      (s) => !['Paid', 'Partial Paid'].includes(getStatus(s).type)
+    )
+    return index === firstUnpaidIndex
+  }
+
+  const firstAfterFinished = schedules.findIndex(
+    (s, i) =>
+      i > lastFinishedIndex &&
+      !['Paid', 'Partial Paid'].includes(getStatus(s).type)
+  )
+
+  return index === firstAfterFinished
 }
+
 
 </script>
 
@@ -563,14 +592,19 @@ function canPayPeriod(index: number) {
                         <span class="font-medium text-gray-700 dark:text-gray-300">
                           ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
                         </span>
-                        <Button size="sm" :disabled="row.data.is_paid || getStatus(row.data) !== 'Overdue'" @click="row.data.penalty_amount! > 0
-                          ? openPenaltyModal(row.data.id)
-                          : togglePenalty(row.data.id, false, row.data!)" :class="[
-                            'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
+                        <Button size="sm" :disabled="row.data.penalty_amount! <= 0
+                          ? !canPayPeriod(index)
+                          : ['Paid', 'Partial Paid'].includes(getStatus(row.data!).type)
+                          " @click="
                             row.data.penalty_amount! > 0
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-orange-500 hover:bg-orange-600 text-white'
-                          ]">
+                              ? openPenaltyModal(row.data.id)
+                              : togglePenalty(row.data.id, false, row.data!)
+                            " :class="[
+                              'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
+                              row.data.penalty_amount! > 0
+                                ? 'bg-red-600 hover:bg-red-700 text-white'
+                                : 'bg-orange-500 hover:bg-orange-600 text-white'
+                            ]">
                           <span v-if="row.data.penalty_amount! > 0">✕ Remove</span>
                           <span v-else class="inline-flex items-center gap-1">
                             <Plus class="w-3 h-3" />
@@ -618,11 +652,11 @@ function canPayPeriod(index: number) {
                           'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold',
                           row.data?.is_paid
                             ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200'
-                            : getStatus(row.data!) === 'Overdue'
+                            : getStatus(row.data!).type === 'Overdue'
                               ? 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200'
                               : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200'
                         ]">
-                          {{ getStatus(row.data!) }}
+                          {{ getStatus(row.data!).label }}
                         </span>
                       </template>
                     </TableCell>
@@ -641,19 +675,16 @@ function canPayPeriod(index: number) {
                           v-if="row.data && !row.data.is_paid && !(row.data.amount_paid && (row.data.balance || 0) > 0)"
                           class="flex flex-col gap-2">
 
-                          <Button size="sm"
-                            class="w-36 bg-green-600 hover:bg-green-700 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                            @click="markPaid(row.data!.id, row.label)" :disabled="!canPayPeriod(index)">
+                          <Button size="sm" class="w-36 bg-green-600 hover:bg-green-700 text-white rounded-full"
+                            @click="openPaymentReceiptModal(row.data!.id)" :disabled="!canPayPeriod(index)">
                             <ReceiptText class="w-3 h-3" /> Mark Paid
                           </Button>
-
                           <input type="number" v-model.number="scheduleForms[getFormIndex(index)].amount_paid"
                             placeholder="Enter amount"
                             class="w-36 px-3 py-2 border rounded-xl border-gray-400 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
 
-                          <Button size="sm"
-                            class="w-36 bg-blue-600 hover:bg-blue-700 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
-                            @click="notePayment(row.data!.id, index)" :disabled="!canPayPeriod(index)">
+                          <Button size="sm" class="w-36 bg-blue-600 hover:bg-blue-700 text-white rounded-full"
+                            @click="openNotePaymentReceiptModal(row.data!.id)" :disabled="!canPayPeriod(index)">
                             <CircleDollarSign class="w-3 h-3 text-yellow-300" /> Pay
                           </Button>
                         </div>
@@ -681,17 +712,18 @@ function canPayPeriod(index: number) {
                         </span>
                       </template>
 
-                        <Button size="sm" class="w-36 bg-green-600 hover:bg-green-700 text-white rounded-full"
-                          @click="openPaymentReceiptModal(row.data!.id)">
-                          <ReceiptText class="w-3 h-3" /> Mark Paid
-                        </Button>
-                        <input type="number" v-model.number="scheduleForms[getFormIndex(index)].amount_paid"
-                          placeholder="Enter amount"
-                          class="w-36 px-3 py-2 border rounded-xl border-gray-400 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
+                      <template v-else-if="row.data?.is_paid">
+                        <span class="inline-flex items-center gap-1 text-emerald-400 italic font-semibold">
+                          <Check class="w-5 h-5" />
+                          <span>Paid</span>
+                        </span>
+                      </template>
 
-                        <Button size="sm" class="w-36 bg-blue-600 hover:bg-blue-700 text-white rounded-full"
-                          @click="openNotePaymentReceiptModal(row.data!.id)">
-                          <CircleDollarSign class="w-3 h-3 text-yellow-300" /> Pay
+                      <template v-else>
+                        <Button size="sm"
+                          class="px-4 py-1.5 rounded-full text-sm font-semibold bg-red-700 hover:bg-red-800 text-white shadow-sm"
+                          @click="sendNotification(row.data!.id)">
+                          🔔 Send Reminder
                         </Button>
                       </template>
                     </TableCell>
@@ -700,7 +732,6 @@ function canPayPeriod(index: number) {
               </TableBody>
             </Table>
           </div>
-
           <!-- Mobile Card View -->
           <div class="space-y-4 md:hidden">
             <div v-for="(row, index) in allPeriods" :key="index"
@@ -720,11 +751,11 @@ function canPayPeriod(index: number) {
                     'text-xs px-3 py-1 rounded-full font-semibold',
                     row.data?.is_paid
                       ? 'bg-green-100 text-green-700 dark:bg-green-800 dark:text-green-200'
-                      : getStatus(row.data!) === 'Overdue'
+                      : getStatus(row.data!).type === 'Overdue'
                         ? 'bg-red-100 text-red-700 dark:bg-red-800 dark:text-red-200'
                         : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-700 dark:text-yellow-200'
                   ]">
-                    {{ getStatus(row.data!) }}
+                    {{ getStatus(row.data!).label }}
                   </span>
                 </div>
 
@@ -744,6 +775,33 @@ function canPayPeriod(index: number) {
                 </div>
 
                 <!-- Actions -->
+                <div v-if="row.data" class="flex flex-col sm:flex-row sm:items-center gap-2">
+                  <!-- Penalty Amount -->
+                  <span class="font-medium text-gray-700 dark:text-gray-300 text-sm sm:text-base">
+                    ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
+                  </span>
+                  <Button size="sm" :disabled="row.data.penalty_amount! <= 0
+                    ? !canPayPeriod(index)
+                    : ['Paid', 'Partial Paid'].includes(getStatus(row.data!).type)
+                    " @click="
+                      row.data.penalty_amount! > 0
+                        ? openPenaltyModal(row.data.id)
+                        : togglePenalty(row.data.id, false, row.data!)
+                      " :class="[
+                        'flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shadow transition',
+                        row.data.penalty_amount! > 0
+                          ? 'bg-red-600 hover:bg-red-700 text-white'
+                          : 'bg-orange-500 hover:bg-orange-600 text-white'
+                      ]">
+                    <span v-if="row.data.penalty_amount! > 0">✕ Remove</span>
+                    <span v-else class="inline-flex items-center gap-1">
+                      <Plus class="w-3 h-3" />
+                      <span>Add</span>
+                    </span>
+                  </Button>
+
+                </div>
+
                 <div class="flex flex-wrap gap-2 justify-between">
                   <template v-if="isResolved">
                     <div class="inline-flex items-center gap-1 text-green-600 italic font-semibold">
@@ -760,13 +818,13 @@ function canPayPeriod(index: number) {
                         class="w-full px-3 py-2 border rounded-lg border-gray-300 dark:border-gray-700 text-sm focus:ring-2 focus:ring-indigo-500" />
                       <Button size="sm"
                         class="bg-green-600 hover:bg-green-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                        @click="markPaid(row.data!.id, row.label)" :disabled="!canPayPeriod(index)">
+                        @click="openPaymentReceiptModal(row.data!.id)" :disabled="!canPayPeriod(index)">
                         <ReceiptText class="w-4 h-4 mr-1" /> Mark Paid
                       </Button>
                       <Button size="sm"
                         class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                        @click="notePayment(row.data!.id, index)" :disabled="!canPayPeriod(index)">
-                        <CircleDollarSign class="w-4 h-4 mr-1" /> Pay
+                        @click="openNotePaymentReceiptModal(row.data!.id)" :disabled="!canPayPeriod(index)">
+                        <CircleDollarSign class="w-4 h-4 text-yellow-300 mr-1" /> Pay
                       </Button>
                     </div>
 
@@ -788,7 +846,6 @@ function canPayPeriod(index: number) {
               Resolve / Nullify Amortization
             </button>
           </div>
-
           <!-- Receipt Upload Modal -->
           <div v-if="showReceiptModal"
             class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50">
