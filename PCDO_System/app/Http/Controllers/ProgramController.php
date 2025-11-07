@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
+use Carbon\Carbon;
 
 class ProgramController extends Controller
 {
@@ -95,7 +96,6 @@ class ProgramController extends Controller
             'coop_id' => $cooperative->id,
             'program_id' => $program->id,
             'project' => $data['project'],
-            'start_date' => now(),
             'end_date' => now()->addMonths($program->term_months),
             'program_status' => 'Ongoing',
             'loan_amount' => null,
@@ -133,6 +133,7 @@ class ProgramController extends Controller
         $request->validate([
             'loan_amount' => 'required|numeric|min:1',
             'with_grace' => 'required|numeric',
+            'start_date' => 'required|date',
         ]);
 
         $coopProgram = CoopProgram::where('program_id', $program->id)
@@ -149,10 +150,13 @@ class ProgramController extends Controller
             ]);
         }
 
+        $startDate = Carbon::parse($request->start_date)->addMonths($request->with_grace);
+
         //  Update coop program
         $coopProgram->update([
             'loan_amount' => $request->loan_amount,
             'with_grace' => $request->with_grace,
+            'start_date' => $request->start_date,
         ]);
 
         //  Auto-generate amortization schedule
@@ -163,7 +167,6 @@ class ProgramController extends Controller
             }
 
             $amountPerMonth = round($coopProgram->loan_amount / $monthsToPay, 2);
-            $startDate = now()->addMonths($coopProgram->with_grace);
 
             for ($i = 1; $i <= $monthsToPay; $i++) {
                 $amountDue = ($i === $monthsToPay)

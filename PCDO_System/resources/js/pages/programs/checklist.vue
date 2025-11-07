@@ -25,6 +25,7 @@ interface CoopProgram {
 interface LoanFormData {
   loan_amount: number | null
   with_grace: number
+  start_date: string
 }
 
 // Props
@@ -40,8 +41,8 @@ const filteredChecklist = computed(() =>
 // All uploads must be completed before finalizing loan
 const allUploadsDone = computed(() =>
   props.checklistItems
-  .filter(item => item.name.toLowerCase() !== 'bio data')
-  .every(item => item.upload)
+    .filter(item => item.name.toLowerCase() !== 'bio data')
+    .every(item => item.upload)
 )
 
 const canFinalizeLoan = computed(() => allUploadsDone.value && !!props.cooperative.consenter)
@@ -61,6 +62,7 @@ const forms = filteredChecklist.value.map(item =>
 const loanForm = useForm<LoanFormData>({
   loan_amount: props.cooperative.loan_amount || null,
   with_grace: props.cooperative.with_grace || 0,
+  start_date: '',
 })
 
 const selectedFile = ref<{ id: number; name: string; url: string } | null>(null)
@@ -272,6 +274,18 @@ const breadcrumbs: BreadcrumbItem[] = [
                     <p class="text-sm font-medium text-gray-900 dark:text-gray-100">4-Month Grace Period</p>
                   </div>
                 </label>
+              </div>
+            </div>
+
+            <!-- Start Date -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Loan Start Date
+              </label>
+              <input type="date" v-model="loanForm.start_date" required
+                class="w-full rounded-xl border border-gray-300 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+              <div v-if="loanForm.errors.start_date" class="text-red-600 text-sm mt-1">
+                {{ loanForm.errors.start_date }}
               </div>
             </div>
 
