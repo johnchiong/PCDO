@@ -19,6 +19,7 @@ const props = defineProps<{
     recentLogs?: {
         data: Array<{
             id: number
+            user_name: string
             table_name: string
             operation: string
             user_id: string
@@ -327,7 +328,7 @@ async function openChangesModal(logId: number) {
                                             Table
                                         </p>
                                         <p class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                                            User {{ log.user_id }}
+                                            User: {{ log.user_name }}
                                         </p>
                                     </div>
 

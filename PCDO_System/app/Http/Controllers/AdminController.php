@@ -44,6 +44,7 @@ class AdminController extends Controller
         $recentLogs = DB::table('sync_logs')
             ->select(
                 'id',
+                'user_name',
                 'table_name',
                 'user_id',
                 'operation',
