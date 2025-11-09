@@ -234,7 +234,7 @@ class DocumentationController extends Controller
         $pdf = new Fpdi;
         $pdf->AddPage();
         $pdf->Image($tempPath, 15, 25, 180, 230);
-        unlink($tempPath); // Delete after use
+        unlink($tempPath);
 
         return response($pdf->Output('S'), 200)
             ->header('Content-Type', 'application/pdf')

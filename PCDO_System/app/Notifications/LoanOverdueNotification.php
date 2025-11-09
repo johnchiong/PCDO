@@ -27,13 +27,25 @@ class LoanOverdueNotification extends Notification
     {
         $schedule = $this->schedule;
         $coopProgram = $schedule->coopProgram;
-        $greetingName = $coopProgram->cooperative->name ?? 'PCDO';
+        $datereleased = $coopProgram->start_date->format('F d, Y');
+        $maturitydate = $coopProgram->end_date->format('F d, Y');
+        $monthlyDue = $schedule->installment;
+        $totalpaid = $schedule->coopProgram?->amortizationSchedules()
+            ->whereNotNull('amount_paid')
+            ->sum('amount_paid');
+        $lastPayment = $schedule->coopProgram?->amortizationSchedules()
+            ->whereNotNull('date_paid')
+            ->orderByDesc('date_paid')
+            ->first();
+        $lastPaymentDate = $lastPayment?->date_paid?->format('F d, Y') ?? 'N/A';
+        $lastamountPaid = $lastPayment?->date_paid? $schedule->coopProgram?->amortizationSchedules()
+            ->whereDate('date_paid', $lastPayment->date_paid)
+            ->sum('amount_paid')
+        : 0;
+        $balanceofToday = $schedule->coopProgram->loan_amount - $totalpaid;
+        $datetoday = now()->format('F d, Y');
 
-        $dueDateText = $schedule->due_date->format('F d, Y');
 
-        // Calculate amounts
-        $totalDue = $schedule->installment;
-        $penalty = ($schedule->installment * 0.01) + $schedule->installment;
         $type = null;
         // Status text
         if ($schedule->due_date->isToday()) {
@@ -52,19 +64,16 @@ class LoanOverdueNotification extends Notification
             $type = 'due_in';
         }
 
-        // Build the MailMessage
-        $mail = (new MailMessage)
-            ->subject('Loan Payment Reminder')
-            ->greeting('Hello '.$greetingName.',')
-            ->line($statusText)
-            ->line('Coop Program: '.($coopProgram->program->name ?? 'Unknown'))
-            ->line('Due Date: '.$dueDateText)
-            ->line('Amount to pay: ₱'.number_format($totalDue, 2))
-            ->line('Amount to pay with penalty: ₱'.number_format($penalty, 2))
-            ->line('Please settle your payment as soon as possible to avoid additional penalties.');
-
-        $subject = $mail->subject;
-        $body = implode("\n", $mail->introLines);
+        // Store some of the details to the database
+        $subject = 'Notice of Payment';
+        $body = $coopProgram->program->name . " LOAN: ₱" . number_format($coopProgram->loan_amount ?? 0, 2) . "\n" .
+            'Date Released: '.$datereleased."\n".
+            'Maturity date: '.$maturitydate."\n".
+            'Monthly Amortization: ₱'.number_format($monthlyDue, 2)."\n".
+            'Total Amount to Paid: ₱'.number_format($totalpaid, 2)."\n".
+            'Date of Last Payment: '.$lastPaymentDate."\n".
+            'Amount Paid: ₱'.number_format($lastamountPaid, 2)."\n".
+            'Balance as of '.$datetoday.' : ₱'.number_format($lastamountPaid, 2)."\n".
 
         // Save to DB
         $pending = $schedule->pendingnotifications()
@@ -90,6 +99,21 @@ class LoanOverdueNotification extends Notification
             ]);
         }
 
-        return $mail;
+        return (new MailMessage)
+            ->subject($subject)
+            ->view('emails.notice_of_payment', [
+                'coopProgram' => $coopProgram,
+                'schedule' => $schedule,
+                'statusText' => $statusText,
+                'datereleased' => $datereleased,
+                'maturitydate' => $maturitydate,
+                'monthlyDue' => $monthlyDue,
+                'totalpaid' => $totalpaid,
+                'lastpaymentDate' => $lastPaymentDate,
+                'lastamountPaid' => $lastamountPaid,
+                'balanceofToday' => $balanceofToday,
+                'datetoday' => $datetoday,
+                'message' => $this,
+            ]);
     }
 }

@@ -58,6 +58,7 @@ const getDueStatus = (body: string) => {
                 {{ notification.subject }}
               </h2>
             </div>
+
             <span class="px-4 py-1.5 rounded-full text-sm font-semibold uppercase tracking-wide" :class="{
               'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300': notification.type === 'info',
               'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300': notification.type === 'success',
@@ -70,13 +71,25 @@ const getDueStatus = (body: string) => {
 
           <!-- Meta Info -->
           <div class="px-14 py-5 text-sm text-gray-500 dark:text-gray-400 space-y-2">
-            <p>📅 {{ new Date(notification.created_at).toLocaleString() }}</p>
+
+            <!-- First row: Date (left) + Download button (right) -->
+            <div class="flex items-center justify-between">
+              <p>📅 {{ new Date(notification.created_at).toLocaleString() }}</p>
+              <a :href="`/notifications/${notification.id}/download`"
+                class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
+                Download PDF
+              </a>
+            </div>
+
+            <!-- Second row: Cooperative info -->
             <p v-if="notification.schedule?.coop_program?.cooperative">
               🏢 Cooperative:
               <span class="font-medium text-gray-800 dark:text-gray-200">
                 {{ notification.schedule.coop_program.cooperative.name }}
               </span>
             </p>
+
+            <!-- Third row: Email info -->
             <p v-if="notification.schedule?.coop_program?.email">
               ✉️ Send to:
               <span class="font-medium text-indigo-600 dark:text-indigo-300">
