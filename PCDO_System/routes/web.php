@@ -119,6 +119,7 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     // Notification Routes
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::get('notifications/{id}', [NotificationController::class, 'show'])->name('notifications.show');
+    Route::get('/notifications/{id}/download', [NotificationController::class, 'downloadnotice'])->name('notifications.download');
     Route::post('/schedules/{schedule}/send-notif', [AmortizationScheduleController::class, 'sendOverdueEmail'])->name('schedules.sendNotif');
 
     // Documentation Routes
