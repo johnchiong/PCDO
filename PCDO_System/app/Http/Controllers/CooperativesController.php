@@ -200,11 +200,42 @@ class CooperativesController extends Controller
             'number' => '',
         ];
 
+        $coopPrograms = $cooperative->programs()
+            ->whereIn('program_status', ['Finished', 'Resolved'])
+            ->where('exported', 1)
+            ->where('archived', 1)
+            ->with('program')
+            ->get();
+
+        $groupedByYear = $coopPrograms->groupBy(function ($program) {
+            return $program->updated_at->format('Y');
+        });
+
+        $minYear = $coopPrograms->min(fn ($p) => $p->updated_at->year) ?? date('Y');
+        $maxYear = date('Y');
+
+        $history = collect(range($minYear, $maxYear))->map(function ($year) use ($groupedByYear) {
+            $items = $groupedByYear->get($year, collect());
+
+            return [
+                'year' => $year,
+                'programs' => $items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'program_name' => $item->program->name ?? 'N/A',
+                        'completed_at' => $item->updated_at->format('Y-m-d'),
+                        'status' => $item->program_status,
+                    ];
+                })->values(),
+            ];
+        })->sortDesc()->values();
+
         return inertia('cooperatives/show', [
             'cooperative' => $cooperative,
             'details' => $details,
             'programs' => $programs,
             'hasOngoingProgram' => $cooperative->programs()->where('program_status', 'ongoing')->exists(),
+            'history' => $history,
             'breadcrumbs' => [
                 ['title' => 'Cooperatives', 'href' => route('cooperatives.index')],
                 ['title' => $cooperative->name, 'href' => route('cooperatives.show', $cooperative)],

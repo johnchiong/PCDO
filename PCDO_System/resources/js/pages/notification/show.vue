@@ -2,6 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { BreadcrumbItem } from '@/types'
 import { Head } from '@inertiajs/vue3'
+import { computed } from 'vue'
 
 const props = defineProps<{
   notification: {
@@ -33,6 +34,13 @@ const getDueStatus = (body: string) => {
   if (body.toLowerCase().includes("before due")) return "beforeDue"
   return null
 }
+
+const canDownload = computed(() => {
+  return ["overdue", "due_today", "before_due"].includes(
+    props.notification.type
+  );
+});
+
 </script>
 
 <template>
@@ -70,30 +78,39 @@ const getDueStatus = (body: string) => {
           </div>
 
           <!-- Meta Info -->
-          <div class="px-14 py-5 text-sm text-gray-500 dark:text-gray-400 space-y-2">
+          <div class="px-6 sm:px-10 md:px-14 py-5 text-sm text-gray-500 dark:text-gray-400 space-y-3">
 
-            <!-- First row: Date (left) + Download button (right) -->
-            <div class="flex items-center justify-between">
-              <p>📅 {{ new Date(notification.created_at).toLocaleString() }}</p>
-              <a :href="`/notifications/${notification.id}/download`"
-                class="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow hover:bg-indigo-700 transition">
+            <!-- First row: Date + Download -->
+            <div class="flex items-center justify-between flex-wrap gap-3">
+              <p class="whitespace-nowrap">
+                📅 {{ new Date(notification.created_at).toLocaleString() }}
+              </p>
+
+              <a v-if="canDownload" :href="`/notifications/${notification.id}/download`" class="px-4 py-2 text-sm sm:text-base bg-indigo-600 text-white rounded-lg 
+             shadow hover:bg-indigo-700 transition whitespace-nowrap">
                 Download PDF
               </a>
             </div>
 
             <!-- Second row: Cooperative info -->
-            <p v-if="notification.schedule?.coop_program?.cooperative">
-              🏢 Cooperative:
-              <span class="font-medium text-gray-800 dark:text-gray-200">
-                {{ notification.schedule.coop_program.cooperative.name }}
+            <p v-if="notification.schedule?.coop_program?.cooperative" class="flex items-start gap-1">
+              🏢
+              <span>
+                Cooperative:
+                <span class="font-medium text-gray-800 dark:text-gray-200">
+                  {{ notification.schedule.coop_program.cooperative.name }}
+                </span>
               </span>
             </p>
 
             <!-- Third row: Email info -->
-            <p v-if="notification.schedule?.coop_program?.email">
-              ✉️ Send to:
-              <span class="font-medium text-indigo-600 dark:text-indigo-300 break-all">
-                {{ notification.schedule.coop_program.email }}
+            <p v-if="notification.schedule?.coop_program?.email" class="flex items-start gap-1 break-all">
+              ✉️
+              <span>
+                Send to:
+                <span class="font-medium text-indigo-600 dark:text-indigo-300 break-all">
+                  {{ notification.schedule.coop_program.email }}
+                </span>
               </span>
             </p>
           </div>

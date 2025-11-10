@@ -7,7 +7,7 @@ import PdfViewer from '@/components/PdfViewer.vue'
 
 const showFileModal = ref(false)
 const pdfUrl = ref('/programs/reports/monthly')
-const closeFileModal = () => (showFileModal.value = false)
+const closeFileModal = () => (showFileModal.value = false, pdfLoading.value = true, pdfFailed.value = false)
 const pdfFailed = ref(false)
 
 const props = defineProps<{
@@ -40,11 +40,21 @@ const programGradients: Record<number, string> = {
 }
 
 const selectedMonth = ref(new Date().toISOString().slice(0, 7))
+const selectedProgram = ref('all')
 
 const updateMonth = () => {
-  pdfUrl.value = `/programs/reports/monthly?month=${selectedMonth.value}`
+  pdfUrl.value = `/programs/reports/monthly?month=${selectedMonth.value}&program_id=${selectedProgram.value}`
+  reloadPdf()
 }
 
+const pdfLoading = ref(true)
+
+const reloadPdf = () => {
+  pdfLoading.value = true
+  setTimeout(() => {
+    pdfLoading.value = false
+  }, 500)
+}
 
 const isMobile = ref(false)
 
@@ -64,14 +74,6 @@ onMounted(() => {
       <div class="px-5 md:px-8 pt-5">
         <div class="flex flex-col gap-6 p-6">
           <div class="flex flex-col sm:flex-row sm:justify-end sm:items-center gap-3 sm:gap-4 w-full">
-            <!-- Month Selector -->
-            <div class="w-full sm:w-auto flex flex-col sm:flex-row sm:items-center">
-              <label for="month" class="text-sm text-gray-700 dark:text-gray-300 font-medium mb-1 sm:mb-0">
-                Select Month:
-              </label>
-              <input id="month" type="month" v-model="selectedMonth" @change="updateMonth"
-                class="mt-1 sm:mt-0 sm:ml-2 w-full sm:w-auto px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
-            </div>
 
             <!-- Button -->
             <button @click="showFileModal = true"
@@ -119,30 +121,55 @@ onMounted(() => {
           <div
             class="bg-white dark:bg-gray-900 rounded-2xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-hidden sm:m-0 m-auto">
             <!-- Header -->
-            <header class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 p-4">
+            <header
+              class="flex flex-wrap justify-between items-center border-b border-gray-200 dark:border-gray-700 p-4 gap-4">
               <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">
                 Monthly Program Report
               </h2>
-              <button @click="closeFileModal" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+              <button v-if="isMobile" @click="closeFileModal"
+                class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl leading-none">
                 ✕
               </button>
+              <div class="flex items-center gap-3 flex-wrap justify-end">
+                <!-- Program Selector -->
+                <select v-model="selectedProgram" @change="updateMonth" class="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800
+             text-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                  <option value="all">All Programs</option>
+                  <option v-for="program in props.programs" :key="program.id" :value="program.id">
+                    {{ program.name }}
+                  </option>
+                </select>
+
+                <!-- Month Selector -->
+                <input type="month" v-model="selectedMonth" @change="updateMonth" class="px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md bg-white dark:bg-gray-800
+             text-gray-800 dark:text-gray-100 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none" />
+
+                <button v-if="!isMobile" @click="closeFileModal"
+                  class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 text-xl leading-none">
+                  ✕
+                </button>
+              </div>
             </header>
 
             <!-- Content -->
             <div class="p-4 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-800 rounded-b-2xl">
+              <div v-if="pdfLoading" class="flex justify-center items-center h-[80vh] text-gray-600 dark:text-gray-300">
+                <div class="animate-spin rounded-full h-10 w-10 border-4 border-gray-400 border-t-transparent"></div>
+              </div>
+
               <!-- Desktop PDF -->
-              <iframe v-if="!isMobile" :src="`${pdfUrl}`" class="w-full h-[75vh] rounded" key="pdfUrl"></iframe>
+              <iframe v-if="!isMobile" :src="`${pdfUrl}`" class="w-full h-[75vh] rounded" key="pdfUrl"
+                @load="pdfLoading = false"></iframe>
 
               <!-- Mobile PDF -->
               <template v-else>
-                <PdfViewer v-if="!pdfFailed" :url="`${pdfUrl}`" type="report" @error="pdfFailed = true" :key="pdfUrl" />
+                <PdfViewer v-if="!pdfFailed" :url="`${pdfUrl}`" type="report"
+                  @error="pdfFailed = true; pdfLoading = false" :key="pdfUrl" @load="pdfLoading = false" />
 
                 <div v-else class="text-center text-gray-600 dark:text-gray-400">
                   <p class="mb-2">PDF preview not supported on your device.</p>
-                  <a :href="pdfUrl" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline"
-                    @click="closeFileModal">
-                    Open PDF in new tab
-                  </a>
+                  <a :href="`${pdfUrl}?download=1`" class="text-blue-600 hover:underline font-medium">Download the PDF
+                    file</a>
                 </div>
               </template>
             </div>

@@ -592,9 +592,8 @@ function canPayPeriod(index: number) {
                         <span class="font-medium text-gray-700 dark:text-gray-300">
                           ₱{{ Math.round(row.data.penalty_amount || 0).toLocaleString() }}
                         </span>
-                        <Button size="sm" :disabled="row.data.penalty_amount! <= 0
-                          ? !canPayPeriod(index)
-                          : ['Paid', 'Partial Paid'].includes(getStatus(row.data!).type)
+                        <Button size="sm" :disabled="(row.data.penalty_amount! <= 0 && (new Date(row.data.due_date) >= new Date() || row.data.is_paid))
+                          || (row.data.penalty_amount! > 0 && row.data.is_paid)
                           " @click="
                             row.data.penalty_amount! > 0
                               ? openPenaltyModal(row.data.id)

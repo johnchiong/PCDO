@@ -12,6 +12,18 @@ interface LocalDetails extends Details {
   barangay?: string
 }
 
+interface HistoryProgram {
+  id: number | string
+  program_name: string
+  completed_at: string
+  status: string
+}
+
+interface HistoryItem {
+  year: number
+  programs: HistoryProgram[]
+}
+
 // Props
 const props = defineProps<{
   breadcrumbs?: BreadcrumbItem[],
@@ -19,7 +31,15 @@ const props = defineProps<{
   details: Details,
   programs: { id: number; name: string }[]
   hasOngoingProgram: boolean
+  history: HistoryItem[]
 }>()
+
+const history = ref(
+  props.history.map(item => ({
+    ...item,
+    open: true
+  }))
+)
 
 // Flash messages
 const page = usePage();
@@ -64,6 +84,9 @@ function goToEditPage(id: string) {
 }
 function goToMemberPage(id: string) {
   router.visit(`/cooperatives/${id}/members`);
+}
+function goToProgramDocumentation(programId: string | number) {
+  router.visit(`/documentation/cooperative/${programId}`);
 }
 </script>
 
@@ -215,6 +238,59 @@ function goToMemberPage(id: string) {
             </div>
           </div>
         </div>
+        <!-- Cooperative Program History -->
+        <section class="mt-10">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">Program History</h2>
+
+          <div v-if="history && history.length > 0" class="space-y-3">
+            <div v-for="yearBlock in history" :key="yearBlock.year"
+              class="bg-white dark:bg-gray-800 rounded-xl shadow border border-gray-200 dark:border-gray-700">
+              <!-- Year Header -->
+              <button type="button"
+                class="w-full px-5 py-3 flex justify-between items-center text-left font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-xl focus:outline-none"
+                @click="yearBlock.open = !yearBlock.open">
+                <span>{{ yearBlock.year }}</span>
+                <svg :class="{ 'rotate-180': yearBlock.open }" class="w-5 h-5 transition-transform duration-200"
+                  fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="M6 9l6 6 6-6" />
+                </svg>
+              </button>
+
+              <!-- Programs Table -->
+              <div v-show="yearBlock.open" class="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div v-if="yearBlock.programs.length > 0" class="overflow-x-auto">
+                  <table class="w-full text-sm text-left text-gray-600 dark:text-gray-300">
+                    <thead>
+                      <tr class="border-b border-gray-300 dark:border-gray-600 text-gray-500 uppercase text-xs">
+                        <th class="py-2 px-3">Program</th>
+                        <th class="py-2 px-3">Status</th>
+                        <th class="py-2 px-3">Completed At</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="program in yearBlock.programs" :key="program.id"
+                        class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                        @click="goToProgramDocumentation(program.id)">
+                        <td class="py-2 px-3 font-medium">{{ program.program_name }}</td>
+                        <td class="py-2 px-3 capitalize">{{ program.status }}</td>
+                        <td class="py-2 px-3">{{ program.completed_at }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div v-else class="text-gray-500 italic dark:text-gray-400">
+                  No completed programs for this year.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-else class="text-gray-500 italic dark:text-gray-400">
+            No historical program records found.
+          </div>
+        </section>
       </div>
     </div>
   </AppLayout>

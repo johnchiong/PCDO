@@ -256,7 +256,7 @@ onMounted(() => {
             <div>
               <p class="label">High School</p>
               <p class="value">{{ display(member.hs_name) }} ({{ display(member.hs_start) }} - {{ display(member.hs_end)
-              }})</p>
+                }})</p>
               <p class="value text-sm">{{ display(member.hs_degree) }}</p>
             </div>
             <div>

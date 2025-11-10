@@ -6,6 +6,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs'
 
 const emit = defineEmits<{
     (e: 'error', err: any): void
+    (e: 'load'): void
 }>()
 
 const props = defineProps<{
@@ -43,7 +44,11 @@ const loadPdf = async (url: string) => {
                 viewport,
                 canvas,
             }).promise
+            const separator = document.createElement('div')
+            separator.classList.add('border-t', 'border-gray-300', 'my-6')
+            container.value?.appendChild(separator)
         }
+        emit('load')
     } catch (err) {
         console.error('Failed to load PDF:', err)
         emit('error', err)
@@ -61,10 +66,6 @@ const downloadUrl = computed(() => {
     if (props.type === 'checklist' && props.programId && props.cooperativeId && props.fileId) {
         return `/programs/${props.programId}/cooperatives/${props.cooperativeId}/checklist/${props.fileId}/download`
     }
-    if (props.type === 'report') {
-        return `${props.url.includes('?') ? props.url + '&' : props.url + '?'}download=1`
-    }
-
     return `${props.url}?download=1`
 })
 
