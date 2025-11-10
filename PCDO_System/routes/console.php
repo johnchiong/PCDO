@@ -7,3 +7,4 @@ Schedule::command('notifications:process')->everySixHours()->withoutOverlapping(
 Schedule::command('export:completed-loans')->everyMinute()->withoutOverlapping();
 Schedule::command('archive:coop-programs')->everyMinute()->withoutOverlapping();
 Schedule::command('notifications:cleanup')->everySixHours()->withoutOverlapping();
+Schedule::command('check:delinquents')->everyMinute()->withoutOverlapping();

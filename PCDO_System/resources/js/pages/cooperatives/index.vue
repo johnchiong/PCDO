@@ -319,6 +319,7 @@ usePolling(["cooperatives"], 15000);
                                     <TableHead class="pl-16 py-3">Holder</TableHead>
                                     <TableHead class="pl-16 py-3">Members</TableHead>
                                     <TableHead class="pl-16 py-3">Status</TableHead>
+                                    <TableHead class="pl-16 py-3">Total Delinquency / Programs</TableHead>
                                     <TableHead class="pl-16 py-3">Actions</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -362,6 +363,17 @@ usePolling(["cooperatives"], 15000);
                                         </span>
                                     </TableCell>
 
+                                    <TableCell class="pl-16 text-gray-600 dark:text-gray-300 whitespace-nowrap">
+                                        {{ coop.delinquent_history_count ?? 0 }} / {{ coop.total_program_count ?? 0 }}
+
+                                        <span v-if="(coop.delinquent_history_count ?? 0) > 0" class="inline-flex items-center gap-1 ml-2 px-3 py-1 text-m font-semibold rounded-xl
+               bg-red-100 text-red-700 dark:bg-red-700/40 dark:text-red-300">
+                                            <XCircle class="w-3 h-3 text-red-600 dark:text-red-300 inline-block mr-1" />
+                                            Delinquent
+                                        </span>
+                                    </TableCell>
+
+
                                     <TableCell class="pl-16 space-x-2">
                                         <Button @click="goToViewPage(coop.id)"
                                             class="px-3 py-2 rounded-lg text-xs font-medium bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-500 transition">
@@ -386,7 +398,7 @@ usePolling(["cooperatives"], 15000);
                                                     <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
                                                     <AlertDialogDescription>
                                                         Are you sure you want to delete <strong>{{ coop.name
-                                                        }}</strong>?
+                                                            }}</strong>?
                                                         This action cannot be undone.
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
@@ -434,6 +446,16 @@ usePolling(["cooperatives"], 15000);
                             <p class="text-sm text-gray-600 dark:text-gray-300">Holder: {{ coop.holder }}</p>
                             <p class="text-sm text-gray-600 dark:text-gray-300">
                                 Members: {{ coop.member_count }}
+                            </p>
+                            <p class="text-sm text-gray-600 dark:text-gray-300 flex items-center flex-wrap gap-2">
+                                Total Delinquency / Programs:
+                                {{ coop.delinquent_history_count ?? 0 }} / {{ coop.total_program_count ?? 0 }}
+
+                                <span v-if="(coop.delinquent_history_count ?? 0) > 0" class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-lg
+               bg-red-100 text-red-700 dark:bg-red-700/40 dark:text-red-300">
+                                    <XCircle class="w-3 h-3 text-red-600 dark:text-red-300 inline-block" />
+                                    Delinquent
+                                </span>
                             </p>
                             <div class="flex justify-end gap-4 mt-4">
                                 <Button @click="goToViewPage(coop.id)"

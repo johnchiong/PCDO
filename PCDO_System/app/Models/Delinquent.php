@@ -11,7 +11,7 @@ class Delinquent extends Model
 
     protected $fillable = [
         'coop_program_id',
-        'ammortization_schedule_id',
+        'amortization_schedule_id',
         'due_date',
         'date_paid',
         'status',

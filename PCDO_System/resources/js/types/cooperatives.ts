@@ -6,6 +6,8 @@ export interface Cooperative {
   type: string;
   member_count: number;
   has_ongoing_program: boolean;
+  delinquent_history_count?: number;
+  total_program_count?: number;
 }
 
 export interface Details {

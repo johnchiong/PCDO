@@ -27,9 +27,15 @@ class CooperativesController extends Controller
     public function index()
     {
         $cooperatives = Cooperative::with('details')
-            ->withCount(['programs as ongoing_program_count' => function ($q) {
-                $q->where('program_status', 'ongoing');
-            }])
+            ->withCount([
+                'programs as ongoing_program_count' => function ($q) {
+                    $q->where('program_status', 'ongoing');
+                },
+                'programs as delinquent_history_count' => function ($q) {
+                    $q->whereHas('delinquents');
+                },
+                'programs as total_program_count',
+            ])
             ->orderByDesc('ongoing_program_count')
             ->orderBy('id')
             ->get()
@@ -41,6 +47,8 @@ class CooperativesController extends Controller
                     'holder' => $coop->holder,
                     'member_count' => $coop->details->members_count ?? 0,
                     'has_ongoing_program' => $coop->ongoing_program_count > 0,
+                    'delinquent_history_count' => $coop->delinquent_history_count,
+                    'total_program_count' => $coop->total_program_count,
                 ];
             });
 
@@ -204,7 +212,7 @@ class CooperativesController extends Controller
             ->whereIn('program_status', ['Finished', 'Resolved'])
             ->where('exported', 1)
             ->where('archived', 1)
-            ->with('program')
+            ->with('program', 'delinquents')
             ->get();
 
         $groupedByYear = $coopPrograms->groupBy(function ($program) {
@@ -225,6 +233,7 @@ class CooperativesController extends Controller
                         'program_name' => $item->program->name ?? 'N/A',
                         'completed_at' => $item->updated_at->format('Y-m-d'),
                         'status' => $item->program_status,
+                        'has_delinquent' => $item->delinquents->isNotEmpty(),
                     ];
                 })->values(),
             ];

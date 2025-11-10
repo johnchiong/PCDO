@@ -108,6 +108,7 @@ class ProgramController extends Controller
             'project' => $data['project'],
             'end_date' => now()->addMonths($program->term_months),
             'program_status' => 'Ongoing',
+            'start_date' => null,
             'loan_amount' => null,
             'with_grace' => null,
         ]);
@@ -118,7 +119,7 @@ class ProgramController extends Controller
             'coop_id' => $cooperative->id,
             'type' => 'enrolled',
             'subject' => 'Cooperative Enrolled in Program',
-            'body' => "The cooperative '{$cooperative->name}' has been enrolled in the '{$program->name}' program on ".now()->format('F j, Y').'.',
+            'body' => "The cooperative '{$cooperative->name}' has been enrolled in the '{$program->name}' program on ".now()->setTimezone('Asia/Manila')->format('F j, Y').'.',
             'processed' => 1,
         ]);
 
@@ -348,7 +349,7 @@ class ProgramController extends Controller
                     $totalPenalty = $paidAmortizations->sum('penalty_amount');
                     $remaining = $totalLoan - $totalPaid;
                     $lastPaid = $paidAmortizations->sortByDesc('date_paid')->first();
-                    $lastPaidDate = $lastPaid ? $lastPaid->date_paid->format('F d, Y') : null;
+                    $lastPaidDate = $lastPaid?->date_paid?->format('F d, Y');
 
                     $thisMonthPayments = $amortizations->filter(fn ($a) => $a->date_paid >= $monthStart && $a->date_paid <= $monthEnd);
 

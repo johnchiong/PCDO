@@ -17,6 +17,7 @@ interface HistoryProgram {
   program_name: string
   completed_at: string
   status: string
+  has_delinquent: boolean
 }
 
 interface HistoryItem {
@@ -266,6 +267,7 @@ function goToProgramDocumentation(programId: string | number) {
                         <th class="py-2 px-3">Program</th>
                         <th class="py-2 px-3">Status</th>
                         <th class="py-2 px-3">Completed At</th>
+                        <th class="py-2 px-3">is Delinquent?</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -275,6 +277,10 @@ function goToProgramDocumentation(programId: string | number) {
                         <td class="py-2 px-3 font-medium">{{ program.program_name }}</td>
                         <td class="py-2 px-3 capitalize">{{ program.status }}</td>
                         <td class="py-2 px-3">{{ program.completed_at }}</td>
+                        <td class="py-2 px-3 text-center">
+                          <span v-if="program.has_delinquent" class="text-green-600">✔</span>
+                          <span v-else class="text-gray-400">—</span>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
