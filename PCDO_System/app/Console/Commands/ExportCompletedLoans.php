@@ -99,7 +99,7 @@ class ExportCompletedLoans extends Command
                     'treasurer' => $treasurerFullName,
                     'manager' => $managerFullName,
                 ])
-                    ->setPaper('a4', 'portrait')
+                    ->setPaper('legal', 'portrait')
                     ->setOptions([
                         'dpi' => 80, // lower DPI = more fits on one page
                         'defaultFont' => 'sans-serif',

@@ -7,7 +7,6 @@
     <style>
         @page {
             size: 8.5in 13in;
-            /* long bond paper (legal size) */
             margin: 10mm;
         }
 
@@ -34,7 +33,7 @@
         th,
         td {
             border: 1px solid #000;
-            padding: 5px 6px;
+            padding: 3px 4px;
             text-align: left;
             vertical-align: middle;
         }
@@ -61,7 +60,7 @@
         }
 
         .signature-section {
-            margin-top: 80px;
+            margin-top: 25px;
             width: 100%;
             font-family: Arial, sans-serif;
             font-size: 12px;
@@ -97,6 +96,23 @@
 
         .bottom-row {
             margin-top: 80px;
+        }
+        .footer {
+            position: fixed;
+            bottom: -10px;
+            left: 0;
+            right: 0;
+            height: 60px;
+            font-size: 11px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 5px;
+            text-align: right;
+            line-height: 1.4;
+        }
+
+        .footer span {
+            display: block;
         }
     </style>
 </head>
