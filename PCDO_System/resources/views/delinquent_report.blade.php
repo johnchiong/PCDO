@@ -50,6 +50,7 @@
             font-weight: bold;
             width: 25%;
         }
+         
     </style>
 </head>
 <body>

@@ -6,7 +6,8 @@
     <title>Bio-Data</title>
     <style>
         @page {
-            size: 8.5in 13in; /* Legal / long bond */
+            size: 8.5in 13in;
+            /* Legal / long bond */
             margin: 10mm;
         }
 
@@ -56,6 +57,7 @@
             font-weight: bold;
             width: 25%;
         }
+
     </style>
 </head>
 
@@ -93,7 +95,7 @@
             <td><strong>Age:</strong> {{ $age ?? '' }}</td>
             <td><strong>Sex:</strong> {{ $sex ?? '' }}</td>
             <td><strong>Civil Status:</strong> {{ $civil_status ?? '' }}</td>
-            <td><strong>Height / Weight:</strong> {{ $height ?? '' }} {{ $weight ? '/ '.$weight : '' }}</td>
+            <td><strong>Height / Weight:</strong> {{ $height ?? '' }} {{ $weight ? '/ ' . $weight : '' }}</td>
         </tr>
         <tr>
             <td colspan="2"><strong>Name of Spouse:</strong> {{ $spouse ?? '' }}</td>
@@ -170,13 +172,13 @@
             <td width="10%">Earnings</td>
         </tr>
         @for($i = 1; $i <= 5; $i++)
-        <tr>
-            <td>{{ $i }}</td>
-            <td>{{ ${"job_company_$i"} ?? '' }}</td>
-            <td>{{ ${"job_occupation_$i"} ?? '' }}</td>
-            <td>{{ ${"job_period_$i"} ?? '' }}</td>
-            <td>{{ ${"job_earnings_$i"} ?? '' }}</td>
-        </tr>
+            <tr>
+                <td>{{ $i }}</td>
+                <td>{{ ${"job_company_$i"} ?? '' }}</td>
+                <td>{{ ${"job_occupation_$i"} ?? '' }}</td>
+                <td>{{ ${"job_period_$i"} ?? '' }}</td>
+                <td>{{ ${"job_earnings_$i"} ?? '' }}</td>
+            </tr>
         @endfor
     </table>
 
@@ -190,14 +192,15 @@
             <td><strong>Tel. No.</strong></td>
         </tr>
         @for($i = 1; $i <= 3; $i++)
-        <tr>
-            <td>{{ ${"ref_name_$i"} ?? '' }}</td>
-            <td>{{ ${"ref_occupation_$i"} ?? '' }}</td>
-            <td>{{ ${"ref_address_$i"} ?? '' }}</td>
-            <td>{{ ${"ref_tel_$i"} ?? '' }}</td>
-        </tr>
+            <tr>
+                <td>{{ ${"ref_name_$i"} ?? '' }}</td>
+                <td>{{ ${"ref_occupation_$i"} ?? '' }}</td>
+                <td>{{ ${"ref_address_$i"} ?? '' }}</td>
+                <td>{{ ${"ref_tel_$i"} ?? '' }}</td>
+            </tr>
         @endfor
     </table>
 
 </body>
+
 </html>

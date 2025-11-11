@@ -9,6 +9,7 @@ use App\Models\Resolved;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Auth;
 use setasign\Fpdi\Fpdi;
 
 class DocumentationController extends Controller
@@ -153,6 +154,30 @@ class DocumentationController extends Controller
         ]);
     }
 
+    public function addFooterBySize(Fpdi $pdf, array $size, ?string $generatedBy = null)
+    {
+        // Disable auto page break
+        $pdf->SetAutoPageBreak(false);
+
+        // Footer position 18mm from bottom
+        $footerY = $size['height'] - 18;
+        $pdf->SetY($footerY);
+
+        // Footer font and color
+        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetTextColor(100, 100, 100);
+
+        $lineY = $footerY - 2;
+        $pdf->SetDrawColor(200, 200, 200);
+        $pdf->SetLineWidth(0.3);
+        $pdf->Line(10, $lineY, $size['width'] - 10, $lineY);
+
+        // Footer content
+        $pdf->Cell(0, 5, 'Provincial Cooperative Development Office', 0, 1, 'R');
+        $pdf->Cell(0, 5, 'Generated on: '.now()->format('F d, Y h:i A'), 0, 1, 'R');
+        $pdf->Cell(0, 5, 'Printed by: '.($generatedBy ?? 'N/A'), 0, 1, 'R');
+    }
+
     // View the Amortization File in PDF
     public function amortizationFile($id)
     {
@@ -166,6 +191,27 @@ class DocumentationController extends Controller
         if (! $amortization || ! $amortization->file_content) {
             abort(404, 'Amortization schedule not found.');
         }
+        $user = Auth::user()?->name ?? 'N/A';
+
+        $tempPath = storage_path('app/amort_tmp.pdf');
+        file_put_contents($tempPath, $amortization->file_content);
+
+        $pdf = new Fpdi('P', 'mm', 'legal');
+
+        $pageCount = $pdf->setSourceFile($tempPath);
+
+        for ($i = 1; $i <= $pageCount; $i++) {
+
+            $tpl = $pdf->importPage($i);
+            $size = $pdf->getTemplateSize($tpl);
+
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($tpl);
+
+            $this->addFooterBySize($pdf, $size, $user);
+        }
+
+        @unlink($tempPath);
 
         $content = $amortization->file_content;
 
@@ -175,7 +221,8 @@ class DocumentationController extends Controller
     // View the Cooperative Details in PDF
     public function cooperativeDetailsFile($id)
     {
-        // Load CoopProgram with related cooperative, program, and coopDetails + related location names
+        $user = Auth::user();
+
         $coopProgram = CoopProgram::with([
             'cooperative',
             'program',
@@ -185,12 +232,30 @@ class DocumentationController extends Controller
             'coopDetails.barangay',
         ])->findOrFail($id);
 
-        // Get the first CoopDetail (with relationships loaded)
         $coopDetail = $coopProgram->coopDetails->first();
 
-        // Generate PDF from the Blade view
-        $pdf = Pdf::loadView('coop_details', compact('coopProgram', 'coopDetail'))
-            ->setPaper('legal', 'portrait'); // 8.5in x 13in
+        // Generate temporary PDF
+        $bladePdf = Pdf::loadView('coop_details', compact('coopProgram', 'coopDetail'))
+            ->setPaper('legal', 'portrait')
+            ->output();
+
+        $tempPath = storage_path('app/temp_coop_details_'.uniqid().'.pdf');
+        file_put_contents($tempPath, $bladePdf);
+
+        // Import into FPDI
+        $pdf = new Fpdi;
+        $pageCount = $pdf->setSourceFile($tempPath);
+
+        for ($i = 1; $i <= $pageCount; $i++) {
+            $tpl = $pdf->importPage($i);
+            $size = $pdf->getTemplateSize($tpl);
+
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($tpl);
+            $this->addFooterBySize($pdf, $size, $user?->name ?? 'N/A');
+        }
+
+        @unlink($tempPath);
 
         $output = $pdf->output();
 
@@ -215,26 +280,44 @@ class DocumentationController extends Controller
             abort(404, 'No file attached for this resolved record.');
         }
 
+        $user = Auth::user();
+
         $finfo = finfo_open();
         $mimeType = finfo_buffer($finfo, $resolved->file_content, FILEINFO_MIME_TYPE);
         finfo_close($finfo);
 
-        // Handle PDF files directly
+        // If it's already a PDF, add footer using FPDI
         if (str_contains($mimeType, 'pdf')) {
+            // Save the original PDF to a temp file
+            $tempPath = storage_path('app/temp_resolved.pdf');
+            file_put_contents($tempPath, $resolved->file_content);
+
+            $pdf = new Fpdi;
+            $pageCount = $pdf->setSourceFile($tempPath);
+
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $tpl = $pdf->importPage($i);
+                $size = $pdf->getTemplateSize($tpl);
+
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($tpl);
+                $this->addFooterBySize($pdf, $size, $user?->name ?? 'N/A');
+            }
+
+            @unlink($tempPath);
+
             $content = $resolved->file_content;
 
             return $this->pdfResponse($content, $coopProgram, 'Resolved');
         }
 
-        // Determine correct extension
+        // If it's an image, convert to PDF and add footer
         $extension = match (true) {
-            str_contains($mimeType, 'jpeg') => 'jpg',
-            str_contains($mimeType, 'jpg') => 'jpg',
+            str_contains($mimeType, 'jpeg'), str_contains($mimeType, 'jpg') => 'jpg',
             str_contains($mimeType, 'png') => 'png',
-            default => 'jpg', // fallback
+            default => 'jpg',
         };
 
-        // Add the missing dot before extension
         $tempPath = storage_path('app/temp_resolved_image_'.uniqid().'.'.$extension);
         file_put_contents($tempPath, $resolved->file_content);
 
@@ -255,9 +338,10 @@ class DocumentationController extends Controller
         }
 
         // Convert the image into a PDF
-        $pdf = new Fpdi;
+        $pdf = new Fpdi('P', 'mm', 'A4');
         $pdf->AddPage();
         $pdf->Image($tempPath, 15, 25, 180, 230);
+        $this->addFooterBySize($pdf, ['width' => $pdf->GetPageWidth(), 'height' => $pdf->GetPageHeight()], $user?->name ?? 'N/A');
         @unlink($tempPath);
 
         $out = $pdf->Output('S');
@@ -320,8 +404,11 @@ class DocumentationController extends Controller
         $pageCount = $pdf->setSourceFile($mainPdfPath);
         for ($i = 1; $i <= $pageCount; $i++) {
             $tpl = $pdf->importPage($i);
-            $pdf->AddPage();
+            $size = $pdf->getTemplateSize($tpl);
+
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
             $pdf->useTemplate($tpl);
+            $this->addFooterBySize($pdf, $size, Auth::user()?->name ?? 'N/A');
         }
 
         // Append attachments
@@ -355,12 +442,17 @@ class DocumentationController extends Controller
                     $pages = $pdf->setSourceFile($tmpPath);
                     for ($p = 1; $p <= $pages; $p++) {
                         $tpl = $pdf->importPage($p);
-                        $pdf->AddPage();
+                        $size = $pdf->getTemplateSize($tpl);
+
+                        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                         $pdf->useTemplate($tpl);
+                        $this->addFooterBySize($pdf, $size, Auth::user()?->name ?? 'N/A');
                     }
                 } elseif (str_contains($item->mime_type, 'image')) {
                     $pdf->AddPage();
                     $pdf->Image($tmpPath, 10, 10, 190, 260);
+
+                    $this->addFooterBySize($pdf, ['width' => $pdf->GetPageWidth(), 'height' => $pdf->GetPageHeight()], Auth::user()?->name ?? 'N/A');
                 }
 
                 @unlink($tmpPath);
@@ -505,14 +597,18 @@ class DocumentationController extends Controller
             $pages = $pdf->setSourceFile($tempPath);
             for ($p = 1; $p <= $pages; $p++) {
                 $tpl = $pdf->importPage($p);
-                $pdf->AddPage();
+                $size = $pdf->getTemplateSize($tpl);
+
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                 $pdf->useTemplate($tpl);
+
+                $this->addFooterBySize($pdf, $size, Auth::user()?->name ?? 'N/A');
             }
 
             unlink($tempPath);
         }
 
-        // === Merge Existing Uploaded Files ===
+        // Merge Existing Uploaded Files
         foreach ($memberFiles as $file) {
             $filePath = storage_path('app/private/'.$file->file_path);
             if (! file_exists($filePath)) {
@@ -525,12 +621,20 @@ class DocumentationController extends Controller
                 $pages = $pdf->setSourceFile($filePath);
                 for ($p = 1; $p <= $pages; $p++) {
                     $tpl = $pdf->importPage($p);
-                    $pdf->AddPage();
+                    $size = $pdf->getTemplateSize($tpl);
+
+                    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                     $pdf->useTemplate($tpl);
+
+                    $this->addFooterBySize($pdf, $size, Auth::user()?->name ?? 'N/A');
                 }
+
             } elseif (str_contains($mime, 'image')) {
                 $pdf->AddPage();
                 $pdf->Image($filePath, 15, 25, 180, 230);
+
+                $this->addFooterBySize($pdf, ['width' => $pdf->GetPageWidth(), 'height' => $pdf->GetPageHeight()], Auth::user()?->name ?? 'N/A');
+
             }
         }
 
@@ -541,45 +645,39 @@ class DocumentationController extends Controller
 
     public function delinquentReport($coopProgramId, $forMerge = false)
     {
+        $user = Auth::user();
+
         $coopProgram = CoopProgram::with(['cooperative'])->findOrFail($coopProgramId);
         $coop = $coopProgram->cooperative;
 
         // chairman
-        $chairman = $coopProgram->cooperative->members
-            ->where('position', 'Chairman')
-            ->first();
+        $chairman = $coop->members->where('position', 'Chairman')->first();
         $chairmanFullName = $chairman
             ? trim("{$chairman->first_name} {$chairman->middle_initial} {$chairman->last_name}")
             : 'N/A';
 
         // treasurer
-        $treasurer = $coopProgram->cooperative->members
-            ->where('position', 'Treasurer')
-            ->first();
+        $treasurer = $coop->members->where('position', 'Treasurer')->first();
         $treasurerFullName = $treasurer
             ? trim("{$treasurer->first_name} {$treasurer->middle_initial} {$treasurer->last_name}")
             : 'N/A';
 
         // manager
-        $manager = $coopProgram->cooperative->members
-            ->where('position', 'Manager')
-            ->first();
+        $manager = $coop->members->where('position', 'Manager')->first();
         $managerFullName = $manager
             ? trim("{$manager->first_name} {$manager->middle_initial} {$manager->last_name}")
             : 'N/A';
 
         $details = $coop->details ?? null;
-
         $province = $details?->province?->name ?? null;
         $city = $details?->city?->name ?? null;
-
-        $fulladdress = trim("{$province},{$city}");
-
+        $fulladdress = trim("{$province}, {$city}");
         $contact = $coopProgram->number ?? 'N/A';
 
         $delinquents = Delinquent::where('coop_program_id', $coopProgramId)->get();
 
-        $pdf = PDF::loadView('delinquent_report', [
+        // Generate Blade PDF first
+        $bladePdf = PDF::loadView('delinquent_report', [
             'coopProgram' => $coopProgram,
             'coop' => $coop,
             'address' => $fulladdress ?: 'N/A',
@@ -588,11 +686,33 @@ class DocumentationController extends Controller
             'manager' => $managerFullName,
             'contact' => $contact,
             'delinquents' => $delinquents,
-        ]);
+        ])->setPaper('legal', 'portrait')
+            ->output();
 
         if ($forMerge) {
-            return $pdf->output();
+            // Return raw PDF for merging
+            return $bladePdf;
         }
+
+        // Save temporary file
+        $tempPath = storage_path('app/temp_delinquent_'.uniqid().'.pdf');
+        file_put_contents($tempPath, $bladePdf);
+
+        // Import into FPDI for footer
+        $pdf = new Fpdi;
+        $pageCount = $pdf->setSourceFile($tempPath);
+
+        for ($i = 1; $i <= $pageCount; $i++) {
+            $tpl = $pdf->importPage($i);
+            $size = $pdf->getTemplateSize($tpl);
+
+            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+            $pdf->useTemplate($tpl);
+
+            $this->addFooterBySize($pdf, $size, $user?->name ?? 'N/A');
+        }
+
+        @unlink($tempPath);
 
         $output = $pdf->output();
 
@@ -608,11 +728,16 @@ class DocumentationController extends Controller
             abort(404, 'No progress reports found for this cooperative.');
         }
 
+        $user = Auth::user();
+
         // Create FPDI instance
         $pdf = new Fpdi;
 
         foreach ($progressReports as $progress) {
             $pdf->AddPage();
+
+            // Disable auto page break
+            $pdf->SetAutoPageBreak(false);
 
             // Title
             $pdf->SetFont('Arial', 'B', 14);
@@ -634,6 +759,9 @@ class DocumentationController extends Controller
                 $pdf->Image($tmpPath, 20, 60, 170);
                 unlink($tmpPath);
             }
+            // Footer
+            $size = ['width' => $pdf->GetPageWidth(), 'height' => $pdf->GetPageHeight()];
+            $this->addFooterBySize($pdf, $size, $user?->name ?? 'N/A');
         }
         $output = $pdf->Output('S');
 
@@ -728,12 +856,17 @@ class DocumentationController extends Controller
             if (! file_exists($path)) {
                 continue;
             }
+
             try {
                 $pageCount = $pdf->setSourceFile($path);
                 for ($i = 1; $i <= $pageCount; $i++) {
                     $tplIdx = $pdf->importPage($i);
-                    $pdf->AddPage();
+                    $size = $pdf->getTemplateSize($tplIdx);
+
+                    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
                     $pdf->useTemplate($tplIdx);
+
+                    $this->addFooterBySize($pdf, $size, Auth::user()?->name ?? 'N/A');
                 }
             } catch (\Exception $e) {
                 continue; // Skip invalid files
