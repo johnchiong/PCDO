@@ -81,13 +81,12 @@
                 bottom: -10px;
                 left: 0;
                 right: 0;
-                height: 60px;
-                font-size: 11px;
+                height: 30px;
+                font-family: Arial, sans-serif;
+                font-size: 8px;
                 color: #666;
-                border-top: 1px solid #ddd;
-                padding-top: 5px;
                 text-align: right;
-                line-height: 1.4;
+                line-height: 1.2;
             }
 
             .footer span {
@@ -244,9 +243,13 @@
         @endforeach
 
         <div class="footer">
-            <span>Provincial Cooeprative Development Office</span>
-            <span>Generated on {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }}</span>
-            <span>Printed by: {{ auth()->user()->name }}</span>
+            <hr style="border: 0.3px solid #ccc; margin-bottom: 3px;">
+            <span>
+                Provincial Cooperative Development Office
+            </span>
+            <span>
+                Generated on {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }} | Printed by: {{ auth()->user()->name }}
+            </span>
         </div>
     </body>
 </html>

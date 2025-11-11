@@ -160,11 +160,11 @@ class DocumentationController extends Controller
         $pdf->SetAutoPageBreak(false);
 
         // Footer position 18mm from bottom
-        $footerY = $size['height'] - 18;
+        $footerY = $size['height'] - 10;
         $pdf->SetY($footerY);
 
         // Footer font and color
-        $pdf->SetFont('Arial', '', 10);
+        $pdf->SetFont('Arial', '', 8);
         $pdf->SetTextColor(100, 100, 100);
 
         $lineY = $footerY - 2;
@@ -173,9 +173,14 @@ class DocumentationController extends Controller
         $pdf->Line(10, $lineY, $size['width'] - 10, $lineY);
 
         // Footer content
-        $pdf->Cell(0, 5, 'Provincial Cooperative Development Office', 0, 1, 'R');
-        $pdf->Cell(0, 5, 'Generated on: '.now()->format('F d, Y h:i A'), 0, 1, 'R');
-        $pdf->Cell(0, 5, 'Printed by: '.($generatedBy ?? 'N/A'), 0, 1, 'R');
+        $footerLines = [
+            'Provincial Cooperative Development Office',
+            'Generated on: '.now()->format('F d, Y h:i A').' | Printed by: '.($generatedBy ?? 'N/A'),
+        ];
+
+        foreach ($footerLines as $line) {
+            $pdf->MultiCell(0, 4, $line, 0, 'R');
+        }
     }
 
     // View the Amortization File in PDF
@@ -246,18 +251,19 @@ class DocumentationController extends Controller
         $pdf = new Fpdi;
         $pageCount = $pdf->setSourceFile($tempPath);
 
-        for ($i = 1; $i <= $pageCount; $i++) {
-            $tpl = $pdf->importPage($i);
-            $size = $pdf->getTemplateSize($tpl);
+        try {
+            for ($i = 1; $i <= $pageCount; $i++) {
+                $tpl = $pdf->importPage($i);
+                $size = $pdf->getTemplateSize($tpl);
 
-            $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
-            $pdf->useTemplate($tpl);
-            $this->addFooterBySize($pdf, $size, $user?->name ?? 'N/A');
+                $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                $pdf->useTemplate($tpl);
+                $this->addFooterBySize($pdf, $size, $user?->name ?? 'N/A');
+            }
+            $output = $pdf->Output('S');
+        } finally {
+            @unlink($tempPath);
         }
-
-        @unlink($tempPath);
-
-        $output = $pdf->output();
 
         return $this->pdfResponse($output, $coopProgram, 'Coop_Details');
     }
