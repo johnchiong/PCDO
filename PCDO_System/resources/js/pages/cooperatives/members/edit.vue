@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
 import SelectSearch from '@/components/SelectSearch.vue'
 import { Member } from '@/types/cooperatives'
 import { toast } from "vue-sonner"
+import PdfViewer from '@/components/PdfViewer.vue'
 
 const props = defineProps<{
     breadcrumbs?: BreadcrumbItem[]
@@ -20,14 +21,14 @@ const form = useForm({
     first_name: props.member.first_name ?? '',
     middle_name: props.member.middle_name ?? '',
     last_name: props.member.last_name ?? '',
-    is_representative: props.member.is_representative ?? false,
+    is_representative: ['1', 1, true, 'true'].includes(props.member.is_representative),
     contact: props.member.contact ?? '',
     email: props.member.email ?? '',
     marital_status: props.member.marital_status ?? '',
     street: props.member.street ?? '',
     city: props.member.city ?? '',
     telephone: props.member.telephone ?? '',
-    birthdate: props.member.birth_date ?? '',
+    birthdate: props.member.birthdate ?? '',
     age: props.member.age ?? '',
     sex: props.member.sex ?? '',
     citizenship: props.member.citizenship ?? '',
@@ -121,13 +122,15 @@ const positions = [
 const searchPosition = ref('')
 const dropDownPositionOpen = ref(false)
 const file = ref<File[]>([])
+const selectedFile = ref<any>(null)
+const showFileModal = ref(false)
+const pdfFailed = ref(false)
 
 const allowedFileTypes = [
     'application/pdf',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'image/jpeg',
-    'image/png',
     'image/jpg',
 ]
 
@@ -160,17 +163,22 @@ function clearFile(index: number) {
     if (input && file.value.length === 0) input.value = ''
 }
 
-function openFileModal() {
+function selectFileModal() {
     const fileInput = document.getElementById('fileInput')
     if (fileInput) fileInput.click()
 }
 
-function downloadFile(f: any) {
-    window.open(`/cooperatives/${props.cooperative.id}/members/${props.member.id}/files/${f.id}/download`, '_blank')
+function openFileModal(file: any) {
+    selectedFile.value = file
+    showFileModal.value = true
+}
+
+function closeFileModal() {
+    selectedFile.value = null
+    showFileModal.value = false
 }
 
 function deleteFile(f: any) {
-    if (!confirm(`Delete file "${f.file_name}"?`)) return
     router.delete(`/cooperatives/${props.cooperative.id}/members/${props.member.id}/files/${f.id}`, {
         preserveScroll: true,
         onSuccess: () => toast.success('File deleted successfully!'),
@@ -190,8 +198,15 @@ function handleSubmit() {
         onSuccess: () => toast.success(`${form.first_name} ${form.last_name} has been updated successfully!`)
     })
 }
-</script>
 
+const isMobile = ref(false)
+
+onMounted(() => {
+    const uaCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    const sizeCheck = window.matchMedia('(max-width: 768px)').matches
+    isMobile.value = uaCheck || sizeCheck
+})
+</script>
 
 <template>
     <AppLayout :breadcrumbs="breadcrumbs">
@@ -214,10 +229,11 @@ function handleSubmit() {
                         <div>
                             <label for="active_year" class="block mb-1">Active Year</label>
                             <input v-model="form.active_year" id="active_year" type="number" min="2000"
-                                :max="new Date().getFullYear() + 1" class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                                :max="new Date().getFullYear() + 1"
+                                class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                         </div>
 
-                                                <div>
+                        <div>
                             <label for="first_name" class="block mb-2">First Name</label>
                             <input v-model="form.first_name" id="first_name" type="text"
                                 class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
@@ -225,10 +241,8 @@ function handleSubmit() {
 
                         <div>
                             <label for="middle_name" class="block mb-2">Middle Name</label>
-                            <input
-                                v-model="form.middle_name" id="middle_name" type="text"
-                                class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                            />
+                            <input v-model="form.middle_name" id="middle_name" type="text"
+                                class="w-full pl-9 rounded-xl border bg-white dark:bg-gray-700 border-gray-500 dark:border-gray-700 p-3 focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
                         </div>
 
                         <div>
@@ -627,36 +641,63 @@ function handleSubmit() {
                             </div>
                         </div>
 
-                        <div
-                            class="flex items-center gap-2">
+                        <div class="flex items-center gap-2">
                             <input type="checkbox" id="is_representative" v-model="form.is_representative" />
                             <label for="is_representative">Is Representative?</label>
                         </div>
 
                         <!-- Existing Files -->
-                        <div v-if="props.member.files.length">
-                            <label class="block mb-2">Existing Files</label>
-                            <ul class="space-y-2">
-                                <li v-for="f in props.member.files" :key="f.id"
-                                    class="flex justify-between items-center bg-gray-200 dark:bg-gray-700 p-2 rounded">
-                                    <span>{{ f.file_name }}</span>
-                                    <div class="flex gap-3">
-                                        <button type="button" class="text-blue-600 underline text-sm"
-                                            @click="downloadFile(f)">Download</button>
-                                        <button type="button" class="text-red-600 underline text-sm"
-                                            @click="deleteFile(f)">Delete</button>
+                        <Section title="Uploaded Files">
+                            <div v-if="member.files?.length" class="space-y-2">
+                                <div v-for="file in member.files" :key="file.id"
+                                    class="flex justify-between items-center p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                                    @click="openFileModal(file)">
+                                    <div>
+                                        <p class="text-sm font-medium text-gray-800 dark:text-gray-200"> <span
+                                                class="truncate block max-w-[140px] md:max-w-[140px]"
+                                                title="{{ file.file_name }}">
+                                                {{ file.file_name }}
+                                            </span></p>
+                                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ file.file_type }}</p>
                                     </div>
-                                </li>
-                            </ul>
-                        </div>
 
+                                    <div class="flex gap-4" @click.stop>
+                                        <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${file.id}/download`"
+                                            class="text-blue-600 dark:text-blue-400 hover:underline text-sm">Download</a>
+
+                                        <AlertDialog>
+                                            <AlertDialogTrigger as-child>
+                                                <button
+                                                    class="text-red-600 dark:text-red-400 hover:underline text-sm">Delete</button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>Delete Upload?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        This will permanently remove <strong>{{ file.file_name
+                                                        }}</strong>. This action cannot be
+                                                        undone.
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                                    <AlertDialogAction @click="deleteFile(file)">Confirm Delete
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </div>
+                                </div>
+                            </div>
+                            <p v-else class="text-sm text-gray-500 italic">No files uploaded</p>
+                        </Section>
                         <!-- Upload new files -->
                         <div>
                             <label class="block mb-1">Upload New Files</label>
                             <div class="border-2 border-dashed bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center text-gray-500 dark:text-gray-400 cursor-pointer hover:border-indigo-400 dark:hover:border-indigo-500 transition"
-                                @dragover.prevent @drop="onDrop" @click="openFileModal">
+                                @dragover.prevent @drop="onDrop" @click="selectFileModal">
                                 <input id="fileInput" type="file" multiple @change="onFileChange" class="hidden"
-                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                                    accept=".pdf,.doc,.docx,.jpg,.jpeg" />
                                 <div v-if="file.length" class="mb-2 space-y-2">
                                     <div v-for="(f, index) in file" :key="index"
                                         class="flex items-center justify-between bg-gray-100 p-2 rounded">
@@ -670,7 +711,7 @@ function handleSubmit() {
                                 <div v-else class="mb-2">
                                     <p class="text-gray-500">Drag & drop files here, or click to select</p>
                                 </div>
-                                <div class="text-xs text-gray-400">Accepted formats: PDF, DOC, DOCX, JPG, PNG</div>
+                                <div class="text-xs text-gray-400">Accepted formats: PDF, DOC, DOCX, JPG</div>
                             </div>
                         </div>
 
@@ -682,5 +723,64 @@ function handleSubmit() {
                 </div>
             </div>
         </div>
+        <!-- File Modal -->
+        <Transition name="fade">
+            <div v-if="showFileModal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 sm:p-0"
+                @click.self="closeFileModal">
+                <div class="bg-white dark:bg-gray-900 rounded-2xl shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden
+             sm:rounded-xl sm:m-0 m-auto">
+                    <header class="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 p-4">
+                        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-100 truncate">
+                            {{ selectedFile?.file_name }}
+                        </h2>
+                        <button @click="closeFileModal"
+                            class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                            ✕
+                        </button>
+                    </header>
+
+                    <div
+                        class="p-4 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-800 rounded-b-2xl sm:rounded-b-xl">
+                        <template v-if="selectedFile?.file_type === 'application/pdf'">
+                            <iframe v-if="!isMobile"
+                                :src="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                                class="w-full h-[70vh]"></iframe>
+
+                            <!-- Mobile PDF fallback -->
+                            <template v-else>
+                                <!-- Show PdfViewer first, fallback if it errors -->
+                                <PdfViewer v-if="!pdfFailed" type="member" :cooperative-id="props.cooperative.id"
+                                    :member-id="member?.id" :file-id="selectedFile.id"
+                                    :url="`/cooperatives/${props.cooperative.id}/members/${member?.id}/files/${selectedFile.id}/view`"
+                                    @error="pdfFailed = true" />
+
+                                <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                                    <p class="mb-2">PDF preview not supported on mobile.</p>
+                                    <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                                        target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline"
+                                        @click="closeFileModal">
+                                        Open PDF
+                                    </a>
+                                </div>
+                            </template>
+                        </template>
+
+                        <!-- Image -->
+                        <img v-else-if="selectedFile?.file_type?.startsWith('image/')"
+                            :src="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/view`"
+                            alt="Preview" class="max-h-[70vh] mx-auto rounded-lg shadow" />
+
+                        <!-- Other Files -->
+                        <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                            <p>Preview not available for this file type.</p>
+                            <a :href="`/cooperatives/${props.cooperative.id}/members/${member.id}/files/${selectedFile.id}/download`"
+                                class="text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block">
+                                Download File
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Transition>
     </AppLayout>
 </template>

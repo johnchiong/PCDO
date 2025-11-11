@@ -2,8 +2,9 @@
 import AppLayout from '@/layouts/AppLayout.vue'
 import { useForm, router } from '@inertiajs/vue3'
 import { BreadcrumbItem } from '@/types'
-import { computed, watch, ref } from 'vue'
+import { computed, watch, ref, nextTick, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
+import PdfViewer from '@/components/PdfViewer.vue'
 
 // Interfaces
 interface ChecklistItem {
@@ -19,6 +20,7 @@ interface CoopProgram {
   loan_amount?: number | null
   with_grace?: number | null
   consenter?: string | null
+  has_amortization?: boolean
 }
 
 // Loan form
@@ -68,6 +70,11 @@ const loanForm = useForm<LoanFormData>({
 const selectedFile = ref<{ id: number; name: string; url: string } | null>(null)
 const isConsented = ref(false);
 const showPreviewModal = ref(false)
+
+const finalizeLoanSection = ref<HTMLElement | null>(null)
+const isChecklistRemade = ref(false)
+const pdfFailed = ref(false)
+
 watch(showPreviewModal, (isOpen) => {
   if (isOpen) {
     const firstUploaded = props.checklistItems.find(item => item.upload)
@@ -96,6 +103,7 @@ function saveConsent() {
         toast.success('Consent recorded successfully!')
         isConsented.value = false
         showPreviewModal.value = false
+        isChecklistRemade.value = false
         router.reload({ only: ['checklistItems', 'cooperative'] })
       },
       onError: () => {
@@ -122,12 +130,20 @@ function handleUpload(index: number, item: ChecklistItem) {
     `/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/upload`,
     {
       forceFormData: true,
+      preserveScroll: true,
       onSuccess: () => {
-        const fileName = uploadedFile?.name
-
+        const fileName = uploadedFile?.name || 'File'
+        const isChecklistRemade = ref(true)
         forms[index].reset()
-        router.reload({ only: ['checklistItems'] })
-        toast.success(`"${fileName}" uploaded successfully!`)
+        router.visit(window.location.href, {
+          only: ['checklistItems'],
+          preserveScroll: true,
+          preserveState: true,
+          replace: true,
+        })
+        const displayName = fileName.length > 20 ? fileName.slice(0, 17) + '...' : fileName
+        toast.success(`"${displayName}" uploaded successfully!`)
+
       },
       onError: () => toast.error('Failed to upload file. Please try again.')
     }
@@ -143,6 +159,14 @@ function submitLoan() {
     {
       onSuccess: () => {
         toast.success('Loan finalized and amortization schedule generated successfully!')
+        router.reload({
+          only: ['cooperative', 'checklistItems'],
+          onFinish: () => {
+            nextTick(() => {
+              finalizeLoanSection.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            })
+          }
+        })
       },
       onError: () => {
         toast.error('Failed to finalize loan. Please try again.')
@@ -181,6 +205,13 @@ const breadcrumbs: BreadcrumbItem[] = [
   { title: props.cooperative.program?.name || 'N/A', href: `/programs/${props.cooperative.program?.id}` },
   { title: 'Checklist', href: '#' },
 ]
+
+const isMobile = ref(false)
+onMounted(() => {
+  const uaCheck = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+  const sizeCheck = window.matchMedia('(max-width: 768px)').matches
+  isMobile.value = uaCheck || sizeCheck
+})
 </script>
 
 <template>
@@ -199,7 +230,7 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
 
         <!-- Loan Section -->
-        <div v-if="props.cooperative.program"
+        <div ref="finalizeLoanSection" v-if="props.cooperative.program && !props.cooperative.has_amortization"
           class="bg-gray-50 dark:bg-gray-800/80 border ring-1 ring-gray-300 dark:ring-gray-700 border-gray-300 dark:border-gray-700 rounded-xl shadow-m px-6 py-5 mb-6">
           <h3 class="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
             Finalize Loan
@@ -254,7 +285,8 @@ const breadcrumbs: BreadcrumbItem[] = [
               <span class="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
                 Grace Period
               </span>
-              <div class="flex gap-4">
+              <div class="flex gap-4 flex-col sm:flex-row">
+
                 <label class="flex-1 cursor-pointer">
                   <div :class="['p-3 rounded-lg border transition',
                     loanForm.with_grace === 0
@@ -342,8 +374,9 @@ const breadcrumbs: BreadcrumbItem[] = [
           <!-- Already uploaded -->
           <div v-if="item.upload" class="mb-3 flex items-center justify-between">
             <p class="text-sm text-gray-800 dark:text-gray-300">
-              Uploaded File: <strong>{{ item.upload.file_name }}</strong>
-            </p>
+              Uploaded File: <span class="truncate block max-w-[140px] md:max-w-[140px]" title="{{ file.file_name }}">
+                <strong>{{ item.upload.file_name }}</strong>
+              </span> </p>
             <div class="flex gap-4">
               <a :href="`/programs/${props.cooperative.program?.id}/cooperatives/${props.cooperative.cooperative.id}/checklist/${item.upload.id}/download`"
                 class="text-blue-600 dark:text-blue-400 hover:underline">
@@ -399,21 +432,24 @@ const breadcrumbs: BreadcrumbItem[] = [
         </div>
 
         <Dialog v-model:open="showPreviewModal">
-          <DialogContent class="!max-w-[85vw] bg-gray-100/90 dark:bg-gray-900 rounded-xl shadow-xl overflow-hidden p-4">
-            <DialogHeader>
-              <DialogTitle class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+          <DialogContent
+            class="!max-w-[95vw] md:!max-w-[85vw] bg-gray-100/90 dark:bg-gray-900 rounded-xl shadow-xl overflow-hidden p-0 md:p-4 max-h-[90vh]">
+            <DialogHeader class="px-4 pt-4 md:px-0">
+              <DialogTitle class="text-lg md:text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Uploaded Checklist Preview
               </DialogTitle>
             </DialogHeader>
 
-            <div class="flex h-[80vh]">
-              <!-- Left Side: Checklist Navigation -->
-              <div class="w-1/4 border-r border-gray-300 dark:border-gray-700 p-4 space-y-2 overflow-y-auto">
-                <h4 class="text-gray-700 dark:text-gray-300 mb-2">Checklists</h4>
+            <div class="flex flex-col md:flex-row overflow-hidden md:h-[75vh] max-h-[70vh] md:max-h-none">
+              <div
+                class="w-full md:w-1/4 border-b md:border-b-0 md:border-r border-gray-300 dark:border-gray-700 p-3 md:p-4 space-y-2 overflow-y-auto max-h-[30vh] md:max-h-none">
+                <h4 class="text-gray-700 dark:text-gray-300 mb-2 text-sm md:text-base">
+                  Checklists
+                </h4>
                 <ul class="space-y-1">
                   <li v-for="(item, i) in props.checklistItems" :key="i">
                     <button v-if="item.upload" @click="openFilePreview(item)" :class="[
-                      'block w-full text-left p-2 rounded-lg transition',
+                      'block w-full text-left p-2 rounded-lg transition text-sm break-words whitespace-normal',
                       selectedFile?.id === item.upload.id
                         ? 'bg-indigo-700 text-white font-medium shadow-sm'
                         : 'text-gray-800 dark:text-gray-100 hover:bg-indigo-100 dark:hover:bg-gray-700'
@@ -424,21 +460,40 @@ const breadcrumbs: BreadcrumbItem[] = [
                 </ul>
               </div>
 
-              <!-- Right Side: File Preview -->
-              <div class="flex-1 p-4 overflow-y-auto max-h-[80vh]">
+              <div class="flex-1 p-3 md:p-4 overflow-y-auto max-h-[60vh] md:max-h-[80vh]">
                 <div v-if="selectedFile">
-                  <p class="text-gray-800 dark:text-gray-100 mb-3">
+                  <p class="text-gray-800 dark:text-gray-100 mb-3 text-sm md:text-base break-words whitespace-normal">
                     Viewing: <strong>{{ selectedFile.name }}</strong>
                   </p>
 
-                  <iframe v-if="selectedFile.url" :src="selectedFile.url"
-                    class="w-full h-[60vh] border rounded-lg"></iframe>
+                  <div v-if="isMobile">
+                    <template v-if="selectedFile.name.toLowerCase().endsWith('.pdf')">
+                      <PdfViewer v-if="!pdfFailed" type="checklist" :url="selectedFile.url"
+                        :cooperative-id="props.cooperative.cooperative.id" :program-id="props.cooperative.program?.id"
+                        :file-id="selectedFile.id" @error="pdfFailed = true" />
 
-                  <!-- Consent Section (below preview) -->
+                      <div v-else class="text-center text-gray-600 dark:text-gray-400">
+                        <p class="mb-2">PDF preview not supported on this device.</p>
+                        <a :href="selectedFile.url" target="_blank"
+                          class="text-blue-600 dark:text-blue-400 hover:underline">
+                          Open PDF in New Tab
+                        </a>
+                      </div>
+                    </template>
+                    <template v-else -if="selectedFile.name.toLowerCase().match(/\.(jpg|jpeg|png|gif|bmp|webp)$/)">
+                      <img :src="selectedFile.url" alt="Preview"
+                        class="w-full h-auto max-h-[40vh] object-contain rounded-lg border border-gray-300 dark:border-gray-700 mb-4" />
+                    </template>
+                  </div>
+
+                  <iframe v-else-if="selectedFile.url" :src="selectedFile.url"
+                    class="w-full h-[40vh] md:h-[60vh] border rounded-lg"></iframe>
+
                   <div
                     class="mt-6 bg-white/70 dark:bg-gray-800/70 rounded-lg p-4 border border-gray-300 dark:border-gray-700">
-                    <p class="text-gray-800 dark:text-gray-200 mb-3">
-                      Please review the checklist documents carefully and confirm the if all the files are correct.
+                    <p class="text-gray-800 dark:text-gray-200 mb-3 text-sm md:text-base">
+                      Please review the checklist documents carefully and confirm if all
+                      the files are correct.
                     </p>
 
                     <div class="flex items-center mb-4">
@@ -451,7 +506,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
                     <div class="text-right">
                       <button type="button" @click="saveConsent" :disabled="!isConsented"
-                        class="px-4 py-2 rounded-lg shadow-md text-white"
+                        class="px-4 py-2 rounded-lg shadow-md text-white text-sm md:text-base"
                         :class="isConsented ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400 cursor-not-allowed'">
                         Save
                       </button>
@@ -469,9 +524,18 @@ const breadcrumbs: BreadcrumbItem[] = [
             Save Progress
           </button>
 
-          <button v-else type="button" @click="showPreviewModal = true"
+          <button v-else-if="isChecklistRemade" type="button" @click="showPreviewModal = true"
+            class="bg-yellow-500 hover:bg-yellow-600 text-white px-5 py-2 rounded-lg shadow-md">
+            Remake Checklist
+          </button>
+
+          <button v-else-if="!props.cooperative.consenter" type="button" @click="showPreviewModal = true"
             class="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-lg shadow-md">
             Confirm Checklist
+          </button>
+
+          <button v-else disabled class="bg-gray-400 text-white px-5 py-2 rounded-lg shadow-md cursor-not-allowed">
+            Checklist Confirmed
           </button>
         </div>
       </div>

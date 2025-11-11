@@ -27,9 +27,15 @@ class CooperativesController extends Controller
     public function index()
     {
         $cooperatives = Cooperative::with('details')
-            ->withCount(['programs as ongoing_program_count' => function ($q) {
-                $q->where('program_status', 'ongoing');
-            }])
+            ->withCount([
+                'programs as ongoing_program_count' => function ($q) {
+                    $q->where('program_status', 'ongoing');
+                },
+                'programs as delinquent_history_count' => function ($q) {
+                    $q->whereHas('delinquents');
+                },
+                'programs as total_program_count',
+            ])
             ->orderByDesc('ongoing_program_count')
             ->orderBy('id')
             ->get()
@@ -41,6 +47,8 @@ class CooperativesController extends Controller
                     'holder' => $coop->holder,
                     'member_count' => $coop->details->members_count ?? 0,
                     'has_ongoing_program' => $coop->ongoing_program_count > 0,
+                    'delinquent_history_count' => $coop->delinquent_history_count,
+                    'total_program_count' => $coop->total_program_count,
                 ];
             });
 
@@ -55,6 +63,7 @@ class CooperativesController extends Controller
     public function getDetails($id)
     {
         $coop = Cooperative::with('coopDetail')->findOrFail($id);
+
         return response()->json([
             'number' => optional($coop->coopDetail)->number,
             'email' => optional($coop->coopDetail)->email,
@@ -167,7 +176,22 @@ class CooperativesController extends Controller
         $programs = Programs::select('id', 'name')->get();
 
         // Provide default empty details if none exist
-        $details = $cooperative->details ?? (object) [
+        $details = $cooperative->details ? [
+            'coop_type' => $cooperative->details->coop_type,
+            'status_category' => $cooperative->details->status_category,
+            'bond_of_membership' => $cooperative->details->bond_of_membership,
+            'area_of_operation' => $cooperative->details->area_of_operation,
+            'citizenship' => $cooperative->details->citizenship,
+            'members_count' => $cooperative->details->members_count,
+            'total_asset' => $cooperative->details->total_asset,
+            'net_surplus' => $cooperative->details->net_surplus,
+            'region' => $cooperative->details->region->name ?? '',
+            'province' => $cooperative->details->province->name ?? '',
+            'city' => $cooperative->details->city->name ?? '',
+            'barangay' => $cooperative->details->barangay->name ?? '',
+            'email' => $cooperative->details->email ?? '',
+            'number' => $cooperative->details->number ?? '',
+        ] : (object) [
             'coop_type' => '',
             'status_category' => '',
             'bond_of_membership' => '',
@@ -176,12 +200,51 @@ class CooperativesController extends Controller
             'members_count' => 0,
             'total_asset' => 0,
             'net_surplus' => 0,
+            'region' => '',
+            'province' => '',
+            'city' => '',
+            'barangay' => '',
+            'email' => '',
+            'number' => '',
         ];
+
+        $coopPrograms = $cooperative->programs()
+            ->whereIn('program_status', ['Finished', 'Resolved'])
+            ->where('exported', 1)
+            ->where('archived', 1)
+            ->with('program', 'delinquents')
+            ->get();
+
+        $groupedByYear = $coopPrograms->groupBy(function ($program) {
+            return $program->updated_at->format('Y');
+        });
+
+        $minYear = $coopPrograms->min(fn ($p) => $p->updated_at->year) ?? date('Y');
+        $maxYear = date('Y');
+
+        $history = collect(range($minYear, $maxYear))->map(function ($year) use ($groupedByYear) {
+            $items = $groupedByYear->get($year, collect());
+
+            return [
+                'year' => $year,
+                'programs' => $items->map(function ($item) {
+                    return [
+                        'id' => $item->id,
+                        'program_name' => $item->program->name ?? 'N/A',
+                        'completed_at' => $item->updated_at->format('Y-m-d'),
+                        'status' => $item->program_status,
+                        'has_delinquent' => $item->delinquents->isNotEmpty(),
+                    ];
+                })->values(),
+            ];
+        })->sortDesc()->values();
 
         return inertia('cooperatives/show', [
             'cooperative' => $cooperative,
             'details' => $details,
             'programs' => $programs,
+            'hasOngoingProgram' => $cooperative->programs()->where('program_status', 'ongoing')->exists(),
+            'history' => $history,
             'breadcrumbs' => [
                 ['title' => 'Cooperatives', 'href' => route('cooperatives.index')],
                 ['title' => $cooperative->name, 'href' => route('cooperatives.show', $cooperative)],
