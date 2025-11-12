@@ -15,31 +15,40 @@ class CleanupProcessedNotifications extends Command
 
     public function handle()
     {
+        $this->info('--- Starting notifications:cleanup at '.now().' ---');
+
         DB::beginTransaction();
 
         try {
-            // Fetch all processed pending notifications
-            $processed = PendingNotification::where('processed', 1)->get();
+            $processed = PendingNotification::where('processed', 1)
+                ->lockForUpdate()
+                ->get();
 
             if ($processed->isEmpty()) {
                 $this->info('No processed notifications found.');
+                DB::commit();
 
                 return;
             }
 
             foreach ($processed as $pn) {
-                // Insert into main notifications table (fires 'created' event)
-                Notifications::create([
-                    'schedule_id' => $pn->schedule_id,
-                    'coop_id' => $pn->coop_id,
-                    'type' => $pn->type,
-                    'subject' => $pn->subject,
-                    'body' => $pn->body,
-                    'created_at' => $pn->created_at,
-                    'processed' => $pn->processed,
-                ]);
+                // Mark as moving to prevent other workers from touching it
+                $pn->update(['processed' => 2]);
 
-                // Delete from pending (fires 'deleted' event)
+                Notifications::updateOrCreate(
+                    [
+                        'schedule_id' => $pn->schedule_id,
+                        'type' => $pn->type,
+                    ],
+                    [
+                        'coop_id' => $pn->coop_id,
+                        'subject' => $pn->subject,
+                        'body' => $pn->body,
+                        'created_at' => $pn->created_at,
+                        'processed' => 1,
+                    ]
+                );
+
                 $pn->delete();
             }
 
@@ -49,5 +58,7 @@ class CleanupProcessedNotifications extends Command
             DB::rollBack();
             $this->error('❌ Cleanup failed: '.$e->getMessage());
         }
+
+        $this->info('--- Finished notifications:cleanup at '.now().' ---');
     }
 }

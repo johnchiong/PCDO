@@ -136,7 +136,9 @@ class DashboardController extends Controller
 
                 return [
                     'id' => $n->id,
-                    'subject' => "Payment Reminder for {$coopName}",
+                    'subject' => ! empty($n->subject)
+                        ? "{$coopName} - {$n->subject}"
+                        : "Reminder for {$coopName}",
                     'body' => 'This is a pending payment notification for your cooperative.',
                     'type' => $n->type ?? 'info',
                     'created_at' => $n->created_at ?? now(),

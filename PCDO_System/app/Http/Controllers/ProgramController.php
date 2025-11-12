@@ -108,7 +108,7 @@ class ProgramController extends Controller
             'project' => $data['project'],
             'end_date' => now()->addMonths($program->term_months),
             'program_status' => 'Ongoing',
-            'start_date' => null,
+            'start_date' => now(),
             'loan_amount' => null,
             'with_grace' => null,
         ]);
@@ -168,7 +168,8 @@ class ProgramController extends Controller
         $coopProgram->update([
             'loan_amount' => $request->loan_amount,
             'with_grace' => $request->with_grace,
-            'start_date' => $request->start_date,
+            'start_date' => $startDate,
+            'end_date' => $startDate->copy()->addMonths($program->term_months),
         ]);
 
         //  Auto-generate amortization schedule
@@ -187,7 +188,7 @@ class ProgramController extends Controller
 
                 AmortizationSchedules::create([
                     'coop_program_id' => $coopProgram->id,
-                    'due_date' => $startDate->copy()->addMonthsNoOverflow($i),
+                    'due_date' => $startDate->copy()->addMonthsNoOverflow($i - 1),
                     'installment' => $amountDue,
                     'status' => 'Unpaid',
                 ]);

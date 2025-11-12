@@ -16,13 +16,12 @@ class CheckDuePayments extends Command
     public function handle()
     {
         $now = Carbon::now();
+        $this->info('--- Starting payments:check-due at '.$now.' ---');
 
         // --- 3 days before due ---
         $beforeDue = AmortizationSchedules::whereNull('date_paid')
             ->whereDate('due_date', Carbon::now()->addDays(3))
-            ->whereDoesntHave('pendingNotifications', function ($q) {
-                $q->where('type', 'before_due');
-            })
+            ->whereDoesntHave('pendingNotifications', fn ($q) => $q->where('type', 'before_due'))
             ->get();
 
         foreach ($beforeDue as $schedule) {
@@ -37,9 +36,7 @@ class CheckDuePayments extends Command
         // --- due today ---
         $dueToday = AmortizationSchedules::whereNull('date_paid')
             ->whereDate('due_date', Carbon::today())
-            ->whereDoesntHave('pendingNotifications', function ($q) {
-                $q->where('type', 'due_today');
-            })
+            ->whereDoesntHave('pendingNotifications', fn ($q) => $q->where('type', 'due_today'))
             ->get();
 
         foreach ($dueToday as $schedule) {
@@ -54,9 +51,7 @@ class CheckDuePayments extends Command
         // --- 1 day after due (overdue) ---
         $overdue = AmortizationSchedules::whereNull('date_paid')
             ->whereDate('due_date', Carbon::yesterday())
-            ->whereDoesntHave('pendingNotifications', function ($q) {
-                $q->where('type', 'overdue');
-            })
+            ->whereDoesntHave('pendingNotifications', fn ($q) => $q->where('type', 'overdue'))
             ->get();
 
         foreach ($overdue as $schedule) {
@@ -69,5 +64,6 @@ class CheckDuePayments extends Command
         }
 
         $this->info('✅ Pending payment notifications inserted successfully.');
+        $this->info('--- Finished payments:check-due at '.now().' ---');
     }
 }
