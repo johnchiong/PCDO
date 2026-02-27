@@ -4,21 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\CoopProgram;
 use App\Models\CoopProgramChecklist;
+use App\Models\CoopProgramMoa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use PhpOffice\PhpWord\IOFactory;
 use PhpOffice\PhpWord\Settings;
+use Illuminate\Support\Str;
 
 class CoopProgramChecklistController extends Controller
 {
     // Show the checklist for a cooperative
-    public function show($programId, $cooperativeId)
+    public function show($coopProgramId)
     {
-        $coopProgram = CoopProgram::with(['program.checklists', 'cooperative'])
-            ->where('program_id', $programId)
-            ->where('coop_id', $cooperativeId)
-            ->orderby('id', 'desc')
-            ->firstOrFail();
+        $coopProgram = CoopProgram::with(['program'])->findOrFail($coopProgramId);
 
         $checklistItems = $coopProgram->program->checklists;
 
@@ -36,11 +35,15 @@ class CoopProgramChecklistController extends Controller
                     'file_name' => $upload->file_name,
                     'mime_type' => $upload->mime_type,
                 ] : null,
+                'moa'
             ];
         });
 
+        $moa = CoopProgramMoa::where('coop_program_id', $coopProgram->id)
+            ->first(['id', 'file_name']);
+
         return Inertia::render('programs/checklist', [
-            'cooperative' => [
+            'coopProgram' => [
                 'id' => $coopProgram->id,
                 'loan_amount' => $coopProgram->loan_amount,
                 'with_grace' => $coopProgram->with_grace,
@@ -48,25 +51,25 @@ class CoopProgramChecklistController extends Controller
                 'cooperative' => $coopProgram->cooperative,
                 'program' => $coopProgram->program,
                 'has_amortization' => $coopProgram->amortizationSchedules()->exists(),
+                'moa' => $moa ? [
+                    'id' => $moa->id,
+                    'file_name' => $moa->file_name,
+                ] : null,
             ],
             'checklistItems' => $checklistWithUploads,
         ]);
     }
 
     // Upload a file
-    public function upload(Request $request, $programId, $cooperativeId)
+    public function upload(Request $request, $coopProgramId)
     {
         ini_set('max_execution_time', 120);
         $request->validate([
             'program_checklist_id' => 'required|exists:program_checklists,id',
-            'file' => 'required|file|max:5120',
+            'file' => 'required|file|max:20000',
         ]);
 
-        $coopProgram = CoopProgram::where('program_id', $programId)
-            ->where('coop_id', $cooperativeId)
-            ->orderby('id', 'desc')
-            ->firstOrFail();
-
+        $coopProgram = CoopProgram::findOrFail($coopProgramId);
         $file = $request->file('file');
         $mime = $file->getClientMimeType();
         $fileName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -127,49 +130,84 @@ class CoopProgramChecklistController extends Controller
         }
 
         return redirect()->route('programs.cooperatives.checklist.show', [
-            'program' => $programId,
-            'cooperative' => $cooperativeId,
-        ]);
+            'coopProgramId' => $coopProgram->id,
+        ])->with('success', 'File uploaded successfully!');
     }
 
-    public function preview($programId, $cooperativeId, $fileId)
+    public function preview($coopProgramId, $fileId)
     {
-        $upload = CoopProgramChecklist::findOrFail($fileId);
-
+        $upload = CoopProgram::findOrFail($coopProgramId)->checklist()->findOrFail($fileId);
         return response($upload->file_content)
             ->header('Content-Type', $upload->mime_type)
-            ->header('Content-Disposition', 'inline; filename="'.$upload->file_name.'"');
+            ->header('Content-Disposition', 'inline; filename="' . $upload->file_name . '"');
     }
 
-    public function consent($programId, $cooperativeId)
+    public function consent($coopProgramId)
     {
-        $coopProgram = CoopProgram::where('program_id', $programId)
-            ->where('coop_id', $cooperativeId)
-            ->orderby('id', 'desc')
-            ->firstOrFail();
-
-        $coopProgram->consenter = auth()->user()->id;
+        $coopProgram = CoopProgram::findOrFail($coopProgramId);
+        $coopProgram->consenter = Auth::id();
         $coopProgram->save();
 
         return back()->with('success', 'Consent has been recorded successfully.');
     }
 
     // Download a file
-    public function download($programId, $cooperativeId, $fileId)
+    public function download($coopProgramId, $fileId)
     {
-        $upload = CoopProgramChecklist::findOrFail($fileId);
-
+        $upload = CoopProgram::findOrFail($coopProgramId)->checklist()->findOrFail($fileId);
         return response($upload->file_content)
             ->header('Content-Type', $upload->mime_type)
-            ->header('Content-Disposition', 'attachment; filename="'.$upload->file_name.'"');
+            ->header('Content-Disposition', 'attachment; filename="' . $upload->file_name . '"');
     }
 
     // Delete a file
-    public function delete($programId, $cooperativeId, $fileId)
+    public function delete($coopProgramId, $fileId)
     {
         $upload = CoopProgramChecklist::findOrFail($fileId);
         $upload->delete();
 
-        return redirect()->back()->with('success', 'File deleted successfully!');
+        return redirect()->route('programs.cooperatives.checklist.show', [
+            'coopProgramId' => $coopProgramId,
+        ])->with('success', 'File deleted successfully!');
+    }
+
+    public function uploadMoa(Request $request, $coopProgramId)
+    {
+        ini_set('max_execution_time', 120);
+        $request->validate([
+            'file' => 'required|file|max:20000|mimes:jpg,jpeg,png,pdf,doc,docx',
+        ]);
+
+        $coopProgram = CoopProgram::findOrFail($coopProgramId);
+
+        $file = $request->file('file');
+        $mime = $file->getClientMimeType();
+        $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
+        $extension = strtolower($file->getClientOriginalExtension());
+
+        $safeName = Str::slug($originalName, '_');
+        $dateStr = now()->format('Ymd');
+        $newFileName = "{$coopProgram->cooperative->name}_{$coopProgram->program->name}_MOA_{$dateStr}_{$safeName}.{$extension}";
+
+        $storedFilePath = $file->storeAs('moas_files', $newFileName);
+
+        CoopProgramMoa::updateOrCreate(
+            ['coop_program_id' => $coopProgram->id],
+            [
+                'file_path' => 'moas_files',
+                'file_name' => $newFileName,
+                'file_type' => $mime,
+            ]
+        );
+
+        return back()->with('success', 'MOA file uploaded successfully!');
+    }
+
+    public function previewMoa($coopProgramId)
+    {
+        $moa = CoopProgramMoa::where('coop_program_id', $coopProgramId)
+            ->firstOrFail();
+
+        return response()->file(storage_path('app/' . $moa->file_path));
     }
 }

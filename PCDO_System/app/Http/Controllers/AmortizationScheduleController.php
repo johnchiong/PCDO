@@ -11,6 +11,9 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 use Inertia\Inertia;
 
 class AmortizationScheduleController extends Controller
@@ -21,7 +24,7 @@ class AmortizationScheduleController extends Controller
         $loans = CoopProgram::with(['program', 'cooperative', 'amortizationSchedules'])
             ->withCount('amortizationSchedules')
             ->get()
-            ->map(fn ($p) => [
+            ->map(fn($p) => [
                 'id' => $p->cooperative?->id ?? 'N/A',
                 'cooperative_name' => $p->cooperative?->name ?? 'N/A',
                 'program_name' => $p->program?->name ?? 'N/A',
@@ -65,7 +68,7 @@ class AmortizationScheduleController extends Controller
 
         return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', $disposition.'; filename="'.$this->generateFileName($coopProgram, $suffix).'"')
+            ->header('Content-Disposition', $disposition . '; filename="' . $this->generateFileName($coopProgram, $suffix) . '"')
             ->header('Content-Length', strlen($pdfContent))
             ->header('Cache-Control', 'public, max-age=0, must-revalidate')
             ->header('Accept-Ranges', 'bytes')
@@ -111,13 +114,13 @@ class AmortizationScheduleController extends Controller
                 'status' => $coopProgram->program_status ?? 'N/A',
                 'program_status' => $coopProgram->program_status ?? 'N/A',
                 'resolved' => $coopProgram->program_status === 'Resolved',
-                'schedules' => $coopProgram->amortizationSchedules->map(fn ($s) => [
+                'schedules' => $coopProgram->amortizationSchedules->map(fn($s) => [
                     'id' => $s->id,
                     'due_date' => optional($s->due_date)->format('Y-m-d'),
                     'installment' => $s->installment ?? 0,
                     'penalty_amount' => $s->penalty_amount ?? 0,
                     'amount_paid' => $s->amount_paid ?? 0,
-                    'balance' => $s->balance ?? $s->installment ?? 0,
+                    'current_balance' => $s->balance ?? $s->current_balance ?? 0,
                     'is_paid' => $s->status === 'Paid',
                     'status' => $s->status ?? 'Unpaid',
                 ]),
@@ -132,28 +135,53 @@ class AmortizationScheduleController extends Controller
     // Marks Paid
     public function markPaid(Request $request, AmortizationSchedules $schedule)
     {
-
         $request->validate([
-            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:20000',
         ]);
 
         $binaryImage = file_get_contents($request->file('receipt_image')->getRealPath());
 
-        $schedule->update([
-            'status' => 'Paid',
-            'date_paid' => now(),
-            'balance' => 0,
-            'amount_paid' => $schedule->installment + $schedule->penalty_amount,
-            'receipt_image' => $binaryImage,
-        ]);
+        $due = ($schedule->balance ?? $schedule->current_balance) + $schedule->penalty_amount;
+
+        $schedule->amount_paid = $due;
+        $schedule->balance = null;
+        $schedule->status = 'Paid';
+        $schedule->date_paid = now();
+        $schedule->receipt_image = $binaryImage;
+        $schedule->save();
 
         return back()->with('success', 'Payment marked as paid.');
     }
+    public function OneTap(Request $request, $coopProgramId)
+    {
+        $request->validate([
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:20000',
+        ]);
 
-    // Sends Overdue Email
+        $binaryImage = file_get_contents($request->file('receipt_image')->getRealPath());
+
+        // Load CoopProgram with schedules
+        $coopProgram = CoopProgram::with('amortizationSchedules')->findOrFail($coopProgramId);
+
+
+        foreach ($coopProgram->amortizationSchedules as $schedule) {
+            if (!in_array($schedule->status, ['Paid', 'Resolved'])) {
+                $schedule->amount_paid = $schedule->current_balance + ($schedule->balance ?? 0);
+                $schedule->balance = 0;
+                $schedule->status = 'Paid';
+                $schedule->date_paid = now();
+                $schedule->receipt_image = $binaryImage;
+                $schedule->save();
+            }
+        }
+
+        return redirect()->back()->with('success', 'All schedules marked as paid successfully.');
+    }
+
+    // Sends A Overdue Email
     public function sendOverdueEmail($scheduleId)
     {
-        $schedule = AmortizationSchedules::with('coopProgram.cooperative', 'pendingnotifications')->findOrFail($scheduleId);
+        $schedule = AmortizationSchedules::with('coopProgram.cooperative', 'pendingnotifications', 'cooperative')->findOrFail($scheduleId);
         $programEmail = $schedule->coopProgram->cooperative->coopDetail->email ?? null;
 
         if (! $programEmail) {
@@ -168,39 +196,96 @@ class AmortizationScheduleController extends Controller
             ->where('type', 'overdue')
             ->update(['processed' => 1]);
 
-        return back()->with('success', 'Overdue email sent to '.$programEmail);
+        return back()->with('success', 'Overdue email sent to ' . $programEmail);
     }
 
-    // Add or remove penalty from a schedule
-    public function penalty(Request $request, AmortizationSchedules $schedule)
+    // Send all overdue notification
+    public function notifyAllOverdue()
     {
+        // Get all schedules that are overdue and not paid/resolved
+        $overdueSchedules = AmortizationSchedules::whereNotIn('status', ['Paid', 'Resolved'])
+            ->where('due_date', '<', now())
+            ->get();
 
-        // Automatically add 1% penalty if overdue and unpaid
-        if ($request->has('add')) {
-            $today = now();
-            if ($schedule->due_date < $today && $schedule->status !== 'Paid') {
-                $penalty = $schedule->installment * 0.01;
-                $schedule->penalty_amount += $penalty;
-                $schedule->save();
+        // Group schedules by coop_program
+        $groupedByCoop = $overdueSchedules->groupBy('coop_program_id');
 
-                return back()->with('success', '1% penalty added automatically for overdue payment.');
+        $report = [];
+
+        foreach ($groupedByCoop as $coopProgramId => $schedules) {
+            $coopProgram = CoopProgram::find($coopProgramId);
+            $Email = $coopProgram->cooperative->coopDetail->email;
+
+            if (!$Email) {
+                $report[] = "CoopProgram ID {$coopProgramId} not found. Skipped.";
+                continue;
             }
 
-            return back()->with('info', 'Schedule is not overdue or already paid.');
+            $coopName = $coopProgram->cooperative->name ?? 'Cooperative';
+
+            // Collect emails to notify
+            $Email = $coopProgram->cooperative->coopDetail->email;
+
+            if (empty($Email)) {
+                $report[] = "No emails found for {$coopName}. Skipped.";
+                continue;
+            }
+
+            // Build email content
+            $scheduleList = $schedules->map(function ($s) {
+                return "- Due: " . $s->due_date->format('M d, Y') .
+                    " | Amount: ₱" . number_format($s->current_balance + ($s->balance ?? 0));
+            })->implode("\n");
+
+            $message = "Dear {$coopName},\n\nThe following schedules are overdue:\n{$scheduleList}\n\nPlease settle immediately.\n\nThanks.";
+
+            try {
+                // Send email
+                Mail::raw($message, function ($mail) use ($Email) {
+                    $mail->to($Email)
+                        ->subject('Overdue Payment Notification');
+                });
+
+                $report[] = "Notification sent to {$coopName} ({implode(', ', $Email)}).";
+            } catch (\Exception $e) {
+                $report[] = "Failed to send to {$coopName}: " . $e->getMessage();
+            }
         }
 
-        // Remove penalty with remarks saved in notes column
+        return back()->with('success', 'Overdue notifications processed. Check log for details.');
+    }
+
+    // Remove penalty from a schedule
+    public function penalty(Request $request, AmortizationSchedules $schedule)
+    {
         if ($request->has('remove')) {
+
             $validated = $request->validate([
                 'remarks' => 'required|string|max:255',
             ]);
 
+            $penaltyToRemove = $schedule->penalty_amount;
+
+            if ($penaltyToRemove <= 0) {
+                return back()->with('error', 'No penalty to remove.');
+            }
+
+            AmortizationSchedules::where('coop_program_id', $schedule->coop_program_id)
+                ->whereDate('due_date', '>', $schedule->due_date)
+                ->whereDate('due_date', '<=', now())
+                ->orderBy('due_date', 'asc')
+                ->get()
+                ->each(function ($futureSchedule) use ($penaltyToRemove) {
+                    $futureSchedule->current_balance -= $penaltyToRemove;
+                    $futureSchedule->save();
+                });
+
             $schedule->update([
                 'penalty_amount' => 0,
-                'notes' => $validated['remarks'], // save remarks here
+                'notes' => $validated['remarks'],
             ]);
 
-            return back()->with('success', 'Penalty removed and remarks saved successfully.');
+            return back()->with('success', 'Penalty removed from current and all future balances successfully.');
         }
 
         return back()->with('error', 'Invalid action.');
@@ -213,54 +298,81 @@ class AmortizationScheduleController extends Controller
 
         $request->validate([
             'amount_paid' => 'required|numeric|min:0',
-            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+            'receipt_image' => 'required|image|mimes:jpeg,png,jpg|max:20000',
 
         ]);
 
         $binaryImage = file_get_contents($request->file('receipt_image')->getRealPath());
-
-        $payment = $request->amount_paid;
-        $remaining = $payment;
+        $remaining = $request->amount_paid;
 
         // Get all schedules for this coop program ordered by due date
         $schedules = AmortizationSchedules::where('coop_program_id', $schedule->coop_program_id)
-            ->orderBy('due_date', 'asc')
+            ->where('id', '>=', $schedule->id)
             ->get();
 
         // Reads everything and loops
         foreach ($schedules as $sch) {
-            if ($remaining <= 0) {
+
+            if ($remaining <= 0)
                 break;
-            }
 
-            $due = $sch->installment + $sch->penalty_amount;
-            $needed = $due - $sch->amount_paid;
+            // Calculate effective due considering any previous balance
+            $effectiveDue = $sch->current_balance + ($sch->balance ?? 0);
 
-            if ($needed > 0) {
-                $toPay = min($remaining, $needed);
-                $sch->amount_paid += $toPay;
-                $sch->balance = $due - $sch->amount_paid;
-                $remaining -= $toPay;
+            $toPay = min($remaining, $effectiveDue);
 
-                if ($sch->balance <= 0) {
-                    $sch->status = 'Paid';
-                    $sch->balance = 0;
-                    $sch->date_paid = now();
-                } else {
-                    $sch->status = 'Partial Paid';
-                }
+            $sch->amount_paid += $toPay;
 
-                $sch->receipt_image = $binaryImage;
-                $sch->save();
-            } else {
-                $sch->status = 'Paid';
-                $sch->balance = 0;
-                $sch->date_paid = $sch->date_paid ?? now();
-                $sch->save();
+            $newBalance = $effectiveDue - $toPay;
+
+            $sch->balance = $newBalance > 0 ? $newBalance : null;
+            $sch->status = $newBalance > 0 ? 'Partial Paid' : 'Paid';
+            $sch->date_paid = now();
+            $sch->receipt_image = $binaryImage;
+            $sch->save();
+
+            $remaining -= $toPay;
+
+            // ✅ Update next schedule's current_balance with leftover balance
+            $nextSchedule = AmortizationSchedules::where('coop_program_id', $sch->coop_program_id)
+                ->where('id', '>', $sch->id)
+                ->orderBy('id', 'asc')
+                ->first();
+
+            if ($nextSchedule && $newBalance > 0) {
+                $nextSchedule->current_balance += $newBalance;
+                $nextSchedule->save();
             }
         }
 
-        return back()->with('success', 'Payment noted successfully.');
+        $lastSchedule = AmortizationSchedules::where('coop_program_id', $schedule->coop_program_id)
+            ->orderByDesc('due_date')
+            ->first();
+
+        if ($lastSchedule && $lastSchedule->balance > 0) {
+            $nextDueDate = Carbon::parse($lastSchedule->due_date)->addMonth();
+            $carryOver = $lastSchedule->balance;
+
+
+
+            $newSchedule = AmortizationSchedules::create([
+                'coop_program_id' => $lastSchedule->coop_program_id,
+                'current_balance' => $carryOver,
+                'amount_paid' => 0,
+                'balance' => 0,
+                'penalty_amount' => 0,
+                'installment' => 0,
+                'status' => 'Unpaid',
+                'due_date' => $nextDueDate,
+            ]);
+
+
+            $lastSchedule->save();
+
+            $lastSchedule = $newSchedule;
+        }
+
+        return redirect()->back()->with('success', 'Payment noted successfully.');
     }
 
     // Marks Incomplete
@@ -280,7 +392,7 @@ class AmortizationScheduleController extends Controller
 
         // Validate uploaded file
         $request->validate([
-            'receipt' => 'required|mimes:jpg,jpeg,png,pdf|max:5120',
+            'receipt' => 'required|mimes:jpg,jpeg,png,pdf|max:20000',
         ]);
 
         // Directly read the file as binary (no storage or unlink)
@@ -378,8 +490,26 @@ class AmortizationScheduleController extends Controller
             ]);
 
         // Download filename
-        $filename = ($coopProgram->cooperative->name ?? 'Cooperative').'_Amortization_Schedule.pdf';
+        $filename = ($coopProgram->cooperative->name ?? 'Cooperative') . '_Amortization_Schedule_' . ($coopProgram->start_date)->format('Y-m-d') . '_' . ($coopProgram->end_date)->format('Y-m-d') . '.pdf';
 
         return $pdf->download($filename);
+    }
+
+    public function notifyOverdue()
+    {
+        $today = Carbon::today();
+        $overdueSchedules = AmortizationSchedules::whereDate('due_date', '<', $today)
+            ->where('status', '!=', 'Paid')
+            ->get()
+            ->groupBy('coop_program_id')
+            ->map(function ($schedules) {
+                return $schedules->sortByDesc('due_date')->first();
+            });
+
+        foreach ($overdueSchedules as $schedule) {
+            $this->sendOverdueEmail($schedule->id);
+        }
+
+        return back()->with('success', 'Overdue notifications sent successfully!');
     }
 }
