@@ -1,0 +1,168 @@
+body {
+    background: #f0ebf8;
+    font-family: Roboto, Arial, sans-serif;
+}
+
+/* MAIN WRAPPER */
+
+.app-content,
+.inventory-wrapper {
+    max-width: 800px !important; 
+    padding: 40px 20px;
+    margin: 0 auto;
+}
+
+/* HEADER CARD */
+
+.inventory-header {
+    background: white;
+    border-left: 5px solid #d56c10;
+    border-radius: 12px;
+    padding: 30px 40px;
+    box-shadow: 0 3px 3px rgba(0,0,0,0.12);
+}
+
+.gov-header {
+    background: white;
+    border-top: 8px solid #d56c10;
+    border-bottom: 8px solid #d56c10;
+    border-radius: 12px;
+    padding: 30px 30px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    margin-bottom: 20px;
+}
+
+.inventory-title {
+    font-size: 26px;
+    font-weight: 600;
+}
+
+.inventory-subtitle {
+    color: #5f6368;
+    margin-top: 6px;
+    font-size: 14px;
+}
+
+/* FORM SECTION */
+
+.form-card {
+    background: white;
+    border-radius: 12px;
+    padding: 28px;
+    margin-top: 20px;
+    box-shadow: 0 3px 3px rgba(0,0,0,0.12);
+
+    width: 100% !important; 
+    box-sizing: border-box;
+    position: relative;
+    border-left: 5px solid #d56c10;
+
+}
+
+/* GRID */
+
+.form-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* LABEL */
+
+.form-label {
+    font-size: 17px;
+    font-weight: 500;
+    margin-top: 8px;
+}
+
+/* INPUTS */
+
+.form-input,
+.form-select {
+    width: 100%;
+    border: 1px solid #989696;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 14px;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #673ab7;
+}
+
+/* BUTTONS */
+
+.add-btn {
+    background: #1a73e8;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-size: 14px;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.132);
+}
+
+.add-btn:hover {
+    background: #1669c1;
+}
+
+.submit-btn {
+    background: #188038;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.submit-btn:hover {
+    background: #146c2e;
+}
+
+.remove-btn {
+    color: #d93025;
+    font-size: 13px;
+    margin-top: 10px;
+}
+
+/* EQUIPMENT TITLE */
+
+.section-title {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+/* X remove button */
+.remove-x-btn{
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    font-weight: bold;
+    color: #d93025;
+    cursor: pointer;
+}
+
+.remove-x-btn:hover{
+    color: #a50e0e;
+    transform: scale(1.2);
+}
+
+/* EQUIPMENT ITEM CARD */
+.equipment-card{
+    background: white;
+    border-radius: 10px;
+    padding: 24px;
+    margin-top: 18px;
+    border: 1px solid #00000076;
+    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.219);
+    position: relative;
+}
+
+.equipment-divider{
+    border: none;
+    border-top: 2px solid #8c8c90a2;
+    margin: 30px 0;
+}
