@@ -8,7 +8,6 @@ import { BreadcrumbItem } from '@/types'
 import { toast } from "vue-sonner"
 // import { useDrafts } from '@/composables/useDrafts'
 // import { usePolling } from '@/composables/usePolling'
-import Label from '@/components/ui/label/Label.vue'
 import Input from '@/components/ui/input/Input.vue'
 import { usePage, router } from '@inertiajs/vue3'
 
@@ -32,6 +31,7 @@ const props = defineProps<{
     cities: Cities[]
     barangays: Barangays[]
     inventory?: CoopDetails | null
+    inventoryNames: { id: number, name: string, category: string }[]
 }>()
 
 /**
@@ -103,29 +103,20 @@ function onSelect(field: LocationFields, payload: { id: string; name: string }) 
 }
 
 function getStatusOptions(quantity: number) {
-    const q = Number(quantity) || 1
-    const options: string[] = []
+    const q = Number(quantity) || 0
+    const options = []
 
-    for (let servicable = q; servicable >= 0; servicable--) {
-        const unservicable = q - servicable
-
-        if (servicable === 0) {
-            options.push(`Unservicable ${unservicable}`)
-        } else if (unservicable === 0) {
-            options.push(`Servicable ${servicable}`)
-        } else {
-            options.push(`Servicable ${servicable} | Unservicable ${unservicable}`)
-        }
+    for (let i = 0; i <= q; i++) {
+        const servicable = q - i
+        const unservicable = i
+        options.push({
+            label: `Servicable ${servicable} | Unserviceable ${unservicable}`,
+            value: servicable
+        })
     }
-
     return options
 }
 
-watch(() => form.inventoryItem.map(item => item.quantity), () => {
-    form.inventoryItem.forEach(item => {
-        item.status = ""
-    })
-})
 
 const filteredProvinces = computed(() =>
     props.provinces.filter(p => String(p.region_code) === String(form.region_code))
@@ -139,35 +130,56 @@ const filteredBarangays = computed(() =>
     props.barangays.filter(b => String(b.city_code) === String(form.city_code))
 )
 
-const categoryOptions = ['Equipment', 'Machinery', 'Facilities']
+const categories = [
+    { label: 'Equipment', value: 'Equipment' },
+    { label: 'Machinery', value: 'Machinery' },
+    { label: 'Facilities', value: 'Facilities' }
+]
 
-/**
- * Equipment management
- */
+function getItemsByCategory(category: string) {
+    return form.inventoryItem.filter(item => item.category === category)
+}
 
-function addEquipment() {
+function addItem(category: string) {
     form.inventoryItem.push({
         id: Date.now(),
-        category: '',
+        category: category,
         name: '',
         guarantor_agency: '',
         location: '',
         value: 0,
         quantity: 0,
-        status: '',
+        status: 0,
         acquired_date: ''
     })
 }
 
-function removeEquipment(index: number) {
-    form.inventoryItem.splice(index, 1)
+function removeEquipment(id: number) {
+    const index = form.inventoryItem.findIndex(item => item.id === id)
+    if (index !== -1) form.inventoryItem.splice(index, 1)
 }
 
 function retakeForm() {
     router.visit('/inventory')
 }
 
-function submit() {
+
+function isAcronym(text: string) {
+    return /^[A-Z0-9&.\-]{2,10}$/.test(text.trim())
+}
+
+async function confirmAcronym(field: string, value: string) {
+
+    if (!isAcronym(value)) return true
+
+    return confirm(
+        `This "${value}" in ${field} appears to be an acronym.\n\n` +
+        `We require the full name. Continue submitting?`
+    )
+
+}
+
+async function submit() {
     if (!form.name.trim()) {
         toast.error("Cooperative Name is required")
         return
@@ -190,17 +202,65 @@ function submit() {
             !item.guarantor_agency.trim() ||
             !item.location.trim() ||
             !item.value ||
-            !item.quantity
+            !item.quantity ||
+            item.status === null ||
+            !item.acquired_date
         ) {
-            toast.error(`Please fill all fields for Inventory Item #${index + 1}`)
+            toast.error(`Please fill all fields for Inventory Item #${index + 1}: ${item.name || 'Unnamed Item'}`)
+            return
+        }
+    }
+
+    if (form.inventoryItem.some(item => item.acquired_date > today)) {
+        toast.error("Acquired date cannot be in the future")
+        return
+    }
+
+    if (form.inventoryItem.some(item => item.value < 0)) {
+        toast.error("Value cannot be negative")
+        return
+    }
+
+    if (form.inventoryItem.some(item => item.quantity < 0)) {
+        toast.error("Quantity cannot be negative")
+        return
+    }
+
+    if (form.inventoryItem.some(item => item.status !== null && item.status < 0)) {
+        toast.error("Status cannot be negative")
+        return
+    }
+
+    if (form.inventoryItem.some(item => item.status !== null && item.status > item.quantity)) {
+        toast.error("Status cannot be greater than quantity")
+        return
+    }
+
+    if (!await confirmAcronym("Cooperative Name", form.name)) return
+
+    for (const item of form.inventoryItem) {
+        if (!await confirmAcronym("Guarantor Agency", item.guarantor_agency)) {
             return
         }
     }
 
     form.post('/inventory', {
-        onSuccess: () => toast.success('Inventory saved successfully')
+        onSuccess: () => {
+            toast.success('Inventory saved successfully')
+        }
     })
 }
+
+const nameSearchState = reactive<Record<number, string>>({})
+const nameOpenState = reactive<Record<number, boolean>>({})
+
+function getNameOptions(category: string) {
+    if (!props.inventoryNames) return []
+    return props.inventoryNames.filter(
+        item => item.category === category
+    )
+}
+
 </script>
 
 <template>
@@ -300,82 +360,64 @@ function submit() {
                     </div>
                 </div>
 
-                <!-- EQUIPMENT -->
-                <div class="form-card">
-                    <div style="display:flex; justify-content:space-between; align-items:center">
-                        <h1 class="section-title">Equipment</h1>
-                        <button type="button" class="add-btn" @click="addEquipment">
-                            + Add Equipment
-                        </button>
+                <!-- INVENTORY SECTIONS -->
+                <div v-for="category in categories" :key="category.value" class="form-card">
+                    <div class="section-header">
+                        <h2 class="section-title">{{ category.label }}</h2>
                     </div>
+                    <!-- SHOW ITEMS ONLY IF ADDED -->
+                    <div v-for="(item, index) in getItemsByCategory(category.value)" :key="item.id"
+                        class="equipment-card">
+                        <div class="form-grid">
+                            <label class="form-label">{{ category.label }} #{{ index + 1 }}:
+                                <span v-if="item.name">{{ item.name }}</span>
+                                <span v-else class="equipment-unnamed">Unnamed Item</span></label>
 
-                    <!-- EQUIPMENT LIST -->
-                    <div v-for="(equipment, index) in form.inventoryItem" :key="equipment.id">
-
-                        <hr v-if="index > 0" class="equipment-divider">
-
-                        <div class="equipment-card">
-                            <label class="form-label">Equipment #{{ index + 1 }}</label>
-
-                            <button type="button" class="remove-x-btn" @click="removeEquipment(index)">
+                            <button type="button" class="remove-x-btn" @click="removeEquipment(item.id)">
                                 ✕
                             </button>
-
-                            <div class="form-grid">
-                                <div>
-                                    <label class="form-label">Category</label>
-
-                                    <select v-model="equipment.category" class="form-select">
-                                        <option value="">Select Category</option>
-                                        <option v-for="option in categoryOptions" :key="option">
-                                            {{ option }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="form-label">Name</label>
-                                    <Input class="form-input" v-model="equipment.name" />
-                                </div>
-                                <div>
-                                    <label class="form-label">Guarantor Agency</label>
-                                    <Input class="form-input" v-model="equipment.guarantor_agency" />
-                                </div>
-                                <div>
-                                    <label class="form-label">Location</label>
-                                    <Input class="form-input" v-model="equipment.location" />
-                                </div>
-                                <div>
-                                    <label class="form-label">Value</label>
-                                    <Input class="form-input" type="number" v-model="equipment.value" />
-                                </div>
-                                <div>
-                                    <label class="form-label">Quantity</label>
-                                    <Input class="form-input" type="number" v-model="equipment.quantity" />
-                                </div>
-                                <div>
-                                    <label class="form-label">Status</label>
-                                    <select v-model="equipment.status" class="form-select"
-                                        :disabled="equipment.quantity === 0">
-
-                                        <option value="">Select Status</option>
-
-                                        <option v-for="option in getStatusOptions(equipment.quantity)" :key="option"
-                                            :value="option">
-                                            {{ option }}
-                                        </option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label class="form-label">Acquired Date</label>
-
-                                    <Input class="form-input" type="date" v-model="equipment.acquired_date"
-                                        :max="today" />
-                                </div>
+                            <div>
+                                <label class="form-label">Name</label>
+                                <SelectSearch :items="getNameOptions(category.value)" itemLabelKey="name"
+                                    itemKeyProp="id" v-model:search="item.name" v-model:open="nameOpenState[item.id]"
+                                    @select="val => item.name = val.name" />
+                            </div>
+                            <div>
+                                <label class="form-label">Guaranteeing Agency</label>
+                                <Input class="form-input" v-model="item.guarantor_agency" />
+                            </div>
+                            <div>
+                                <label class="form-label">Location</label>
+                                <Input class="form-input" v-model="item.location" />
+                            </div>
+                            <div>
+                                <label class="form-label">Value</label>
+                                <Input class="form-input" type="number" v-model="item.value" />
+                            </div>
+                            <div>
+                                <label class="form-label">Quantity</label>
+                                <Input class="form-input" type="number" v-model="item.quantity" />
+                            </div>
+                            <div>
+                                <label class="form-label">Status</label>
+                                <select v-model="item.status" class="form-select" :disabled="item.quantity === 0">
+                                    <option value="">Select Status</option>
+                                    <option v-for="option in getStatusOptions(item.quantity)" :key="option.value"
+                                        :value="option.value">
+                                        {{ option.label }}
+                                    </option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="form-label">Acquired Date</label>
+                                <Input class="form-input" type="date" v-model="item.acquired_date" :max="today" />
                             </div>
                         </div>
                     </div>
+                    <button type="button" class="add-btn" @click="addItem(category.value)">
+                        + Add {{ category.label }}
+                    </button>
                 </div>
-
                 <!-- SUBMIT -->
 
                 <div style="margin-top:25px">

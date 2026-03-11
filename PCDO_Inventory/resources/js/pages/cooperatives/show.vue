@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3'
 import AppLayout from '@/layouts/InventoryLayout.vue'
 import type { BreadcrumbItem } from '@/types';
+import { SquarePen } from 'lucide-vue-next';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Details', href: `` }
@@ -47,6 +48,10 @@ function groupByCategory(inventories: any[]) {
 
                 <!-- RIGHT SIDE -->
                 <div class="coop-header-right">
+                    <button class="edit-btn" @click="$inertia.visit(`/cooperatives/${cooperative.id}/edit`)"
+                        title="Edit Cooperative">
+                        <SquarePen color="white" />
+                    </button>
                     <span class="report-label">Reporting Period</span>
 
                     <span class="report-badge">
@@ -88,7 +93,7 @@ function groupByCategory(inventories: any[]) {
                                 <th>Quantity</th>
                                 <th>Value</th>
                                 <th>Status</th>
-                                <th>Guarantor Agency</th>
+                                <th>Guaranteeing Agency</th>
                                 <th>Acquire Date</th>
                             </tr>
                         </thead>

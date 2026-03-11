@@ -93,22 +93,30 @@ body {
 }
 
 /* BUTTONS */
-
 .add-btn {
-    background: #1a73e8;
+    display: block; 
+    width: 100%;
+    text-align: center;
+    padding: 12px 0;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
     color: white;
-    padding: 10px 18px;
-    border-radius: 6px;
-    font-size: 14px;
-    box-shadow: 3px 3px 3px rgba(0, 0, 0, 0.132);
+    background: linear-gradient(90deg, #d56c10, #f7a53d); 
+    box-shadow: 3px 3px 6px rgba(0, 0, 0, 0.15);
+    border: none;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s ease;
 }
 
 .add-btn:hover {
-    background: #1669c1;
+    background: linear-gradient(90deg, #f7a53d, #d56c10); 
+    box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .submit-btn {
-    background: #188038;
+    background: #d56c10;
     color: white;
     padding: 12px 24px;
     border-radius: 6px;

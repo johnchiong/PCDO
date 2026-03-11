@@ -4,6 +4,7 @@ export interface Cities { code: string; name: string; province_code: string, reg
 export interface Barangays { code: string; name: string; city_code: string }
 
 export interface CoopDetails {
+  id: number;
   name: string;
   region_code: string;
   province_code: string;
@@ -22,6 +23,6 @@ export interface InventoryItem {
   location: string;
   value: number;
   quantity: number;
-  status: string;
+  status: number | null;
   acquired_date: string;
 }

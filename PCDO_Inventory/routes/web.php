@@ -12,6 +12,8 @@ Route::get('/', function () {
 // View Routes
 Route::get('/cooperatives', [CooperativeController::class, 'index'])->name('cooperatives.index');
 Route::get('/cooperatives/{id}', [CooperativeController::class, 'show'])->name('cooperatives.show');
+Route::get('/cooperatives/{id}/edit', [CooperativeController::class, 'edit'])->name('cooperatives.edit');
+Route::put('/cooperatives/{id}', [CooperativeController::class, 'update'])->name('cooperatives.update');
 Route::post('/reporting-dates', [ReportingDateController::class, 'store'])->name('reporting-dates.store');
 
 // Form routes 
