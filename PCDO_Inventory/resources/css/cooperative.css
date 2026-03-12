@@ -130,66 +130,48 @@
     width: 100%;
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 15px;
+    font-size: 14px;
     table-layout: fixed;
 }
 
-/* HEADER */
 .coop-table thead {
     background: linear-gradient(90deg, #FAD6A5 0%, #D56C10 100%);
 }
 
 .coop-table thead th {
-    text-align: left;
-    padding: 5px 20px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-size: 12px;
-    letter-spacing: 0.05em;
-}
-
-.coop-table thead th:first-child {
-    color: #431407;
     padding: 12px 20px;
-}
-
-.coop-table thead th:nth-child(2) {
-    text-align: center;
-    color: #484848;
-}
-
-.coop-table thead th:nth-child(3) {
-    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.05em;
     color: #ffffff;
+    text-align: left;
 }
 
-.coop-table thead th:nth-child(4) {
-    text-align: right;
-    color: #ffffff;
+.coop-table th:nth-child(1),
+.coop-table th:nth-child(2),
+.coop-table th:nth-child(3) {
+    color: #111827; 
+    font-weight: 700; 
 }
 
 /* COLUMN WIDTHS */
-.coop-table th:nth-child(1),
-.coop-table td:nth-child(1) {
-    width: 25%;
+.coop-table th, 
+.coop-table td {
+    width: 16.66%; 
+    padding: 14px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    color: #374151;
+    text-align: left; 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    word-wrap: break-word;
 }
 
-.coop-table th:nth-child(2),
-.coop-table td:nth-child(2) {
-    width: 25%;
+.coop-table th:nth-child(n+2),
+.coop-table td:nth-child(n+2) {
     text-align: center;
-}
-
-.coop-table th:nth-child(3),
-.coop-table td:nth-child(3) {
-    width: 25%;
-    text-align: right;
-}
-
-.coop-table th:nth-child(4),
-.coop-table td:nth-child(4) {
-    width: 25%;
-    text-align: right;
 }
 
 /* ROWS */
@@ -261,6 +243,15 @@
 .coop-view:hover {
     background: #2563eb;
     color: white;
+}
+
+.status-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.4;
+    font-size: 13px;
+    color: #374151;
 }
 
 /* PAGINATION */

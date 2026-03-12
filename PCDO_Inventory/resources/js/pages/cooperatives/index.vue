@@ -16,7 +16,7 @@ const props = defineProps<{
     reportingDates: any[]
     selectedReportingDate: number
     categories: { value: string; label: string }[]
-    inventoryNames: Record<number, any[]>
+    categoryCounts: Record<number, Record<string, number>>
     regions: any[],
     provinces: any[],
     cities: any[],
@@ -190,44 +190,51 @@ function applyFilters() {
                     <thead>
                         <tr>
                             <th>Cooperative</th>
-                            <th>Name</th>
+
+                            <th v-if="selectedCategory === 'all'">Equipments</th>
+                            <th v-if="selectedCategory === 'all'">Machinery</th>
+                            <th v-if="selectedCategory === 'all'">Facilities</th>
+                            <th v-else>{{ selectedCategory }}</th>
                             <th>Status</th>
                             <th>Inventory Count</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr v-if="filteredCooperatives.length === 0">
-                            <td colspan="4" class="coop-empty">
+                            <td colspan="6" class="coop-empty">
                                 No Cooperative Registered on Form
                             </td>
                         </tr>
                         <tr v-for="coop in filteredCooperatives" :key="coop.id" class="coop-row"
                             @click="openCoop(coop.id)">
                             <td>{{ coop.name }}</td>
+
+                            <template v-if="selectedCategory === 'all'">
+                                <td>{{ props.categoryCounts[coop.id]?.Equipment ?? 0 }}</td>
+                                <td>{{ props.categoryCounts[coop.id]?.Machinery ?? 0 }}</td>
+                                <td>{{ props.categoryCounts[coop.id]?.Facilities ?? 0 }}</td>
+                            </template>
+
+                            <template v-else>
+                                <td>{{ props.categoryCounts[coop.id]?.[selectedCategory] ?? 0 }}</td>
+                            </template>
+
                             <td>
-                                <div v-if="props.inventoryNames[coop.id]">
-                                    <div v-for="item in props.inventoryNames[coop.id]" :key="item.name">
-                                        {{ item.name }}
-                                    </div>
+                                <div v-if="selectedCategory === 'all'" class="status-stack">
+                                    <div>Serviceable: {{ totalServicable(coop.id) }}</div>
+                                    <div>Unserviceable: {{ totalUnservicable(coop.id) }}</div>
                                 </div>
-
-                                <span v-else>-</span>
-                            </td>
-                            <td>
-                                <span v-if="selectedCategory === 'all'">
-                                    Serviceable {{ totalServicable(coop.id) }}
-                                    |
-                                    Unserviceable {{ totalUnservicable(coop.id) }}
-                                </span>
-
-                                <span v-else>
-                                    Serviceable {{ inventoryStatus[coop.id]?.[selectedCategory]?.servicable ?? 0 }}
-                                    |
-                                    Unservicable {{ inventoryStatus[coop.id]?.[selectedCategory]?.unservicable ?? 0 }}
-                                </span>
+                                <div v-else class="status-stack">
+                                    <div>Serviceable: {{ inventoryStatus[coop.id]?.[selectedCategory]?.servicable ?? 0
+                                        }}</div>
+                                    <div>Unserviceable: {{ inventoryStatus[coop.id]?.[selectedCategory]?.unservicable ??
+                                        0 }}</div>
+                                </div>
                             </td>
 
-                            <td>{{ inventoryCounts[coop.id] ?? 0 }}</td>
+                            <td>{{ selectedCategory === 'all' ? (inventoryCounts[coop.id] ?? 0) :
+                                (categoryCounts[coop.id]?.[selectedCategory] ?? 0)
+                                }}</td>
                         </tr>
                     </tbody>
                 </table>

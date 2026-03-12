@@ -41,10 +41,11 @@ class CooperativeController extends Controller
             ->where('inventory_instances.reporting_date_id', $reportingDateId)
             ->select(
                 'inventory_instances.coop_id',
-                DB::raw('COUNT(inventories.id) as count')
+                // Change COUNT(...) to SUM(...)
+                DB::raw('SUM(inventories.quantity) as total_quantity')
             )
             ->groupBy('inventory_instances.coop_id')
-            ->pluck('count', 'coop_id');
+            ->pluck('total_quantity', 'coop_id');
 
         $inventoryStatus = DB::table('inventory_instances')
             ->join('inventories', 'inventory_instances.id', '=', 'inventories.inventory_instance_id')
@@ -70,16 +71,20 @@ class CooperativeController extends Controller
             ->map(fn ($cat) => ['value' => $cat, 'label' => $cat])
             ->toArray();
 
-        $inventoryNames = DB::table('inventory_instances')
+        $categoryCounts = DB::table('inventory_instances')
             ->join('inventories', 'inventory_instances.id', '=', 'inventories.inventory_instance_id')
             ->where('inventory_instances.reporting_date_id', $reportingDateId)
             ->select(
                 'inventory_instances.coop_id',
-                'inventories.name',
-                'inventories.category'
+                'inventories.category',
+                DB::raw('SUM(inventories.quantity) as total') // Use SUM here
             )
+            ->groupBy('inventory_instances.coop_id', 'inventories.category')
             ->get()
-            ->groupBy('coop_id');
+            ->groupBy('coop_id')
+            ->map(function ($items) {
+                return $items->pluck('total', 'category');
+            });
 
         $regions = Region::all();
         $provinces = Province::when($request->region_code, fn ($q) => $q->where('region_code', $request->region_code))->get();
@@ -98,10 +103,10 @@ class CooperativeController extends Controller
             'inventoryCounts' => $inventoryCounts,
             'reportingDate' => $reportingDate,
             'inventoryStatus' => $inventoryStatus,
-            'inventoryNames' => $inventoryNames,
             'reportingDates' => $reportingDates,
             'selectedReportingDate' => $reportingDateId,
             'categories' => $categories,
+            'categoryCounts' => $categoryCounts,
             'regions' => $regions,
             'provinces' => $provinces,
             'cities' => $cities,
