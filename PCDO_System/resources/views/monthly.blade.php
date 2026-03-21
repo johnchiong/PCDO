@@ -112,6 +112,11 @@
             margin-bottom: 30px;
         }
 
+        .header+h1,
+        .section h1 {
+            margin-top: 30px;
+        }
+
         .footer {
             position: fixed;
             bottom: -10px;
@@ -248,7 +253,8 @@
                             <th>Status</th>
                             <th class="text-right">Total Loan Amount</th>
                             <th class="text-right">Total Amount Paid</th>
-                            <th class="text-right">Total Remaining Balance + Penalty</th>
+                            <th class="text-right">Total Remaining Balance</th>
+                            <th class="text-right">Total Penalty</th>
                             <th class="text-right">Last Date Paid</th>
                         </tr>
                     </thead>
@@ -257,19 +263,28 @@
                             <tr>
                                 <td>{{ $index + 1 }}</td>
                                 <td>{{ $coop['cooperative_name'] }}</td>
-                                <td
-                                    class="
-                                                                                                                                                                @if($coop['payment_status'] === 'Paid') paid
-                                                                                                                                                                @elseif($coop['payment_status'] === 'Overdue') overdue
-                                                                                                                                                                @elseif($coop['payment_status'] === 'Unpaid') unpaid
-                                                                                                                                                                @else partial
-                                                                                                                                                                @endif
-                                                                                                                                                            ">
-                                    {{ $coop['payment_status'] }}
+                                <td>
+                                    @if($coop['overdue_status'] > 0)
+                                        <p class="overdue">Overdue Count: {{ $coop['overdue_status'] }}</p>
+                                    @endif
+                                    @php
+                                        $statusClass = match (strtolower($coop['payment_status'])) {
+                                            'paid' => 'paid',
+                                            'partial paid' => 'partial',
+                                            'pending' => 'pending',
+                                            'unpaid' => 'unpaid',
+                                            'resolved' => 'resolved',
+                                            default => 'unpaid',
+                                        };
+                                    @endphp
+                                    <p class="{{ $statusClass }}">
+                                        Currently: {{ $coop['payment_status'] }}
+                                    </p>
                                 </td>
                                 <td class="text-right">₱{{ $coop['loan_amount'] }}</td>
                                 <td class="text-right">₱{{ $coop['amount_paid'] }}</td>
-                                <td class="text-right">₱{{ $coop['remaining_balance'] }} + (₱{{ $coop['penalty'] }})</td>
+                                <td class="text-right">₱{{ $coop['remaining_balance'] }} </td>
+                                <td class="text-right">₱{{ $coop['penalty'] }}</td>
                                 <td class="text-right">{{ $coop['last_paid'] }}</td>
                             </tr>
                         @endforeach

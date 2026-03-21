@@ -149,9 +149,16 @@ class CooperativesController extends Controller
             'members_count' => 'required|integer|min:1',
             'total_asset' => 'required|numeric|min:0',
             'net_surplus' => 'required|numeric',
-            'email' => 'required|string|max:25',
+            'email' => 'required|string|max:50',
             'number' => 'required|string|max:20',
         ]);
+
+        if ($data['email'] && User::where('email', $data['email'])->exists()) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['email' => 'The email has already been taken by another user.']);
+        }
 
         $cooperative = Cooperative::where('name', $data['name'])->first();
         if ($cooperative) {
@@ -405,6 +412,13 @@ class CooperativesController extends Controller
                 'number' => $data['number'],
             ]
         );
+
+        if ($data['email'] && User::where('email', $data['email'])->where('id', '!=', $cooperative->user_id)->exists()) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['email' => 'The email has already been taken by another user.']);
+        }
 
         if ($data['email'] && $cooperative->user_id) {
             $user = User::find($cooperative->user_id);

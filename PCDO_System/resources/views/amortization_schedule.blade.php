@@ -170,6 +170,8 @@
                 <th>Date Paid</th>
                 <th>Amount Paid</th>
                 <th>Status</th>
+                <th>Remaining Balance</th>
+                <th>Penalty</th>
             </tr>
         </thead>
         <tbody>
@@ -177,25 +179,34 @@
                 $totalInstallment = 0;
             @endphp
 
-            @foreach($schedules as $i => $s)
-                @php
-                    $totalInstallment += $s->installment ?? 0;
-                @endphp
-                <tr>
-                    <td>{{ $i + 1 }}</td>
-                    <td>{{ \Carbon\Carbon::parse($s->due_date)->format('Y-m-d') }}</td>
-                    <td>{{ number_format($s->installment, 2) }}</td>
-                    <td>{{ $s->date_paid ? \Carbon\Carbon::parse($s->date_paid)->format('Y-m-d') : '' }}</td>
-                    <td>{{ $s->amount_paid ? number_format($s->amount_paid, 2) : '' }}</td>
-                    <td>{{ $s->status }}</td>
-                </tr>
-            @endforeach
+        @php
+            $totalInstallment = 0;
+            $remainingBalance = $coopProgram->loan_amount;
+        @endphp
+
+        @foreach($schedules as $i => $s)
+            @php
+                $totalInstallment += $s->installment ?? 0;
+                $paid = $s->amount_paid ?? 0;
+                $remainingBalance -= $paid;
+            @endphp
+            <tr>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ \Carbon\Carbon::parse($s->due_date)->format('Y-m-d') }}</td>
+                <td>{{ number_format($s->installment, 2) }}</td>
+                <td>{{ $s->date_paid ? \Carbon\Carbon::parse($s->date_paid)->format('Y-m-d') : '' }}</td>
+                <td>{{ $paid ? number_format($paid, 2) : '' }}</td>
+                <td>{{ $s->status }}</td>
+                <td>{{ number_format(max($remainingBalance, 0), 2) }}</td>
+                <td>{{ $s->penalty_amount }}</td>
+            </tr>
+        @endforeach
 
             {{-- Total Row --}}
             <tr class="total-row">
                 <td colspan="2">Total</td>
                 <td>{{ number_format($totalInstallment, 2) }}</td>
-                <td colspan="3"></td>
+                <td colspan="5"></td>
             </tr>
         </tbody>
     </table>

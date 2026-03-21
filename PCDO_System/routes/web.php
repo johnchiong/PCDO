@@ -4,8 +4,8 @@ use App\Http\Controllers\AdminAmortizationScheduleController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\AdminCoopController;
 use App\Http\Controllers\AdminCoopMemberController;
-use App\Http\Controllers\AdminCoopProgramProgressController;
 use App\Http\Controllers\AdminCoopProgramChecklistController;
+use App\Http\Controllers\AdminCoopProgramProgressController;
 use App\Http\Controllers\AdminDocumentationController;
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AdminProgramController;
@@ -20,6 +20,7 @@ use App\Http\Controllers\DocumentationController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProgramController;
 use App\Http\Controllers\CoopMemController;
+use App\Http\Controllers\InventoryFormController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -77,9 +78,9 @@ Route::middleware(['auth', 'role:admin|superadmin'])->prefix('admin')->name('adm
     Route::resource('programs', AdminProgramController::class);
 
     // Program Checklist
-    Route::post('programs/checklists', [AdminProgramController::class, 'storeChecklist'])->name('programs.checklists.store');
-    Route::put('programs/checklists/{id}', [AdminProgramController::class, 'updateChecklist'])->name('programs.checklists.update');
-    Route::delete('programs/checklists/{id}', [AdminProgramController::class, 'destroyChecklist'])->name('programs.checklists.destroy');
+    Route::post('/programs/checklists', [AdminProgramController::class, 'storeChecklist'])->name('programs.checklists.store');
+    Route::put('/programs/checklists/{id}', [AdminProgramController::class, 'updateChecklist'])->name('programs.checklists.update');
+    Route::delete('/programs/checklists/{id}', [AdminProgramController::class, 'destroyChecklist'])->name('programs.checklists.destroy');
 
     // Nested routes for adding cooperatives to a program
     Route::get('/programs/{program}/cooperatives/create', [AdminProgramController::class, 'createCooperative'])->name('programs.cooperatives.create');
@@ -135,7 +136,9 @@ Route::middleware(['auth', 'role:admin|superadmin'])->prefix('admin')->name('adm
     Route::get('/documentation/{id}/member-files/', [AdminDocumentationController::class, 'memberFile'])->name('documentation.member-files');
     Route::get('/documentation/{id}/delinquent', [AdminDocumentationController::class, 'delinquentReport'])->name('documentation.delinquent');
     Route::get('/documentation/{id}/progress', [AdminDocumentationController::class, 'progressReportFile'])->name('documentation.progress.file');
+    Route::get('/documentation/{id}/moa', [AdminDocumentationController::class, 'moaFile'])->name('documentation.moa');
     Route::get('/documentation/{id}/allfiles', [AdminDocumentationController::class, 'allFile'])->name('documentation.allfiles.file');
+    Route::get('/documentation/downloads', [AdminDocumentationController::class, 'downloadFiltered'])->name('documentation.filtered.download');
 });
 
 Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
@@ -188,6 +191,8 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
         Route::get('checklist/{file}/download', [CoopProgramChecklistController::class, 'download'])->name('programs.cooperatives.checklist.download');
         Route::delete('checklist/{file}', [CoopProgramChecklistController::class, 'delete'])->name('programs.cooperatives.checklist.delete');
         Route::post('finalize-loan', [ProgramController::class, 'finalizeLoan'])->name('cooperatives.finalizeLoan');
+        Route::post('upload-moa', [CoopProgramChecklistController::class, 'uploadMoa'])->name('programs.cooperatives.uploadMoa.post');
+        Route::get('preview-moa', [CoopProgramChecklistController::class, 'previewMoa'])->name('programs.cooperatives.previewMoa');
     });
 
     // Cooperatives Programs Routes
@@ -228,7 +233,9 @@ Route::middleware(['auth', 'verified', 'role:officer'])->group(function () {
     Route::get('/documentation/{id}/member-files/', [DocumentationController::class, 'memberFile'])->name('documentation.member-files');
     Route::get('/documentation/{id}/delinquent', [DocumentationController::class, 'delinquentReport'])->name('documentation.delinquent');
     Route::get('/documentation/{id}/progress', [DocumentationController::class, 'progressReportFile'])->name('documentation.progress.file');
+    Route::get('/documentation/{id}/moa', [DocumentationController::class, 'moaFile'])->name('documentation.moa');
     Route::get('/documentation/{id}/allfiles', [DocumentationController::class, 'allFile'])->name('documentation.allfiles.file');
+    Route::get('/documentation/downloads', [DocumentationController::class, 'downloadFiltered'])->name('documentation.filtered.download');
 
     // // Resolved Routes
     // Route::get('/resolved/{coopProgram}/upload', [ResolvedController::class, 'create'])->name('resolved.create');
@@ -263,6 +270,7 @@ Route::middleware(['auth', 'role:cooperative'])->prefix('coop')->name('coop.')->
     Route::get('/schedules', [CoopController::class, 'schedules'])->name('schedules.index');
 
 });
+
 
 require __DIR__.'/settings.php';
 require __DIR__.'/auth.php';
