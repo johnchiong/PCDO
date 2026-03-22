@@ -15,11 +15,21 @@ class Inventory extends Model
         'quantity',
         'status',
         'acquired_date',
-        'guarantor_agency',
+        'granting_agency',
     ];
 
     public function instance()
     {
         return $this->belongsTo(InventoryInstance::class, 'inventory_instance_id');
+    }
+
+    public function itemPictures()
+    {
+        return $this->hasMany(ItemPicturesFiles::class, 'inventory_id');
+    }
+
+    public function moaFiles()
+    {
+        return $this->hasMany(MoaFile::class, 'inventory_id');
     }
 }

@@ -1,19 +1,14 @@
 <script setup lang="ts">
-import AppLayout from '@/layouts/app/AppInventoryLayout.vue';
-import type { BreadcrumbItem } from '@/types';
+import AuthLayout from '@/layouts/auth/AuthSimpleLayout.vue';
 
-type Props = {
-    breadcrumbs?: BreadcrumbItem[];
-};
-
-withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
-});
+defineProps<{
+    title?: string;
+    description?: string;
+}>();
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <Toaster />
+    <AuthLayout :title="title" :description="description">
         <slot />
-    </AppLayout>
+    </AuthLayout>
 </template>

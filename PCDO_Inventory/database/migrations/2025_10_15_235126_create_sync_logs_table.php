@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('sync_logs', function (Blueprint $table) {
+        Schema::create('logs', function (Blueprint $table) {
             $table->id();
             $table->string('table_name');
             $table->string('operation');
             $table->string('record_id', 50)->nullable();
-            // $table->unsignedBigInteger('user_id')->nullable();
-            // $table->string('user_name')->nullable();
+            $table->unsignedBigInteger('user_id')->nullable();
+            $table->string('user_name')->nullable();
             $table->json('changes')->nullable();
             $table->string('source')->default('cloud');
             $table->timestamp('executed_at')->useCurrent();

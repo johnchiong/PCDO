@@ -1,177 +1,297 @@
-<!-- src/components/SelectSearch.vue -->
-
 <template>
-    <div class="relative w-full" ref="root">
+    <div class="select-search" ref="root">
+        <div class="input-wrap">
+            <input
+                ref="inputEl"
+                v-bind="$attrs"
+                :id="id"
+                :value="searchValue"
+                :placeholder="placeholder"
+                :disabled="disabled"
+                class="select-input"
+                autocomplete="off"
+                @focus="handleFocus"
+                @input="handleInput"
+                @keydown.down.prevent="highlightNext"
+                @keydown.up.prevent="highlightPrev"
+                @keydown.enter.prevent="handleEnter"
+                @keydown.esc.prevent="closeDropdown"
+            />
 
-        <input
-            v-bind="$attrs"
-            :id="id"
-            v-model="searchValue"
-            :placeholder="placeholder"
-            @focus="openLocal()"
-            @input="onInput"
-            :disabled="disabled"
-            class="select-input"
-        />
+            <button
+                v-if="!disabled && searchValue"
+                type="button"
+                class="clear-btn"
+                aria-label="Clear selection"
+                @click.stop="clearSelection"
+            >
+                ×
+            </button>
+        </div>
 
-        <div
-            v-if="open && filtered.length > 0"
-            class="select-dropdown"
-        >
+        <div v-if="open && filteredItems.length > 0" class="select-dropdown">
             <ul>
                 <li
-                    v-for="item in filtered"
-                    :key="itemKey(item)"
-                    @click="selectItem(item)"
+                    v-for="(item, index) in filteredItems"
+                    :key="String(itemKey(item))"
                     class="select-option"
+                    :class="{ active: index === highlightedIndex }"
+                    @mousedown.prevent="selectItem(item)"
+                    @mousemove="highlightedIndex = index"
                 >
                     {{ itemLabel(item) }}
                 </li>
             </ul>
         </div>
-
     </div>
 </template>
 
-<style scoped>
-
-.select-search {
-  position: relative;
-  width: 100%;
-}
-
-.select-input {
-  width: 100%;
-  border: 1px solid #989696;
-  border-radius: 6px;
-  padding: 10px;
-  font-size: 14px;
-}
-
-.select-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 100%;
-  background: white;
-  border: 1px solid #dadce0;
-  border-radius: 6px;
-  margin-top: 4px;
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 1000;
-  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
-}
-
-.select-option {
-  padding: 8px 12px;
-  cursor: pointer;
-}
-
-.select-option:hover {
-  background: #f1f3f4;
-}
-
-.select-input:focus {
-  outline: none;
-  border-color: #673ab7;
-  box-shadow: 0 0 0 2px rgba(103,58,183,0.15);
-}
-
-</style>
-
-
 <script setup lang="ts">
-import { ref, watch, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+
+type Item = Record<string, any> | string | number
 
 const props = defineProps({
-	id: { type: String, default: '' },
-	items: { type: Array as () => any[], default: () => [] },
-	placeholder: { type: String, default: 'Search' },
-	disabled: { type: Boolean, default: false },
-	modelValue: { type: [String, Number], default: '' },
-	open: { type: Boolean, default: false },
-	itemLabelKey: { type: String, default: 'name' },
-	itemKeyProp: { type: String, default: 'id' },
+    id: { type: String, default: '' },
+    items: { type: Array as () => Item[], default: () => [] },
+    placeholder: { type: String, default: 'Search' },
+    disabled: { type: Boolean, default: false },
+
+    modelValue: { type: [String, Number, null], default: '' },
+    open: { type: Boolean, default: false },
+
+    itemLabelKey: { type: String, default: 'name' },
+    itemKeyProp: { type: String, default: 'id' },
+
+    /**
+     * false = must choose from list
+     * true  = can type custom value
+     */
+    freeInput: { type: Boolean, default: false },
+
+    /**
+     * true = clear visible input text on focus
+     * useful for location picker style UX
+     */
+    clearOnFocus: { type: Boolean, default: false },
 })
 
-const emits = defineEmits(['update:modelValue', 'select', 'update:open', 'update:search'])
-const searchValue = ref(props.modelValue ?? '')
-const open = ref(props.open)
-
-watch(() => props.open, v => open.value = v)
-watch(
-	() => props.modelValue,
-	(val) => {
-		if (!val) {
-			searchValue.value = ''
-			return
-		}
-		const match = props.items.find(i => itemKey(i) === val)
-		searchValue.value = match ? itemLabel(match) : ''
-	},
-	{ immediate: true }
-)
-const filtered = computed(() => {
-	if (!searchValue.value) return props.items
-	const q = searchValue.value.toString().toLowerCase()
-	return props.items.filter(it => {
-		const text = itemLabel(it).toString().toLowerCase()
-		return text.includes(q)
-	})
-})
-
-function itemLabel(it: any) {
-	return typeof it === 'string' ? it : it[props.itemLabelKey]
-}
-
-function itemKey(it: any) {
-	return typeof it === 'string' ? it : it[props.itemKeyProp] ?? itemLabel(it)
-}
-
-function selectItem(it: any) {
-	const label = itemLabel(it)
-	const id = itemKey(it)
-	emits('update:modelValue', id)
-	emits('select', { name: label, id })
-	searchValue.value = label
-	open.value = false
-	emits('update:open', false)
-	emits('update:search', label)
-}
-
-function onInput() {
-	const q = searchValue.value.toString().toLowerCase()
-	const match = props.items.find(it => itemLabel(it).toString().toLowerCase() === q)
-	if (match) {
-		selectItem(match)
-	} else {
-		emits('update:modelValue', '')
-		emits('update:search', searchValue.value)
-		open.value = true
-		emits('update:open', true)
-	}
-}
-function openLocal() {
-	if (!props.disabled) {
-		searchValue.value = ''
-		open.value = true
-		emits('update:open', true)
-	}
-}
-function onOutside() {
-	open.value = false
-	emits('update:open', false)
-}
+const emit = defineEmits([
+    'update:modelValue',
+    'update:open',
+    'update:search',
+    'select',
+])
 
 const root = ref<HTMLElement | null>(null)
+const inputEl = ref<HTMLInputElement | null>(null)
+
+const open = ref(props.open)
+const searchValue = ref('')
+const highlightedIndex = ref(-1)
+const isFocused = ref(false)
+
+watch(
+    () => props.open,
+    (value) => {
+        open.value = value
+        if (!value) {
+            highlightedIndex.value = -1
+        }
+    }
+)
+
+function itemLabel(item: Item) {
+    if (typeof item === 'string' || typeof item === 'number') return String(item)
+    return String(item?.[props.itemLabelKey] ?? '')
+}
+
+function itemKey(item: Item) {
+    if (typeof item === 'string' || typeof item === 'number') return item
+    return item?.[props.itemKeyProp] ?? itemLabel(item)
+}
+
+function findExactMatchByValue(value: string | number | null | undefined) {
+    if (value === '' || value === null || value === undefined) return null
+    return props.items.find(item => String(itemKey(item)) === String(value)) ?? null
+}
+
+function findExactMatchByLabel(label: string) {
+    return props.items.find(
+        item => itemLabel(item).toLowerCase() === label.toLowerCase()
+    ) ?? null
+}
+
+function getDisplayValueFromModel(value: string | number | null | undefined) {
+    if (value === '' || value === null || value === undefined) return ''
+
+    const matched = findExactMatchByValue(value)
+    if (matched) return itemLabel(matched)
+
+    return String(value)
+}
+
+watch(
+    () => props.modelValue,
+    (value) => {
+        searchValue.value = getDisplayValueFromModel(value)
+    },
+    { immediate: true }
+)
+
+watch(
+    () => props.items,
+    () => {
+        if (!isFocused.value) {
+            searchValue.value = getDisplayValueFromModel(props.modelValue)
+        }
+    },
+    { deep: true }
+)
+
+const filteredItems = computed(() => {
+    const q = searchValue.value.trim().toLowerCase()
+
+    if (!q) return props.items
+
+    return props.items.filter(item =>
+        itemLabel(item).toLowerCase().includes(q)
+    )
+})
+
+function setOpen(value: boolean) {
+    open.value = value
+    emit('update:open', value)
+
+    if (!value) {
+        highlightedIndex.value = -1
+    } else if (filteredItems.value.length > 0) {
+        highlightedIndex.value = 0
+    }
+}
+
+function handleFocus() {
+    if (props.disabled) return
+
+    isFocused.value = true
+
+    if (props.clearOnFocus) {
+        searchValue.value = ''
+        emit('update:search', '')
+    }
+
+    setOpen(true)
+}
+
+function handleInput(event: Event) {
+    const target = event.target as HTMLInputElement
+    const raw = target.value
+
+    searchValue.value = raw
+    emit('update:search', raw)
+
+    if (props.freeInput) {
+        emit('update:modelValue', raw)
+    } else {
+        const exactMatch = findExactMatchByLabel(raw)
+
+        if (exactMatch) {
+            const value = itemKey(exactMatch)
+            emit('update:modelValue', value)
+        }
+    }
+
+    setOpen(true)
+}
+
+function selectItem(item: Item) {
+    const label = itemLabel(item)
+    const value = itemKey(item)
+
+    searchValue.value = label
+
+    emit('update:modelValue', value)
+    emit('update:search', label)
+    emit('select', { id: value, name: label })
+
+    setOpen(false)
+    inputEl.value?.blur()
+}
+
+function closeDropdown() {
+    if (!open.value) return
+
+    if (props.freeInput) {
+        const trimmed = searchValue.value.trim()
+        searchValue.value = trimmed
+        emit('update:modelValue', trimmed)
+        emit('update:search', trimmed)
+    } else {
+        searchValue.value = getDisplayValueFromModel(props.modelValue)
+        emit('update:search', searchValue.value)
+    }
+
+    setOpen(false)
+}
+
+function clearSelection() {
+    searchValue.value = ''
+    emit('update:modelValue', '')
+    emit('update:search', '')
+    setOpen(false)
+    inputEl.value?.focus()
+}
+
+function highlightNext() {
+    if (!open.value) {
+        setOpen(true)
+        return
+    }
+
+    if (!filteredItems.value.length) return
+
+    highlightedIndex.value =
+        highlightedIndex.value < filteredItems.value.length - 1
+            ? highlightedIndex.value + 1
+            : 0
+}
+
+function highlightPrev() {
+    if (!open.value) {
+        setOpen(true)
+        return
+    }
+
+    if (!filteredItems.value.length) return
+
+    highlightedIndex.value =
+        highlightedIndex.value > 0
+            ? highlightedIndex.value - 1
+            : filteredItems.value.length - 1
+}
+
+function handleEnter() {
+    if (!open.value) return
+
+    if (
+        highlightedIndex.value >= 0 &&
+        highlightedIndex.value < filteredItems.value.length
+    ) {
+        selectItem(filteredItems.value[highlightedIndex.value])
+        return
+    }
+
+    if (props.freeInput) {
+        closeDropdown()
+    }
+}
 
 function handleClickOutside(event: MouseEvent) {
     if (!root.value) return
-    if (!root.value.contains(event.target as Node)) {
-        open.value = false
-        emits('update:open', false)
-    }
+    if (root.value.contains(event.target as Node)) return
+
+    isFocused.value = false
+    closeDropdown()
 }
 
 onMounted(() => {
@@ -182,3 +302,72 @@ onUnmounted(() => {
     document.removeEventListener('mousedown', handleClickOutside)
 })
 </script>
+
+<style scoped>
+.select-search {
+    position: relative;
+    width: 100%;
+}
+
+.input-wrap {
+    position: relative;
+    width: 100%;
+}
+
+.select-input {
+    width: 100%;
+    border: 1px solid #989696;
+    border-radius: 6px;
+    padding: 10px;
+    padding-right: 36px;
+    font-size: 14px;
+}
+
+.select-input:focus {
+    outline: none;
+    border-color: #673ab7;
+    box-shadow: 0 0 0 2px rgba(103, 58, 183, 0.15);
+}
+
+.select-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    background: white;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 1000;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.select-option {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.select-option:hover,
+.select-option.active {
+    background: #f1f3f4;
+}
+
+.clear-btn {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    color: #666;
+    padding: 0;
+}
+
+.clear-btn:hover {
+    color: #000;
+}
+</style>
