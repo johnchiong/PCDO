@@ -39,6 +39,11 @@ class AuthenticatedSessionController extends Controller
         }
 
         $user = User::where('email', $request->email)->first();
+        if (! $user->active) {
+            return back()->withErrors([
+                'email' => 'Your account is inactive. Please contact the administrator account at PCDO.palawan@gmail.com to reactivate your account.',
+            ]);
+        }
         $code = rand(100000, 999999);
 
         session([
@@ -85,9 +90,11 @@ class AuthenticatedSessionController extends Controller
                 return redirect()->route('admin.dashboard');
             } elseif ($user->hasRole('officer')) {
                 return redirect()->route('dashboard');
+            } elseif ($user->hasRole('cooperative')) {
+                return redirect()->route('coop.dashboard', $user->cooperative?->id);
             } else {
-                // fallback for users with no role or other roles
-                return redirect()->route('home');
+                Auth::logout();
+                return back()->withErrors(['code' => 'Unauthorized role.']);
             }
         }
 

@@ -201,7 +201,7 @@ usePolling(["cooperatives"], 15000);
 
     <Head title="Cooperatives" />
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="bg-gray-100/90 dark:bg-gray-900 min-h-screen">
+        <div class="min-h-screen">
             <div class="px-5 md:px-5 pt-5">
                 <!-- Top Actions Card -->
                 <div
@@ -415,7 +415,7 @@ usePolling(["cooperatives"], 15000);
 
                                 <!-- Empty State -->
                                 <TableRow v-if="paginatedCooperatives.length === 0">
-                                    <TableCell colspan="7" class="text-center text-gray-500 dark:text-gray-400 py-6">
+                                    <TableCell colspan="8" class="text-center text-gray-500 dark:text-gray-400 py-6">
                                         No Cooperatives found.
                                     </TableCell>
                                 </TableRow>
